@@ -1,0 +1,2 @@
+# ndlib
+Network Diffusion library
