@@ -110,7 +110,7 @@ class DiffusionModel(object):
                 self.params['model']['percentage_infected'] = percentage_infected
 
         number_of_initial_infected = len(self.graph.nodes()) * percentage_infected
-        sampled_nodes = np.random.choice(self.status.keys(), number_of_initial_infected, replace=False)
+        sampled_nodes = np.random.choice(self.status.keys(), int(number_of_initial_infected), replace=False)
 
         for k in sampled_nodes:
             self.status[k] = 1
@@ -142,12 +142,9 @@ class DiffusionModel(object):
 
     def iteration_bunch(self, bunch_size):
         system_status = []
-        # iterator = self.iteration()
         for it in xrange(0, bunch_size):
             itd, status = self.iteration()
-            # itd, status = iterator.next()
-            iteration = {"iteration": itd, "status": status}
-            system_status.append(iteration)
+            system_status.append({"iteration": itd, "status": status.copy()})
         return system_status
 
     def complete_run(self):
@@ -170,7 +167,7 @@ class DiffusionModel(object):
             if flag:
                 confidence -= 1
 
-            system_status.append(iteration)
+            system_status.append(iteration.copy())
 
         return system_status
 
