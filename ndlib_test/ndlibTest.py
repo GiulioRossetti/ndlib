@@ -6,6 +6,7 @@ import ndlib.VoterModel as vm
 import ndlib.SznajdModel as sm
 import ndlib.MajorityRuleModel as mrm
 import ndlib.QVoterModel as qvm
+import CognitiveOpDynModel as cm
 
 __author__ = 'rossetti'
 __license__ = "GPL"
@@ -40,4 +41,11 @@ class NdlibTest(unittest.TestCase):
         model = qvm.QVoterModel(g, {'q': 5})
         model.set_initial_status({'model': {'percentage_infected': 0.6}})
         iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+
+    def test_cognitive_model(self):
+        g=nx.complete_graph(100)
+	model=cm.CognitiveOpDynModel(g,{'I':0.8})
+	model.set_initial_status()
+	iterations=model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
