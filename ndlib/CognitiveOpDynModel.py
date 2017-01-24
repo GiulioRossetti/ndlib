@@ -8,10 +8,10 @@ __email__ = "alina.sirbu@unipi.it"
 class CognitiveOpDynModel(DiffusionModel):
     """
     Implements the cognitive model of opinion dynamics by Villone et al.
-    One model parameter: 'I' external information value in [0,1].
+    Model parameters: (1) self.params['I'], external information value in [0,1]; (2) self.params['T_range'], a 2-tuple representing the range of initial values for node parameter T; (3) self.params['B_range'], a 2-tuple representing the range of initial values for node parameter B; (4) self.params['R_distribution'], a 3-tuple representing the fraction of nodes in the population taking the 3 possible R values.
     Node states are continuous values in [0,1].
     Additional node parameters encode risk sensitivity R in {0,-1,+1}, tendency to communicate B in [0,1], trust towards institutions T in [0,1].  These are stored in the 'cognitive' node parameter.
-    The initial state is generated randomly uniformly from the domain.
+    The initial state is generated randomly uniformly from the domain defined by model parameters.
     """
 
     def set_initial_status(self, configuration=None):
@@ -27,12 +27,19 @@ class CognitiveOpDynModel(DiffusionModel):
             self.status[node] = np.random.random_sample()
         self.initial_status = self.status.copy()
         # set new node parameters
-        RDomain = [-1, 0, 1]
         self.params['nodes']['cognitive'] = {}
         for node in self.graph.nodes():
+            R_prob=np.random.random_sample();
+            if R_prob<self.params['R_distribution'][0]:
+                R=-1
+            elif R_prob<(self.params['R_distribution'][0]+self.params['R_distribution'][1]):
+                R=0
+            else:
+                R=1
             # R, B and T parameters in a tuple
-            self.params['nodes']['cognitive'][node] = (
-            RDomain[np.random.randint(0, 3)], np.random.random_sample(), np.random.random_sample())
+            self.params['nodes']['cognitive'][node] = (R,
+                                                       self.params['B_range'][0]+(self.params['B_range'][1]-self.params['B_range'][0])*np.random.random_sample(),
+                                                       self.params['T_range'][0]+(self.params['T_range'][1]-self.params['T_range'][0])*np.random.random_sample())
 
     def iteration(self):
         """
