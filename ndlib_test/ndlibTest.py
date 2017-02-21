@@ -49,3 +49,10 @@ class NdlibTest(unittest.TestCase):
 	model.set_initial_status()
 	iterations=model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
+	
+    def test_si_model(self):
+        g = nx.complete_graph(100)
+        model = mrm.SIModel(g, {'beta': 0.5})
+        model.set_initial_status({'model': {'percentage_infected': 0.1}})
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
