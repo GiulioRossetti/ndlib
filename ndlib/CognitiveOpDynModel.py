@@ -85,6 +85,8 @@ class CognitiveOpDynModel(DiffusionModel):
 
             # select all of the nodes neighbours (no digraph possible)
             neighbours = self.graph.neighbors(n1)
+            if len(neighbours) == 0:
+                continue
 
             # select second node - a random neighbour
             n2 = neighbours[np.random.randint(0, len(neighbours))]
