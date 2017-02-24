@@ -65,23 +65,21 @@ class DiffusionModel(object):
 
         # Set additional node information
 
-        for n in self.graph.nodes():
+        if configuration is not None and 'nodes' in configuration and 'threshold' in configuration['nodes']:
+            if len(configuration['nodes']['threshold']) < len(self.graph.nodes()):
+                raise Exception
+            self.params['nodes']['threshold'] = configuration['nodes']['threshold']
+        else:
+            for n in self.graph.nodes():
+                self.params['nodes']['threshold'][str(n)] = np.random.random_sample()
 
-            if configuration is not None and'nodes' in configuration and 'threshold' in configuration['nodes']:
-                if len(configuration['nodes']['threshold']) < len(self.graph.nodes()):
-                    raise Exception
-
-                self.params['nodes']['threshold'][int(n)] = configuration['nodes']['threshold'][str(n)]
-            else:
-                self.params['nodes']['threshold'][int(n)] = np.random.random_sample()
-
-            if configuration is not None and 'nodes' in configuration and 'profile' in configuration['nodes']:
-                if len(configuration['nodes']['profile']) < len(self.graph.nodes()):
-                    raise Exception
-
-                self.params['nodes']['profile'][int(n)] = configuration['nodes']['profile'][str(n)]
-            else:
-                self.params['nodes']['profile'][int(n)] = np.random.random_sample()
+        if configuration is not None and 'nodes' in configuration and 'profile' in configuration['nodes']:
+            if len(configuration['nodes']['profile']) < len(self.graph.nodes()):
+                raise Exception
+            self.params['nodes']['profile'] = configuration['nodes']['profile']
+        else:
+            for n in self.graph.nodes():
+                self.params['nodes']['profile'][str(n)] = np.random.random_sample()
 
         # Set additional edges information
         if configuration is not None and 'edges' in configuration:
@@ -127,48 +125,35 @@ class DiffusionModel(object):
             if 'infected_nodes' in configuration['model']:
                 self.params['model']['infected_nodes'] = configuration['model']['infected_nodes']
                 for node in self.params['model']['infected_nodes']:
-                    self.status[node] = 1
+                    self.status[int(node)] = 1
                 self.initial_status = self.status
-                return
 
             elif 'percentage_infected' in configuration['model']:
                 percentage_infected = configuration['model']['percentage_infected']
 
-        for k in self.status:
-            rnd = np.random.random_sample()
-            if rnd <= percentage_infected:
-                self.status[k] = 1
-        self.initial_status = self.status
+            if 'blocked' in configuration['model']:
+                for node in configuration['model']['blocked']:
+                    self.status[int(node)] = -1
+                self.initial_status = self.status
+
+        if 1 not in set(self.initial_status.values()):
+            subs = {n: s for n, s in self.initial_status.iteritems() if s != -1}
+            for k in subs:
+                rnd = np.random.random_sample()
+                if rnd <= percentage_infected:
+                    self.status[int(k)] = 1
+            self.initial_status = self.status
+
+    def clean_initial_status(self, valid_status=None):
+        for n, s in self.status.iteritems():
+            if s not in valid_status:
+                self.status[n] = 0
 
     def iteration_bunch(self, bunch_size):
         system_status = []
         for it in xrange(0, bunch_size):
             itd, status = self.iteration()
             system_status.append({"iteration": itd, "status": status.copy()})
-        return system_status
-
-    def complete_run(self):
-        system_status = []
-        previous_status = {}
-
-        confidence = 2
-
-        while True:
-
-            if confidence == 0:
-                break
-
-            itd, status = self.iteration()
-            iteration = {"iteration": itd, "status": status}
-
-            flag = self.check_status_similarity(status, previous_status)
-            previous_status = status
-
-            if flag:
-                confidence -= 1
-
-            system_status.append(iteration.copy())
-
         return system_status
 
     def getinfo(self):
@@ -196,3 +181,10 @@ class DiffusionModel(object):
             if previous[n] != actual[n]:
                 return False
         return True
+
+    def status_delta(self, actual_status):
+        delta = {}
+        for n, v in self.status.iteritems():
+            if v != actual_status[n]:
+                delta[n] = actual_status[n]
+        return delta

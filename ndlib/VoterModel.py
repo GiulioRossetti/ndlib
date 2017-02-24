@@ -13,6 +13,7 @@ class VoterModel(DiffusionModel):
     "infected" individuals
 
     """
+
     def iteration(self):
         """
         One iteration changes the opinion of one voter using the following procedure:
@@ -20,6 +21,12 @@ class VoterModel(DiffusionModel):
         - selecting randomly one of its peers (speaker)
         - the first voter takes the opinion of the peer (listener takes the opinion of speaker)
         """
+
+        self.clean_initial_status([0, 1])
+
+        if self.actual_iteration == 0:
+            self.actual_iteration += 1
+            return 0, self.status
 
         # select a random node
         listener = self.graph.nodes()[np.random.randint(0, self.graph.number_of_nodes())]
@@ -30,11 +37,12 @@ class VoterModel(DiffusionModel):
             # difficult to have a digraph but assumed if a->b then b can be influenced by a
             # but not the other way around
             neighbours = self.graph.predecessors(listener)
-        
+
         speaker = neighbours[np.random.randint(0, len(neighbours))]
 
         # update status of listener
+        delta = {listener: self.status[speaker]}
         self.status[listener] = self.status[speaker]
         self.actual_iteration += 1
 
-        return self.actual_iteration, self.status
+        return self.actual_iteration - 1, delta

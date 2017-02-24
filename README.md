@@ -85,6 +85,8 @@ One model (Cognitive Opinion Dynamics), due to his definition, employs real valu
 
 - NDlib describes diffusion models as agent-based simulations occurring at discrete time: once configured the desired model and selected the target network, subsequent iterations will provide to the user the current status of each node.
 
+- At each iterations are returned only the nodes (and current status) that changed their previous configuration. 
+
 ### Model configuration
 Every model needs few parameters to be executed, in order to make general the initialization and iterative steps we decided to describe model configuration via dictionaries. In particular to initialize the implemented models you must supply (the chosen values are only examples of possible configurations):
 ```python

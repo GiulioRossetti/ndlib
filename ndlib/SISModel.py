@@ -8,14 +8,23 @@ __email__ = "giulio.rossetti@gmail.com"
 
 class SISModel(DiffusionModel):
     """
-
+    Implement the SIR model of Kermack et al.
+    Model Parameters:
+    (1) the infection rate beta
+    (2) the recovery rate lambda
     """
 
     def iteration(self):
         """
 
         """
+        self.clean_initial_status([0, 1])
+
         actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
+
+        if self.actual_iteration == 0:
+            self.actual_iteration += 1
+            return 0, actual_status
 
         for u in self.graph.nodes():
 
@@ -33,33 +42,8 @@ class SISModel(DiffusionModel):
                 if eventp < self.params['lambda']:
                     actual_status[u] = 0
 
+        delta = self.status_delta(actual_status)
         self.status = actual_status
         self.actual_iteration += 1
 
-        return self.actual_iteration, actual_status
-
-    def complete_run(self, max_iteration=200):
-        system_status = []
-
-        previous_status = {}
-
-        confidence = 2
-        count = 0
-
-        while count < max_iteration:
-            count += 1
-            if confidence == 0:
-                break
-
-            itd, status = self.iteration()
-            iteration = {"iteration": itd, "status": status}
-
-            flag = self.check_status_similarity(status, previous_status)
-            previous_status = status
-
-            if flag:
-                confidence -= 1
-
-            system_status.append(iteration)
-
-        return system_status
+        return self.actual_iteration - 1, delta

@@ -13,6 +13,7 @@ class SznajdModel(DiffusionModel):
     "infected" individuals.
 
     """
+
     def iteration(self):
         """
         One iteration changes the opinion of several voters using the following procedure:
@@ -21,6 +22,12 @@ class SznajdModel(DiffusionModel):
         - if the two voters agree, their neighbours take their opinion
         """
 
+        self.clean_initial_status([0, 1])
+
+        if self.actual_iteration == 0:
+            self.actual_iteration += 1
+            return 0, self.status
+        delta = {}
         # select a random node
         speaker1 = self.graph.nodes()[np.random.randint(0, self.graph.number_of_nodes())]
 
@@ -29,8 +36,8 @@ class SznajdModel(DiffusionModel):
         if isinstance(self.graph, nx.DiGraph):
             # add also the predecessors
             neighbours += self.graph.predecessors(speaker1)
-        
-        speaker2 = neighbours[np.random.randint(0,len(neighbours))]
+
+        speaker2 = neighbours[np.random.randint(0, len(neighbours))]
 
         if self.status[speaker1] == self.status[speaker2]:
             # select listeners (all neighbours of two speakers)
@@ -43,8 +50,9 @@ class SznajdModel(DiffusionModel):
 
             # update status of listeners
             for listener in neighbours:
+                delta[listener] = self.status[speaker1]
                 self.status[listener] = self.status[speaker1]
 
         self.actual_iteration += 1
 
-        return self.actual_iteration, self.status
+        return self.actual_iteration - 1, delta

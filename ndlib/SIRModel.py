@@ -8,14 +8,23 @@ __email__ = "giulio.rossetti@gmail.com"
 
 class SIRModel(DiffusionModel):
     """
-
+    Implement the SIR model of Kermack et al.
+    Model Parameters:
+    (1) the infection rate beta
+    (2) the recovery rate gamma
     """
 
     def iteration(self):
         """
 
         """
+        self.clean_initial_status([0, 1, 2])
+
         actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
+
+        if self.actual_iteration == 0:
+            self.actual_iteration += 1
+            return 0, actual_status
 
         for u in self.graph.nodes():
 
@@ -33,7 +42,8 @@ class SIRModel(DiffusionModel):
                 if eventp < self.params['gamma']:
                     actual_status[u] = 2
 
+        delta = self.status_delta(actual_status)
         self.status = actual_status
         self.actual_iteration += 1
 
-        return self.actual_iteration, actual_status
+        return self.actual_iteration - 1, delta
