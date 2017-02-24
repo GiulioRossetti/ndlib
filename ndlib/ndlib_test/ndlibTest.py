@@ -82,7 +82,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_kertesz_model(self):
         g = nx.complete_graph(100)
-        model = ks.JanosThresholdModel(g, {'adopter_rate': 0.4, 'blocked': 0.1})
+        model = ks.KerteszThresholdModel(g, {'adopter_rate': 0.4, 'blocked': 0.1})
         threshold = 0.2
         threshold_list = (threshold, )
         for i in range(0, g.number_of_nodes()-1):

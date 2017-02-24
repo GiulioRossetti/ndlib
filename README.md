@@ -15,7 +15,7 @@ At the moment NDlib makes available the following models
  - W. O. Kermack and Ag McKendrick. A Contribution to the Mathematical Theory of Epidemics. Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, 1927.
 4. **Threshold** *(ThresholdModel)*
  - M. Granovetter. Threshold models of collective behavior. American Journal of Sociology, 1978  
-5. **Kertesz Threshold** *(JanosThresholdModel)*
+5. **Kertesz Threshold** *(KerteszThresholdModel)*
  - Karsai M., Iniguez G., Kaski K., and Kertesz J., Complex contagion process in spreading of online innovation. Journal of the Royal Society, 11(101), 2014
 6. **Independent Cascades** *(IndependentCascadeModel)*
  - D. Kempe, J. Kleinberg, and E. Tardos. Maximizing the Spread of Influence through a Social Network. In KDD, 2003.
@@ -101,7 +101,7 @@ model = m.ProfileThresholdModel(g) # needs node profile and threshold informatio
 model = m.SIModel(g, {'beta': 0.1})
 model = m.SIRModel(g, {'beta': 0.1, 'gamma': 0.1})
 model = m.SISModel(g, {'beta': 0.1, 'lambda': 0.1})
-model = m.JanosThresholdModel(g, {'adopter_rate': 0.1, 'blocked': 0.1}) # needs node threshold informations
+model = m.KerteszThresholdModel(g, {'adopter_rate': 0.1, 'blocked': 0.1}) # needs node threshold informations
 ```
 All parameters are specified within each method description.
 

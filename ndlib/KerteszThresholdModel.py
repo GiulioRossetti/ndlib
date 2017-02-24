@@ -7,7 +7,7 @@ __author__ = "Letizia Milli"
 __email__ = "letizia.milli@di.unipi.it"
 
 
-class JanosThresholdModel(DiffusionModel):
+class KerteszThresholdModel(DiffusionModel):
     """
     Implements the blocked-nodes threshold model by Karsai et al.
     Model Parameters:
