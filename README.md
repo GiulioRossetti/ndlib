@@ -6,6 +6,7 @@ It is implemented in Python 2.7 (support for Python 3.x pending).
 At the moment it makes available the following models
 
 **EPIDEMICS**
+
 1. **SI** *(SIModel)*
  - W. O. Kermack and Ag McKendrick. A Contribution to the Mathematical Theory of Epidemics. Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, 1927.
 2. **SIR** *(SIRModel)*
