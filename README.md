@@ -23,6 +23,7 @@ At the moment it makes available the following models
 8. **Profile Threshold** *(ProfileThresholdModel)*
  
 **OPINION DYNAMICS**
+
 9. **Voter** *(VoterModel)*
  - Peter Clifford and Aidan Sudbury. A model for spatial conflict. Biometrika, 60(3), 1973. 
 10. **QVoter** *(QVoterModel)*
