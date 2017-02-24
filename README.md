@@ -1,4 +1,23 @@
-## Welcome to GitHub Pages
+## NDlib - Network Diffusion Library
+
+NDlib provide implementations of several spreading and opinion dynamics models.
+It is implemented in Python 2.7 (support for Python 3.x pending).
+
+### Installation
+
+In order to install the library just download (or clone) the current project and copy the ndlib folder in the root of your application (installation via pip will be supported in the near future).
+
+### Rationale behind the implemented models
+
+NDlib describe diffusion models as agent-based simulations occurring at discrete time: once configured the desired model and selected the target network, subsequent iterations will provide to the user the current status of each node.
+
+### Example usage
+
+Import the selected diffusion model with
+```python
+
+import ndlib.
+```
 
 You can use the [editor on GitHub](https://github.com/GiulioRossetti/ndlib/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
 
