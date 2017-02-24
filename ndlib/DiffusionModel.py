@@ -71,7 +71,7 @@ class DiffusionModel(object):
             self.params['nodes']['threshold'] = configuration['nodes']['threshold']
         else:
             for n in self.graph.nodes():
-                self.params['nodes']['threshold'][str(n)] = np.random.random_sample()
+                self.params['nodes']['threshold'][n] = np.random.random_sample()
 
         if configuration is not None and 'nodes' in configuration and 'profile' in configuration['nodes']:
             if len(configuration['nodes']['profile']) < len(self.graph.nodes()):
@@ -79,7 +79,7 @@ class DiffusionModel(object):
             self.params['nodes']['profile'] = configuration['nodes']['profile']
         else:
             for n in self.graph.nodes():
-                self.params['nodes']['profile'][str(n)] = np.random.random_sample()
+                self.params['nodes']['profile'][n] = np.random.random_sample()
 
         # Set additional edges information
         if configuration is not None and 'edges' in configuration:
