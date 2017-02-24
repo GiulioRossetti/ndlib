@@ -53,6 +53,15 @@ or a bunch of iterations
 it_bunch = model.iteration_bunch(bunch_size=10)
 ``` 
 
+Each model can assing multiple statusses to nodes. In the implemented models we used the following convention:
+```python
+Blocked Nodes: -1 # Only: Kertesz Threshold
+Susceptible: 0
+Infected: 1
+Removed: 2 # Only: SIR, Independent Cascades
+```
+One model (Cognitive Opinion Dynamics), due to his definition, emploies real values in [0,1] as node statusses.
+
 ## Rationale behind the implemented models
 
 - All models inherit from ndlib.DiffusionModel
@@ -64,7 +73,7 @@ it_bunch = model.iteration_bunch(bunch_size=10)
 ### Model configuration
 Every model needs few parameters to be executed, in order to make general the initialization and iterative steps we decided to describe model configuration via dictionaries. In particular to initialize the implemented models you must supply (the chosen values are only examples of possible configurations):
 ```python
-model = m.MSznajdModel(g)
+model = m.SznajdModel(g)
 model = m.VoterModel(g) 
 model = m.QVoterModel(g, {'q': 5})
 model = m.CognitiveOpDynModel(g,{'I':0.15,'B_range_min':0, 'B_range_max':1,'T_range_min':0,'T_range_max':1,'R_fraction_negative':1/3.0,'R_fraction_neutral':1/3.0,'R_fraction_positive':1/3.0})
@@ -102,3 +111,28 @@ where:
            ]}
 ```
 - the 'model' component define either the percentage of initial nodes (selected at random) or a specific initial set of infected nodes. In case both 'percentage_infected' and 'infected_nodes' are specified the latter is ignored.
+
+## Implement new models
+Implement additional models is simple since it only requires to define a class that:
+- implement the partial abstract class ndlib.DiffusionModel
+- implement the iteration() method specifing its agent-based rules 
+### Structure Example
+```python
+from ndlib.DiffusionModel import DiffusionModel
+
+class MyModel(DiffusionModel):
+    
+    def iteration(self):
+        actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
+        for u in self.graph.nodes():
+            # evluate possible status changes using the model parameters (accessible via self.params)
+            # e.g. self.params['beta'], self.param['nodes']['threshold'][u], self.params['edges'][(id_node0, idnode1)]
+        
+        # update the actual status and iteration step
+        self.status = actual_status
+        self.actual_iteration += 1
+        
+        # return tha actual configuration
+        return self.actual_iteration, actual_status
+```
+If you like to include your model in NDlib (as well as in [NDlib-REST](https://github.com/GiulioRossetti/ndlib-rest)) open an issue and contact us.
