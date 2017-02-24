@@ -1,9 +1,9 @@
 # NDlib - Network Diffusion Library
 
-NDlib provide implementations of several spreading and opinion dynamics models.
+NDlib provides implementations of several spreading and opinion dynamics models.
 It is implemented in Python 2.7 (support for Python 3.x pending).
 
-At the moment it makes available the following models
+At the moment NDlib makes available the following models
 
 **EPIDEMICS**
 
@@ -68,14 +68,14 @@ or a bunch of iterations
 it_bunch = model.iteration_bunch(bunch_size=10)
 ``` 
 
-Each model can assing multiple statusses to nodes. In the implemented models we used the following convention:
+Each model can assing multiple statuses to nodes. In the implemented models we used the following convention:
 ```python
 Blocked Nodes: -1 # Only: Kertesz Threshold
 Susceptible: 0
 Infected: 1
 Removed: 2 # Only: SIR, Independent Cascades
 ```
-One model (Cognitive Opinion Dynamics), due to his definition, emploies real values in [0,1] as node statusses.
+One model (Cognitive Opinion Dynamics), due to his definition, employs real values in [0,1] as node statuses.
 
 ## Rationale behind the implemented models
 
@@ -83,7 +83,7 @@ One model (Cognitive Opinion Dynamics), due to his definition, emploies real val
 
 - Model configuration and parameter settings is generalized by passing configuration dictionaries
 
-- NDlib describe diffusion models as agent-based simulations occurring at discrete time: once configured the desired model and selected the target network, subsequent iterations will provide to the user the current status of each node.
+- NDlib describes diffusion models as agent-based simulations occurring at discrete time: once configured the desired model and selected the target network, subsequent iterations will provide to the user the current status of each node.
 
 ### Model configuration
 Every model needs few parameters to be executed, in order to make general the initialization and iterative steps we decided to describe model configuration via dictionaries. In particular to initialize the implemented models you must supply (the chosen values are only examples of possible configurations):
@@ -103,7 +103,7 @@ model = m.JanosThresholdModel(g, {'adopter_rate': 0.1, 'blocked': 0.1}) # needs 
 ```
 All parameters are specified within each method description.
 
-Moreover, additional parameter can be specified to define the initial configuration of the network by using the set_initial_status method.
+Moreover, additional parameters can be specified to define the initial configuration of the network by using the set_initial_status method.
 In particular it takes as input a (not necessarely full defined) dictionary having the following form:
 ```python
 {
@@ -130,7 +130,7 @@ where:
 ## Implement new models
 Implement additional models is simple since it only requires to define a class that:
 - implement the partial abstract class ndlib.DiffusionModel
-- implement the iteration() method specifing its agent-based rules 
+- implement the iteration() method specifying its agent-based rules 
 
 ### Structure Example
 ```python
@@ -148,7 +148,7 @@ class MyModel(DiffusionModel):
         self.status = actual_status
         self.actual_iteration += 1
         
-        # return tha actual configuration
+        # return the actual configuration
         return self.actual_iteration, actual_status
 ```
 If you like to include your model in NDlib (as well as in [NDlib-REST](https://github.com/GiulioRossetti/ndlib-rest)) open an issue and contact us.
