@@ -37,7 +37,11 @@ At the moment NDlib makes available the following models
 
 ## Installation
 
-In order to install the library just download (or clone) the current project and copy the ndlib folder in the root of your application (installation via pip will be supported in the near future).
+In order to install the library just download (or clone) the current project and copy the ndlib folder in the root of your application.
+Alternatively use pip:
+```bash
+sudo pip install ndlib
+```
 
 ## Example usage
 
