@@ -141,16 +141,24 @@ from ndlib.DiffusionModel import DiffusionModel
 class MyModel(DiffusionModel):
     
     def iteration(self):
+    	
+    	# if first iteration return the initial node status
+        if self.actual_iteration == 0:
+            self.actual_iteration += 1
+        return 0, self.status
+    
         actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
         for u in self.graph.nodes():
             # evluate possible status changes using the model parameters (accessible via self.params)
             # e.g. self.params['beta'], self.param['nodes']['threshold'][u], self.params['edges'][(id_node0, idnode1)]
         
-        # update the actual status and iteration step
+        # identify the changes w.r.t. previous iteration
+        delta = self.status_delta(actual_status)
+        # update the actual status and iterative step
         self.status = actual_status
         self.actual_iteration += 1
         
-        # return the actual configuration
-        return self.actual_iteration, actual_status
+        # return the actual configuration (only nodes with status updates)
+        return self.actual_iteration - 1, delta
 ```
 If you like to include your model in NDlib (as well as in [NDlib-REST](https://github.com/GiulioRossetti/ndlib-rest)) open an issue and contact us.
