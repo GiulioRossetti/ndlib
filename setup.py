@@ -13,7 +13,7 @@ __email__ = "giulio.rossetti@gmail.com"
 #    long_description = f.read()
 
 setup(name='ndlib',
-      version='1.0',
+      version='1.0b',
       license='GNU General Public License v3 or later (GPLv3+)',
       description='Network Diffusion Library',
       url='https://github.com/GiulioRossetti/ndlib',
