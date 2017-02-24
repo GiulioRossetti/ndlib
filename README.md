@@ -68,16 +68,16 @@ model = m.MSznajdModel(g)
 model = m.VoterModel(g) 
 model = m.QVoterModel(g, {'q': 5})
 model = m.CognitiveOpDynModel(g,{'I':0.15,'B_range_min':0, 'B_range_max':1,'T_range_min':0,'T_range_max':1,'R_fraction_negative':1/3.0,'R_fraction_neutral':1/3.0,'R_fraction_positive':1/3.0})
-
-model = m.IndependentCascadesModel(g)
-model = m.ThresholdModel(g)
-model = m.ProfileModel(g)
-model = m.ProfileThresholdModel(g)
+model = m.IndependentCascadesModel(g) # needs edges threshold informations
+model = m.ThresholdModel(g) # needs node threshold informations
+model = m.ProfileModel(g)  # needs node profile informations
+model = m.ProfileThresholdModel(g) # needs node profile and threshold informations
 model = m.SIModel(g, {'beta': 0.1})
 model = m.SIRModel(g, {'beta': 0.1, 'gamma': 0.1})
 model = m.SISModel(g, {'beta': 0.1, 'lambda': 0.1})
-model = m.JanosThresholdModel(g, {'adopter_rate': 0.1, 'blocked': 0.1})
+model = m.JanosThresholdModel(g, {'adopter_rate': 0.1, 'blocked': 0.1}) # needs node threshold informations
 ```
+All parameters are specified within each method description.
 
 Moreover, additional parameter can be specified to define the initial configuration of the network by using the set_initial_status method.
 In particular it takes as input a (not necessarely full defined) dictionary having the following form:
