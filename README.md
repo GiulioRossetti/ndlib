@@ -3,6 +3,23 @@
 NDlib provide implementations of several spreading and opinion dynamics models.
 It is implemented in Python 2.7 (support for Python 3.x pending).
 
+At the moment it makes available the following models
+- Epidemics
+ - SI
+ - SIR
+ - SIS
+ - Threshold
+ - Kertesz Threshold
+ - Profile
+ - Profile Threshold
+ - Independent Cascades
+- Opinion Dynamics
+ - Voter
+ - QVoter
+ - Majority Rule
+ - Snajzd
+ - Cognitive Opinion Dynamics
+
 ## Installation
 
 In order to install the library just download (or clone) the current project and copy the ndlib folder in the root of your application (installation via pip will be supported in the near future).
@@ -59,6 +76,7 @@ model = m.ProfileThresholdModel(g)
 model = m.SIModel(g, {'beta': 0.1})
 model = m.SIRModel(g, {'beta': 0.1, 'gamma': 0.1})
 model = m.SISModel(g, {'beta': 0.1, 'lambda': 0.1})
+model = m.JanosThresholdModel(g, {'adopter_rate': 0.1, 'blocked': 0.1})
 ```
 
 Moreover, additional parameter can be specified to define the initial configuration of the network by using the set_initial_status method.
