@@ -4,33 +4,34 @@ NDlib provide implementations of several spreading and opinion dynamics models.
 It is implemented in Python 2.7 (support for Python 3.x pending).
 
 At the moment it makes available the following models
-**Epidemics**
-- SI *(SIModel)*
+
+**EPIDEMICS**
+1. **SI** *(SIModel)*
  - W. O. Kermack and Ag McKendrick. A Contribution to the Mathematical Theory of Epidemics. Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, 1927.
-- SIR *(SIRModel)*
+2. **SIR** *(SIRModel)*
  - W. O. Kermack and Ag McKendrick. A Contribution to the Mathematical Theory of Epidemics. Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, 1927.
-- SIS *(SISModel)*
+3. **SIS** *(SISModel)*
  - W. O. Kermack and Ag McKendrick. A Contribution to the Mathematical Theory of Epidemics. Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, 1927.
-- Threshold *(ThresholdModel)*
+4. **Threshold** *(ThresholdModel)*
  - M. Granovetter. Threshold models of collective behavior. American Journal of Sociology, 1978  
-- Kertesz Threshold *(JanosThresholdModel)*
+5. **Kertesz Threshold** *(JanosThresholdModel)*
  - Karsai M., Iniguez G., Kaski K., and Kertesz J., Complex contagion process in spreading of online innovation. Journal of the Royal Society, 11(101), 2014
-- Independent Cascades *(IndependentCascadeModel)*
- - D. Kempe, J. Kleinberg, and E. Tardos. Maximizing the Spread of Influence through a Social Network. In KDD ’03, 2003.
-- Profile *(ProfileModel)*
-- Profile Threshold *(ProfileThresholdModel)*
+6. **Independent Cascades** *(IndependentCascadeModel)*
+ - D. Kempe, J. Kleinberg, and E. Tardos. Maximizing the Spread of Influence through a Social Network. In KDD, 2003.
+7. **Profile** *(ProfileModel)*
+8. **Profile Threshold** *(ProfileThresholdModel)*
  
-**Opinion Dynamics**
-- Voter *(VoterModel)*
- - Peter Clifford and Aidan Sudbury. A model for spatial conflict. Biometrika, 60(3):581{588, 1973. 
-- QVoter *(QVoterModel)*
- - Claudio Castellano, Miguel A Mu~noz, and Romualdo Pastor-Satorras. Nonlinear q-voter model. Physical Review E, 80(4):041129, 2009.  
-- Majority Rule *(MajorityRuleModel)*
- - S Galam. Real space renormalization group and totalitarian paradox of majority rule voting. Physica A, 285:66{76, 2000.  
-- Snajzd *(SznajdModel)*
- - Katarzyna Sznajd-Weron and Jozef Sznajd. Opinion evolution in closed community. International Journal of Modern Physics C, 11(06):1157-1165, 2000. 
-- Cognitive Opinion Dynamics *(CognitiveOpDynModel)*
- - Francesca Giardini, Daniele Vilone, and Rosaria Conte. Consensus emerging from the bottom-up: the role of cognitive variables in opinion dynamics. Frontiers in Physics, 3:64, 2015  
+**OPINION DYNAMICS**
+9. **Voter** *(VoterModel)*
+ - Peter Clifford and Aidan Sudbury. A model for spatial conflict. Biometrika, 60(3), 1973. 
+10. **QVoter** *(QVoterModel)*
+ - Claudio Castellano, Miguel A Mu~noz, and Romualdo Pastor-Satorras. Nonlinear q-voter model. Physical Review E, 80(4), 2009.  
+11. **Majority Rule** *(MajorityRuleModel)*
+ - S Galam. Real space renormalization group and totalitarian paradox of majority rule voting. Physica A, 285, 2000.  
+12. **Snajzd** *(SznajdModel)*
+ - Katarzyna Sznajd-Weron and Jozef Sznajd. Opinion evolution in closed community. International Journal of Modern Physics C, 11(06), 2000. 
+13. **Cognitive Opinion Dynamics** *(CognitiveOpDynModel)*
+ - Francesca Giardini, Daniele Vilone, and Rosaria Conte. Consensus emerging from the bottom-up: the role of cognitive variables in opinion dynamics. Frontiers in Physics, 2015  
 
 ## Installation
 
