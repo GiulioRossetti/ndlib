@@ -199,4 +199,5 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         iteration = model.iteration()
         blocked = [x for x, v in iteration[1].iteritems() if v == -1]
+        print blocked
         self.assertEqual(blocked, predefined_blocked)

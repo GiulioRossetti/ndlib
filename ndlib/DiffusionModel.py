@@ -56,6 +56,7 @@ class DiffusionModel(object):
 
         for param, nodes in model_status.iteritems():
             self.params['model'][param] = nodes
+            print "h", nodes
             for node in nodes:
                 self.status[node] = self.available_statuses[param]
 
@@ -71,7 +72,8 @@ class DiffusionModel(object):
                 self.params['model']['percentage_infected'] = percentage_infected
 
             number_of_initial_infected = len(self.graph.nodes()) * self.params['model']['percentage_infected']
-            sampled_nodes = np.random.choice(self.status.keys(), int(number_of_initial_infected), replace=False)
+            available_nodes = [n for n in self.status if self.status[n] == 0]
+            sampled_nodes = np.random.choice(available_nodes, int(number_of_initial_infected), replace=False)
             for k in sampled_nodes:
                 self.status[k] = self.available_statuses['Infected']
 
