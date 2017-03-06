@@ -1,4 +1,4 @@
-from DiffusionModel import DiffusionModel
+from ..DiffusionModel import DiffusionModel
 import networkx as nx
 import numpy as np
 
@@ -13,11 +13,20 @@ class ProfileModel(DiffusionModel):
     (1) nodes profiles
     """
 
+    def __init__(self, graph):
+        super(self.__class__, self).__init__(graph)
+        self.available_statuses = {
+            "Susceptible": 0,
+            "Infected": 1
+        }
+
+        self.parameters = {"nodes:profile": "Node profile (optional)"}
+
     def iteration(self):
         """
 
         """
-        self.clean_initial_status([0, 1])
+        self.clean_initial_status(self.available_statuses.values())
         actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
 
         if self.actual_iteration == 0:

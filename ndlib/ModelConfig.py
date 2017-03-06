@@ -9,14 +9,27 @@ class Configuration(object):
         self.config = {
             'nodes': {},
             'edges': {},
-            'model': {}
+            'model': {},
+            'status': {}
         }
 
-    def get_configuration(self):
-        return self.config
+    def get_nodes_configuration(self):
+        return self.config['nodes']
+
+    def get_edges_configuration(self):
+        return self.config['edges']
+
+    def get_model_parameters(self):
+        return self.config['model']
+
+    def get_model_configuration(self):
+        return self.config['status']
 
     def add_model_parameter(self, param_name, param_value):
         self.config['model'][param_name] = param_value
+
+    def add_model_initial_configuration(self, status_name, nodes):
+        self.config['status'][status_name] = nodes
 
     def add_node_configuration(self, param_name, node_id, param_value):
         if param_name not in self.config['nodes']:

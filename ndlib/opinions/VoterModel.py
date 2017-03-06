@@ -1,4 +1,4 @@
-from DiffusionModel import DiffusionModel
+from ..DiffusionModel import DiffusionModel
 import networkx as nx
 import numpy as np
 
@@ -14,6 +14,13 @@ class VoterModel(DiffusionModel):
 
     """
 
+    def __init__(self, graph):
+        super(self.__class__, self).__init__(graph)
+        self.available_statuses = {
+            "Susceptible": 0,
+            "Infected": 1
+        }
+
     def iteration(self):
         """
         One iteration changes the opinion of one voter using the following procedure:
@@ -22,7 +29,7 @@ class VoterModel(DiffusionModel):
         - the first voter takes the opinion of the peer (listener takes the opinion of speaker)
         """
 
-        self.clean_initial_status([0, 1])
+        self.clean_initial_status(self.available_statuses.values())
 
         if self.actual_iteration == 0:
             self.actual_iteration += 1

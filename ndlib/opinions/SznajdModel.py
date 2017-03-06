@@ -1,4 +1,4 @@
-from DiffusionModel import DiffusionModel
+from ..DiffusionModel import DiffusionModel
 import networkx as nx
 import numpy as np
 
@@ -14,6 +14,13 @@ class SznajdModel(DiffusionModel):
 
     """
 
+    def __init__(self, graph):
+        super(self.__class__, self).__init__(graph)
+        self.available_statuses = {
+            "Susceptible": 0,
+            "Infected": 1,
+         }
+
     def iteration(self):
         """
         One iteration changes the opinion of several voters using the following procedure:
@@ -22,7 +29,7 @@ class SznajdModel(DiffusionModel):
         - if the two voters agree, their neighbours take their opinion
         """
 
-        self.clean_initial_status([0, 1])
+        self.clean_initial_status(self.available_statuses.values())
 
         if self.actual_iteration == 0:
             self.actual_iteration += 1
@@ -50,7 +57,8 @@ class SznajdModel(DiffusionModel):
 
             # update status of listeners
             for listener in neighbours:
-                delta[listener] = self.status[speaker1]
+                if self.status[speaker1] != self.status[listener]:
+                    delta[listener] = self.status[speaker1]
                 self.status[listener] = self.status[speaker1]
 
         self.actual_iteration += 1

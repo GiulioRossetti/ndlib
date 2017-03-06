@@ -1,19 +1,20 @@
 from __future__ import absolute_import
 import unittest
 import networkx as nx
-import ndlib.VoterModel as vm
-import ndlib.SznajdModel as sm
-import ndlib.MajorityRuleModel as mrm
-import ndlib.QVoterModel as qvm
-import ndlib.SIModel as si
-import ndlib.CognitiveOpDynModel as cm
-import ndlib.KerteszThresholdModel as ks
-import ndlib.SIRModel as sir
-import ndlib.SISModel as sis
-import ndlib.IndependentCascadesModel as ids
-import ndlib.ThresholdModel as th
-import ndlib.ProfileModel as pr
-import ndlib.ProfileThresholdModel as pt
+import ndlib.ModelConfig as mc
+import ndlib.opinions.VoterModel as vm
+import ndlib.opinions.SznajdModel as sm
+import ndlib.opinions.MajorityRuleModel as mrm
+import ndlib.opinions.QVoterModel as qvm
+import ndlib.opinions.CognitiveOpDynModel as cm
+import ndlib.epidemics.SIModel as si
+import ndlib.epidemics.KerteszThresholdModel as ks
+import ndlib.epidemics.SIRModel as sir
+import ndlib.epidemics.SISModel as sis
+import ndlib.epidemics.IndependentCascadesModel as ids
+import ndlib.epidemics.ThresholdModel as th
+import ndlib.epidemics.ProfileModel as pr
+import ndlib.epidemics.ProfileThresholdModel as pt
 
 __author__ = 'Giulio Rossetti'
 __license__ = "GPL"
@@ -22,126 +23,180 @@ __email__ = "giulio.rossetti@gmail.com"
 
 class NdlibTest(unittest.TestCase):
     def test_voter_model(self):
-        g = nx.erdos_renyi_graph(1000, 0.1)
+        g = nx.complete_graph(100)
         model = vm.VoterModel(g)
-        model.set_initial_status({'model': {'percentage_infected': 0.2}})
+        config = mc.Configuration()
+        config.add_model_parameter("percentage_infected", 0.2)
+        model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
     def test_sznajd_model(self):
-        g = nx.erdos_renyi_graph(1000, 0.1)
+        g = nx.complete_graph(100)
         model = sm.SznajdModel(g)
-        model.set_initial_status({'model': {'percentage_infected': 0.2}})
+        config = mc.Configuration()
+        config.add_model_parameter("percentage_infected", 0.2)
+        model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
     def test_majorityrule_model(self):
         g = nx.complete_graph(100)
-        model = mrm.MajorityRuleModel(g, {'q': 3})
-        model.set_initial_status({'model': {'percentage_infected': 0.6}})
+        model = mrm.MajorityRuleModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter("q", 3)
+        config.add_model_parameter("percentage_infected", 0.2)
+        model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
     def test_qvoter_model(self):
         g = nx.complete_graph(100)
-        model = qvm.QVoterModel(g, {'q': 5})
-        model.set_initial_status({'model': {'percentage_infected': 0.6}})
+        model = qvm.QVoterModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter("q", 5)
+        config.add_model_parameter("percentage_infected", 0.6)
+        model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
     def test_cognitive_model(self):
         g = nx.complete_graph(100)
-        model = cm.CognitiveOpDynModel(g, {'I': 0.15, 'B_range_min': 0,
-                                           'B_range_max': 1, 'T_range_min': 0, 'T_range_max': 1,
-                                           'R_fraction_negative': 1 / 3.0, 'R_fraction_neutral': 1 / 3.0,
-                                           'R_fraction_positive': 1 / 3.0})
-        model.set_initial_status()
+        model = cm.CognitiveOpDynModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter("I", 0.15)
+        config.add_model_parameter("B_range_min", 0)
+        config.add_model_parameter("B_range_max", 1)
+        config.add_model_parameter("T_range_min", 0)
+        config.add_model_parameter("T_range_max", 1)
+        config.add_model_parameter("R_fraction_negative", 1.0 / 3)
+        config.add_model_parameter("R_fraction_neutral", 1.0 / 3)
+        config.add_model_parameter("R_fraction_positive", 1.0 / 3)
+        model.set_initial_status(config)
+
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
     def test_si_model(self):
-        g = nx.complete_graph(100)
-        model = si.SIModel(g, {'beta': 0.5})
-        model.set_initial_status({'model': {'percentage_infected': 0.1}})
+        g = nx.erdos_renyi_graph(1000, 0.1)
+        model = si.SIModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('beta', 0.5)
+        config.add_model_parameter("percentage_infected", 0.1)
+        model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
     def test_sir_model(self):
-        g = nx.complete_graph(100)
-        model = sir.SIRModel(g, {'beta': 0.5, 'gamma': 0.2})
-        model.set_initial_status({'model': {'percentage_infected': 0.1}})
+        g = nx.erdos_renyi_graph(1000, 0.1)
+        model = sir.SIRModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('beta', 0.5)
+        config.add_model_parameter('gamma', 0.2)
+        config.add_model_parameter("percentage_infected", 0.1)
+        model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
     def test_sis_model(self):
-        g = nx.complete_graph(100)
-        model = sis.SISModel(g, {'beta': 0.5, 'lambda': 0.2})
-        model.set_initial_status({'model': {'percentage_infected': 0.1}})
+        g = nx.erdos_renyi_graph(1000, 0.1)
+        model = sis.SISModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('beta', 0.5)
+        config.add_model_parameter('lambda', 0.2)
+        config.add_model_parameter("percentage_infected", 0.1)
+        model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
     def test_kertesz_model(self):
         g = nx.complete_graph(100)
-        model = ks.KerteszThresholdModel(g, {'adopter_rate': 0.4, 'blocked': 0.1})
+        model = ks.KerteszThresholdModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('adopter_rate', 0.4)
+        config.add_model_parameter('blocked', 0.1)
+        config.add_model_parameter('percentage_infected', 0.1)
+
         threshold = 0.2
-        threshold_list = (threshold, )
-        for i in range(0, g.number_of_nodes()-1):
-            threshold_list += threshold,
-        model.set_initial_status({'model': {'percentage_infected': 0.1}, 'nodes': {'threshold': threshold_list}})
+        for i in g.nodes():
+            config.add_node_configuration("threshold", i, threshold)
+
+        model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
     def test_threshold_model(self):
-        g = nx.complete_graph(100)
+        g = nx.erdos_renyi_graph(1000, 0.1)
         model = th.ThresholdModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
+
         threshold = 0.2
-        threshold_list = (threshold, )
-        for i in range(0, g.number_of_nodes()-1):
-            threshold_list += threshold,
-        model.set_initial_status({'model': {'percentage_infected': 0.1}, 'nodes': {'threshold': threshold_list}})
+        for i in g.nodes():
+            config.add_node_configuration("threshold", i, threshold)
+
+        model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
     def test_profile_threshold_model(self):
-        g = nx.complete_graph(100)
+        g = nx.erdos_renyi_graph(1000, 0.1)
         model = pt.ProfileThresholdModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
+
         threshold = 0.2
-        threshold_list = (threshold,)
-        for i in range(0, g.number_of_nodes() - 1):
-            threshold_list += threshold,
-
         profile = 0.1
-        profile_threshold_list = (profile,)
-        for i in range(0, g.number_of_nodes() - 1):
-            profile_threshold_list += profile,
+        for i in g.nodes():
+            config.add_node_configuration("threshold", i, threshold)
+            config.add_node_configuration("profile", i, profile)
 
-        model.set_initial_status({'model': {'percentage_infected': 0.1},
-                                  'nodes': {'threshold': threshold_list, 'profile': profile_threshold_list}})
+        model.set_initial_status(config)
+
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
     def test_profile_model(self):
-        g = nx.complete_graph(100)
+        g = nx.erdos_renyi_graph(1000, 0.1)
         model = pr.ProfileModel(g)
-        profile = 0.1
-        profile_threshold_list = (profile,)
-        for i in range(0, g.number_of_nodes() - 1):
-            profile_threshold_list += profile,
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
 
-        model.set_initial_status({'model': {'percentage_infected': 0.1},
-                                  'nodes': {'profile': profile_threshold_list}})
+        profile = 0.1
+        for i in g.nodes():
+            config.add_node_configuration("profile", i, profile)
+
+        model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
     def test_independent_cascade_model(self):
-        g = nx.complete_graph(100)
+        g = nx.erdos_renyi_graph(1000, 0.1)
         model = ids.IndependentCascadesModel(g)
-        threshold = 0.2
-        threshold_list = (threshold,)
-        for i in range(0, g.number_of_nodes() - 1):
-            threshold_list += threshold,
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
+        threshold = 0.1
+        for e in g.edges():
+            config.add_edge_configuration("threshold", e, threshold)
 
-        model.set_initial_status({'model': {'percentage_infected': 0.1},
-                                  'nodes': {'threshold': threshold_list}})
+        model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
+
+    def test_kertesz_model_predefined_blocked(self):
+        g = nx.complete_graph(100)
+        model = ks.KerteszThresholdModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('adopter_rate', 0.4)
+        predefined_blocked = [0, 1, 2, 3, 4, 5]
+        config.add_model_initial_configuration("Blocked", predefined_blocked)
+        config.add_model_parameter('percentage_infected', 0.1)
+
+        threshold = 0.2
+        for i in g.nodes():
+            config.add_node_configuration("threshold", i, threshold)
+
+        model.set_initial_status(config)
+        iteration = model.iteration()
+        blocked = [x for x, v in iteration[1].iteritems() if v == -1]
+        self.assertEqual(blocked, predefined_blocked)

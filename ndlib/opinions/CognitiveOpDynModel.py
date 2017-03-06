@@ -1,4 +1,4 @@
-from DiffusionModel import DiffusionModel
+from ..DiffusionModel import DiffusionModel
 import numpy as np
 
 __author__ = "Alina Sirbu"
@@ -29,6 +29,22 @@ class CognitiveOpDynModel(DiffusionModel):
     The initial state is generated randomly uniformly from the domain defined by model parameters.
     """
 
+    def __init__(self, graph):
+        super(self.__class__, self).__init__(graph)
+        self.available_statuses = {
+            "Infected": 0
+        }
+
+        self.parameters = {"model:I": "External information value in [0,1]",
+                           "model:T_range_min": "minimum of the range of initial values for node parameter T [0,1]",
+                           "model:T_range_max": "maximum of the range of initial values for node parameter T [0,1]",
+                           "model:B_range_min": "minimum of the range of initial values for node parameter B [0,1]",
+                           "model:B_range_max": "maximum of the range of initial values for node parameter B [0,1]",
+                           "model:R_fraction_negative": "fraction of individuals having the node parameter R=-1",
+                           "model:R_fraction_neutral": "fraction of individuals having the node parameter R=0",
+                           "model:R_fraction_positive'": "fraction of individuals having the node parameter R=1",
+                           }
+
     def set_initial_status(self, configuration=None):
         """
         Override behaviour of methods in class DiffusionModel.
@@ -46,24 +62,24 @@ class CognitiveOpDynModel(DiffusionModel):
         self.params['nodes']['cognitive'] = {}
 
         # first correct the input model parameters and retreive T_range, B_range and R_distribution
-        T_range = (self.params['T_range_min'], self.params['T_range_max'])
-        if self.params['T_range_min'] > self.params['T_range_max']:
-            T_range = (self.params['T_range_max'], self.params['T_range_min'])
+        T_range = (self.params['model']['T_range_min'], self.params['model']['T_range_max'])
+        if self.params['model']['T_range_min'] > self.params['model']['T_range_max']:
+            T_range = (self.params['model']['T_range_max'], self.params['model']['T_range_min'])
 
-        B_range = (self.params['B_range_min'], self.params['B_range_max'])
-        if self.params['B_range_min'] > self.params['B_range_max']:
-            B_range = (self.params['B_range_max'], self.params['B_range_min'])
-        s = float(self.params['R_fraction_negative'] + self.params['R_fraction_neutral'] +
-                  self.params['R_fraction_positive'])
-        R_distribution = (self.params['R_fraction_negative']/s, self.params['R_fraction_neutral']/s,
-                          self.params['R_fraction_positive']/s)
+        B_range = (self.params['model']['B_range_min'], self.params['model']['B_range_max'])
+        if self.params['model']['B_range_min'] > self.params['model']['B_range_max']:
+            B_range = (self.params['model']['B_range_max'], self.params['model']['B_range_min'])
+        s = float(self.params['model']['R_fraction_negative'] + self.params['model']['R_fraction_neutral'] +
+                  self.params['model']['R_fraction_positive'])
+        R_distribution = (self.params['model']['R_fraction_negative']/s, self.params['model']['R_fraction_neutral']/s,
+                          self.params['model']['R_fraction_positive']/s)
 
         # then sample parameters from the ranges and distribution
         for node in self.graph.nodes():
             R_prob = np.random.random_sample()
             if R_prob < R_distribution[0]:
                 R = -1
-            elif R_prob<(R_distribution[0]+R_distribution[1]):
+            elif R_prob < (R_distribution[0] + R_distribution[1]):
                 R = 0
             else:
                 R = 1
@@ -94,7 +110,7 @@ class CognitiveOpDynModel(DiffusionModel):
             return 0, actual_status
 
         # first interact with I
-        I = self.params['I']
+        I = self.params['model']['I']
         for node in self.graph.nodes():
             T = self.params['nodes']['cognitive'][node][2]
             R = self.params['nodes']['cognitive'][node][0]

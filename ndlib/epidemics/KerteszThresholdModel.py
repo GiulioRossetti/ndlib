@@ -1,4 +1,4 @@
-from DiffusionModel import DiffusionModel
+from ..DiffusionModel import DiffusionModel
 import networkx as nx
 import numpy as np
 from scipy import stats
@@ -16,16 +16,28 @@ class KerteszThresholdModel(DiffusionModel):
     (3) node thresholds
     """
 
+    def __init__(self, graph):
+        super(self.__class__, self).__init__(graph)
+        self.available_statuses = {
+            "Susceptible": 0,
+            "Infected": 1,
+            "Blocked": -1
+        }
+
+        self.parameters = {"nodes:threshold": "Node threshold",
+                           "model:adopter_rate": "Exogenous adoption rate",
+                           "model:blocked": "Percentage of blocked nodes"}
+
     def iteration(self):
         """
 
         """
-        self.clean_initial_status([0, 1, -1])
+        self.clean_initial_status(self.available_statuses.values())
         actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
 
         if self.actual_iteration == 0:
             if min(actual_status.values()) == 0:
-                number_node_blocked = int(float(self.graph.number_of_nodes()) * float(self.params['blocked']))
+                number_node_blocked = int(float(self.graph.number_of_nodes()) * float(self.params['model']['blocked']))
 
                 i = 0
                 while i < number_node_blocked:
@@ -46,7 +58,7 @@ class KerteszThresholdModel(DiffusionModel):
         for node in self.graph.nodes():
             if self.status[node] != -1:
                 xk = (0, 1)
-                pk = (1-self.params['adopter_rate'], self.params['adopter_rate'])
+                pk = (1-self.params['model']['adopter_rate'], self.params['model']['adopter_rate'])
                 probability = stats.rv_discrete(name='probability', values=(xk, pk))
                 number_probability = probability.rvs()
 
