@@ -56,7 +56,6 @@ class DiffusionModel(object):
 
         for param, nodes in model_status.iteritems():
             self.params['model'][param] = nodes
-            print "h", nodes
             for node in nodes:
                 self.status[node] = self.available_statuses[param]
 
