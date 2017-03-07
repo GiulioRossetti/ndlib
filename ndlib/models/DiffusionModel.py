@@ -16,7 +16,8 @@ class DiffusionModel(object):
         self.params = {
             'nodes': {},
             'edges': {},
-            'model': {}
+            'model': {},
+            'status': {}
         }
 
         self.available_statuses = {
@@ -25,6 +26,8 @@ class DiffusionModel(object):
             "Recovered": 2,
             "Blocked": -1
         }
+
+        self.name = ""
 
         self.parameters = {}
 
@@ -55,7 +58,7 @@ class DiffusionModel(object):
         model_status = configuration.get_model_configuration()
 
         for param, nodes in model_status.iteritems():
-            self.params['model'][param] = nodes
+            self.params['status'][param] = nodes
             for node in nodes:
                 self.status[node] = self.available_statuses[param]
 
@@ -65,7 +68,7 @@ class DiffusionModel(object):
             self.params['model'][param] = val
 
         # Handle initial infection
-        if 'infected_nodes' not in self.params['model']:
+        if 'infected_nodes' not in self.params['status']:
             if 'percentage_infected' not in model_params:
                 percentage_infected = 0.1
                 self.params['model']['percentage_infected'] = percentage_infected
@@ -91,13 +94,10 @@ class DiffusionModel(object):
         return system_status
 
     def getinfo(self):
-        info = {k: v for k, v in self.params.iteritems() if k != 'nodes' and k != 'edges' and k != 'model'}
-        if len(self.params['model']['infected_nodes']) > 0:
+        info = {k: v for k, v in self.params.iteritems() if k not in ['nodes', 'edges', 'status']}
+        if 'infected_nodes' in self.params['status']:
             info['selected_initial_infected'] = True
-        else:
-            info['selected_initial_infected'] = False
-            info['percentage_infected_nodes'] = self.params['model']['percentage_infected']
-        return info
+        return info['model']
 
     def reset(self):
         self.actual_iteration = 0
@@ -105,6 +105,9 @@ class DiffusionModel(object):
 
     def get_model_parameters(self):
         return self.parameters
+
+    def get_name(self):
+        return self.name
 
     @abc.abstractmethod
     def iteration(self):

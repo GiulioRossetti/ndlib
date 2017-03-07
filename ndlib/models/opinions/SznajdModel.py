@@ -21,6 +21,8 @@ class SznajdModel(DiffusionModel):
             "Infected": 1,
          }
 
+        self.name = "Sznajd"
+
     def iteration(self):
         """
         One iteration changes the opinion of several voters using the following procedure:

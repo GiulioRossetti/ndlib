@@ -24,6 +24,8 @@ class SIRModel(DiffusionModel):
 
         self.parameters = {"model:beta": "Infection rate", "model:gamma": "Recovery rate"}
 
+        self.name = "SIR"
+
     def iteration(self):
         """
 

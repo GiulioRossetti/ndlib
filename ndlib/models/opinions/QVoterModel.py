@@ -25,6 +25,8 @@ class QVoterModel(DiffusionModel):
 
         self.parameters = {"model:q": "Number of neighbours that affect the opinion of an agent"}
 
+        self.name = "QVoter"
+
     def iteration(self):
         """
         One iteration changes the opinion of one voter using the following procedure:

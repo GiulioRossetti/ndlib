@@ -1,16 +1,15 @@
 from ..DiffusionModel import DiffusionModel
-import numpy as np
 import networkx as nx
 
 __author__ = "Giulio Rossetti"
 __email__ = "giulio.rossetti@gmail.com"
 
 
-class SIModel(DiffusionModel):
+class ThresholdModel(DiffusionModel):
     """
-    Implement the SI model of Kermack et al.
+    Implement the Threshold model of Granovetter
     Model Parameters:
-    (1) the infection rate beta
+    (1) the node thresholds
     """
 
     def __init__(self, graph):
@@ -20,7 +19,9 @@ class SIModel(DiffusionModel):
             "Infected": 1
         }
 
-        self.parameters = {"model:beta": "Infection rate"}
+        self.parameters = {"nodes:threshold": "Node threshold (optional)"}
+
+        self.name = "Threshold"
 
     def iteration(self):
         """
@@ -35,16 +36,20 @@ class SIModel(DiffusionModel):
             return 0, actual_status
 
         for u in self.graph.nodes():
+            if actual_status[u] == 1:
+                continue
 
-            u_status = self.status[u]
-            eventp = np.random.random_sample()
             neighbors = self.graph.neighbors(u)
             if isinstance(self.graph, nx.DiGraph):
                 neighbors = self.graph.predecessors(u)
 
-            if u_status == 0:
-                infected_neighbors = len([v for v in neighbors if self.status[v] == 1])
-                if eventp < self.params['model']['beta'] * infected_neighbors:
+            infected = 0
+            for v in neighbors:
+                infected += self.status[v]
+
+            if len(neighbors) > 0:
+                infected_ratio = float(infected)/len(neighbors)
+                if infected_ratio >= self.params['nodes']['threshold'][u]:
                     actual_status[u] = 1
 
         delta = self.status_delta(actual_status)

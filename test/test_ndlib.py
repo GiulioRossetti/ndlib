@@ -1,20 +1,20 @@
 from __future__ import absolute_import
 import unittest
 import networkx as nx
-import ndlib.ModelConfig as mc
-import ndlib.opinions.VoterModel as vm
-import ndlib.opinions.SznajdModel as sm
-import ndlib.opinions.MajorityRuleModel as mrm
-import ndlib.opinions.QVoterModel as qvm
-import ndlib.opinions.CognitiveOpDynModel as cm
-import ndlib.epidemics.SIModel as si
-import ndlib.epidemics.KerteszThresholdModel as ks
-import ndlib.epidemics.SIRModel as sir
-import ndlib.epidemics.SISModel as sis
-import ndlib.epidemics.IndependentCascadesModel as ids
-import ndlib.epidemics.ThresholdModel as th
-import ndlib.epidemics.ProfileModel as pr
-import ndlib.epidemics.ProfileThresholdModel as pt
+import ndlib.models.ModelConfig as mc
+import ndlib.models.opinions.VoterModel as vm
+import ndlib.models.opinions.SznajdModel as sm
+import ndlib.models.opinions.MajorityRuleModel as mrm
+import ndlib.models.opinions.QVoterModel as qvm
+import ndlib.models.opinions.CognitiveOpDynModel as cm
+import ndlib.models.epidemics.SIModel as si
+import ndlib.models.epidemics.KerteszThresholdModel as ks
+import ndlib.models.epidemics.SIRModel as sir
+import ndlib.models.epidemics.SISModel as sis
+import ndlib.models.epidemics.IndependentCascadesModel as ids
+import ndlib.models.epidemics.ThresholdModel as th
+import ndlib.models.epidemics.ProfileModel as pr
+import ndlib.models.epidemics.ProfileThresholdModel as pt
 
 __author__ = 'Giulio Rossetti'
 __license__ = "GPL"
@@ -114,7 +114,7 @@ class NdlibTest(unittest.TestCase):
         model = ks.KerteszThresholdModel(g)
         config = mc.Configuration()
         config.add_model_parameter('adopter_rate', 0.4)
-        config.add_model_parameter('blocked', 0.1)
+        config.add_model_parameter('percentage_blocked', 0.1)
         config.add_model_parameter('percentage_infected', 0.1)
 
         threshold = 0.2

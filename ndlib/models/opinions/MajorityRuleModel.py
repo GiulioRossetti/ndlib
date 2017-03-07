@@ -24,6 +24,8 @@ class MajorityRuleModel(DiffusionModel):
 
         self.parameters = {"model:q": "Number of randomly chosen voters"}
 
+        self.name = "Majority Rule"
+
     def iteration(self):
         """
         One iteration changes the opinion of at most q voters using the following procedure:

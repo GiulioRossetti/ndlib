@@ -28,6 +28,8 @@ class KerteszThresholdModel(DiffusionModel):
                            "model:adopter_rate": "Exogenous adoption rate",
                            "model:blocked": "Percentage of blocked nodes"}
 
+        self.name = "Kertesz Threhold"
+
     def iteration(self):
         """
 
@@ -37,7 +39,8 @@ class KerteszThresholdModel(DiffusionModel):
 
         if self.actual_iteration == 0:
             if min(actual_status.values()) == 0:
-                number_node_blocked = int(float(self.graph.number_of_nodes()) * float(self.params['model']['blocked']))
+                number_node_blocked = int(float(self.graph.number_of_nodes()) *
+                                          float(self.params['model']['percentage_blocked']))
 
                 i = 0
                 while i < number_node_blocked:

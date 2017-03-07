@@ -1,15 +1,16 @@
 from ..DiffusionModel import DiffusionModel
 import networkx as nx
+import numpy as np
 
 __author__ = "Giulio Rossetti"
 __email__ = "giulio.rossetti@gmail.com"
 
 
-class ThresholdModel(DiffusionModel):
+class ProfileModel(DiffusionModel):
     """
-    Implement the Threshold model of Granovetter
+    Implement the Profile model of Milli et al.
     Model Parameters:
-    (1) the node thresholds
+    (1) nodes profiles
     """
 
     def __init__(self, graph):
@@ -19,14 +20,15 @@ class ThresholdModel(DiffusionModel):
             "Infected": 1
         }
 
-        self.parameters = {"nodes:threshold": "Node threshold (optional)"}
+        self.parameters = {"nodes:profile": "Node profile (optional)"}
+
+        self.name = "Profile"
 
     def iteration(self):
         """
 
         """
         self.clean_initial_status(self.available_statuses.values())
-
         actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
 
         if self.actual_iteration == 0:
@@ -45,9 +47,9 @@ class ThresholdModel(DiffusionModel):
             for v in neighbors:
                 infected += self.status[v]
 
-            if len(neighbors) > 0:
-                infected_ratio = float(infected)/len(neighbors)
-                if infected_ratio >= self.params['nodes']['threshold'][u]:
+            if infected > 0:
+                eventp = np.random.random_sample()
+                if eventp >= self.params['nodes']['profile'][u]:
                     actual_status[u] = 1
 
         delta = self.status_delta(actual_status)

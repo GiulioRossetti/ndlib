@@ -24,6 +24,8 @@ class ProfileThresholdModel(DiffusionModel):
         self.parameters = {"nodes:threshold": "Node threshold (optional)",
                            "nodes:profile": "Node profile (optional)"}
 
+        self.name = "Profile-Threshold"
+
     def iteration(self):
         """
 

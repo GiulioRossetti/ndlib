@@ -1,16 +1,17 @@
 from ..DiffusionModel import DiffusionModel
-import networkx as nx
 import numpy as np
+import networkx as nx
 
 __author__ = "Giulio Rossetti"
 __email__ = "giulio.rossetti@gmail.com"
 
 
-class ProfileModel(DiffusionModel):
+class SISModel(DiffusionModel):
     """
-    Implement the Profile model of Milli et al.
+    Implement the SIR model of Kermack et al.
     Model Parameters:
-    (1) nodes profiles
+    (1) the infection rate beta
+    (2) the recovery rate lambda
     """
 
     def __init__(self, graph):
@@ -20,13 +21,16 @@ class ProfileModel(DiffusionModel):
             "Infected": 1
         }
 
-        self.parameters = {"nodes:profile": "Node profile (optional)"}
+        self.parameters = {"model:beta": "Infection rate", "model:lambda": "Recovery rate"}
+
+        self.name = "SIS"
 
     def iteration(self):
         """
 
         """
         self.clean_initial_status(self.available_statuses.values())
+
         actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
 
         if self.actual_iteration == 0:
@@ -34,21 +38,20 @@ class ProfileModel(DiffusionModel):
             return 0, actual_status
 
         for u in self.graph.nodes():
-            if actual_status[u] == 1:
-                continue
 
+            u_status = self.status[u]
+            eventp = np.random.random_sample()
             neighbors = self.graph.neighbors(u)
             if isinstance(self.graph, nx.DiGraph):
                 neighbors = self.graph.predecessors(u)
 
-            infected = 0
-            for v in neighbors:
-                infected += self.status[v]
-
-            if infected > 0:
-                eventp = np.random.random_sample()
-                if eventp >= self.params['nodes']['profile'][u]:
+            if u_status == 0:
+                infected_neighbors = len([v for v in neighbors if self.status[v] == 1])
+                if eventp < self.params['model']['beta'] * infected_neighbors:
                     actual_status[u] = 1
+            elif u_status == 1:
+                if eventp < self.params['model']['lambda']:
+                    actual_status[u] = 0
 
         delta = self.status_delta(actual_status)
         self.status = actual_status

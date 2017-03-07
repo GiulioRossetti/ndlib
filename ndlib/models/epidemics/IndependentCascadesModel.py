@@ -23,6 +23,8 @@ class IndependentCascadesModel(DiffusionModel):
 
         self.parameters = {"edges:threshold": "Edge threshold (optional)"}
 
+        self.name = "Independent Cascades"
+
     def iteration(self):
         self.clean_initial_status(self.available_statuses.values())
         actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}

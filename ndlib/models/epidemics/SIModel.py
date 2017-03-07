@@ -6,12 +6,11 @@ __author__ = "Giulio Rossetti"
 __email__ = "giulio.rossetti@gmail.com"
 
 
-class SISModel(DiffusionModel):
+class SIModel(DiffusionModel):
     """
-    Implement the SIR model of Kermack et al.
+    Implement the SI model of Kermack et al.
     Model Parameters:
     (1) the infection rate beta
-    (2) the recovery rate lambda
     """
 
     def __init__(self, graph):
@@ -21,7 +20,9 @@ class SISModel(DiffusionModel):
             "Infected": 1
         }
 
-        self.parameters = {"model:beta": "Infection rate", "model:lambda": "Recovery rate"}
+        self.parameters = {"model:beta": "Infection rate"}
+
+        self.name = "SI"
 
     def iteration(self):
         """
@@ -47,9 +48,6 @@ class SISModel(DiffusionModel):
                 infected_neighbors = len([v for v in neighbors if self.status[v] == 1])
                 if eventp < self.params['model']['beta'] * infected_neighbors:
                     actual_status[u] = 1
-            elif u_status == 1:
-                if eventp < self.params['model']['lambda']:
-                    actual_status[u] = 0
 
         delta = self.status_delta(actual_status)
         self.status = actual_status

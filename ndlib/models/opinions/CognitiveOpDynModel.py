@@ -45,6 +45,8 @@ class CognitiveOpDynModel(DiffusionModel):
                            "model:R_fraction_positive'": "fraction of individuals having the node parameter R=1",
                            }
 
+        self.name = "Cognitive Opinion Dynamics"
+
     def set_initial_status(self, configuration=None):
         """
         Override behaviour of methods in class DiffusionModel.
