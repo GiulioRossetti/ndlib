@@ -117,6 +117,28 @@ model.get_model_parameters()
 
 ## Visualize simulation Results
 
+NDlib comes with basic visualization facilities embedded in ```ndlib.viz.DiffusionTrend```.
+
+```python
+import networkx as nx
+from bokeh.io import show
+import ndlib.models.ModelConfig as mc
+import ndlib.models.epidemics.SIRModel as sir
+from ndlib.viz.DiffusionTrend import VisualizeDiffusion
+
+g = nx.erdos_renyi_graph(1000, 0.1)
+model = sir.SIRModel(g)
+config = mc.Configuration()
+config.add_model_parameter('beta', 0.001)
+config.add_model_parameter('gamma', 0.01)
+config.add_model_parameter("percentage_infected", 0.05)
+model.set_initial_status(config)
+iterations = model.iteration_bunch(200)
+viz = VisualizeDiffusion(model, iterations)
+p = viz.plot()
+show(p)
+```
+
 ## Implement new models
 Implement additional models is simple since it only requires to define a class that:
 - implement the partial abstract ```class ndlib.models.DiffusionModel```
@@ -129,23 +151,19 @@ from ndlib.models.DiffusionModel import DiffusionModel
 
 class MyModel(DiffusionModel):
 
-
     def __init__(self, graph):
     	super(self.__class__, self).__init__(graph)
         self.available_statuses = {
             "Susceptible": 0, 
             "Infected": 1
         }
-
 		self.parameters = {"model:param1": "descr", "node:param2": "descr", "edge:param3": "descr"}
-
         self.name = "MyModel"
     
     def iteration(self):
     
     	self.clean_initial_status(self.available_statuses.values())
 
-    	
     	# if first iteration return the initial node status
         if self.actual_iteration == 0:
             self.actual_iteration += 1
