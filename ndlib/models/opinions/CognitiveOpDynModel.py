@@ -42,7 +42,7 @@ class CognitiveOpDynModel(DiffusionModel):
                            "model:B_range_max": "maximum of the range of initial values for node parameter B [0,1]",
                            "model:R_fraction_negative": "fraction of individuals having the node parameter R=-1",
                            "model:R_fraction_neutral": "fraction of individuals having the node parameter R=0",
-                           "model:R_fraction_positive'": "fraction of individuals having the node parameter R=1",
+                           "model:R_fraction_positive": "fraction of individuals having the node parameter R=1",
                            }
 
         self.name = "Cognitive Opinion Dynamics"

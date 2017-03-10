@@ -95,21 +95,36 @@ model.get_status_map()
 - At each iteration are returned only the nodes (and current status) that changed their previous configuration. 
 
 ### Model configuration
-Every model needs few parameters to be executed, in order to make general the initialization and iterative steps we decided to describe model configuration via dictionaries. In particular to initialize the implemented models you must supply (the chosen values are only examples of possible configurations):
-```python
-model = m.SznajdModel(g)
-model = m.VoterModel(g) 
-model = m.QVoterModel(g)
-model = m.CognitiveOpDynModel(g)
-model = m.IndependentCascadesModel(g) # needs edges threshold information
-model = m.ThresholdModel(g) # needs node threshold information
-model = m.ProfileModel(g)  # needs node profile information
-model = m.ProfileThresholdModel(g) # needs node profile and threshold information
-model = m.SIModel(g)
-model = m.SIRModel(g)
-model = m.SISModel(g)
-model = m.KerteszThresholdModel(g) # needs node threshold information
-```
+Every model needs few parameters to be executed, in particular:
+
+| Model  | Parameters | Description |
+| ------------- | ------------- | ------------- |
+| **Sznajd** | - | - |
+| **Voter**  | - | - |
+| **Q-Voter** | model:q | Number of neighbours that affect the opinion of an agent |
+| **Majority** | - | - |
+| **Cognitive Opinion Dynamics** | model:I | External information value |
+| | model:T_range_min | Minimum of the range of initial values for node parameter T |
+| | model:T_range_max | Maximum of the range of initial values for node parameter T |
+| | model:B_range_min | Minimum of the range of initial values for node parameter B |
+| | model:B_range_max | Maximum of the range of initial values for node parameter B |
+| | model:R_fraction_negative |Fraction of individuals having the node parameter R=-1 |
+| | model:R_fraction_neutral | Fraction of individuals having the node parameter R=0 |
+| | model:R_fraction_positive | Fraction of individuals having the node parameter R=1 |
+| **Independent Cascades** | edges:threshold | Edge threshold (optional)|
+| **Threshold** | nodes:threshold | Node threshold (optional)  |
+| **Profile**   | nodes:profile | Node profile (optional)  |
+| **Profile-Threshold** | nodes:threshold | Node threshold (optional) |
+| | nodes:profile** | Node profile (optional) |
+| **Kertesz Threshold** | nodes:threshold | Node threshold (optional)  |
+| | model:adopter_rate| Exogenous adoption rate |
+| | model:blocked | Percentage of blocked nodes | 
+| **SI** |  model:beta  | Infection rate |
+| **SIS** | model:beta  | Infection rate |
+| | model:lambda | Recovery rate |
+| **SIR** | model:beta  | Infection rate |
+| | model:gamma | Recovery rate |
+
 All parameters are specified within each method description and retrievable through
 ```python
 model.get_model_parameters()
