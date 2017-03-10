@@ -120,6 +120,7 @@ model.get_model_parameters()
 ## Implement new models
 Implement additional models is simple since it only requires to define a class that:
 - implement the partial abstract ```class ndlib.models.DiffusionModel```
+- redefine the ```__init__()``` method to provide model details
 - implement the ```iteration()``` method specifying its agent-based rules 
 
 ### Structure Example
@@ -129,7 +130,7 @@ from ndlib.models.DiffusionModel import DiffusionModel
 class MyModel(DiffusionModel):
 
 
-    def __init__(self):
+    def __init__(self, graph):
     	super(self.__class__, self).__init__(graph)
         self.available_statuses = {
             "Susceptible": 0, 
