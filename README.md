@@ -83,16 +83,16 @@ model.get_status_map()
 
 ## Rationale behind the implemented models
 
-- All models inherit from ndlib.models.DiffusionModel
+- All models inherit from ```ndlib.models.DiffusionModel```
 
-- Model configuration are handled by a ndlib.models.ModelConfig object that handle:
-	- **model** parameter (through, add_model_parameter(name, value))
-	- **node** configuration through, add_node_configuration(param_name, node_id, param_value)
-	- **edge** configuration through, add_edge_configuration(param_name, edge, param_value)
+- Model configuration are defined by a ```ndlib.models.ModelConfig``` object that handle:
+	- **model** parameter through, ```add_model_parameter(name, value)```
+	- **node** configuration through ```add_node_configuration(param_name, node_id, param_value)```
+	- **edge** configuration through ```add_edge_configuration(param_name, edge, param_value)```
 
 - NDlib describes diffusion models as agent-based simulations occurring at discrete time: once configured the desired model and selected the target network, subsequent iterations will provide to the user the current status of each node.
 
-- At each iterations are returned only the nodes (and current status) that changed their previous configuration. 
+- At each iteration are returned only the nodes (and current status) that changed their previous configuration. 
 
 ### Model configuration
 Every model needs few parameters to be executed, in order to make general the initialization and iterative steps we decided to describe model configuration via dictionaries. In particular to initialize the implemented models you must supply (the chosen values are only examples of possible configurations):
@@ -115,14 +115,16 @@ All parameters are specified within each method description and retrievable thro
 model.get_model_parameters()
 ```
 
+## Visualize simulation Results
+
 ## Implement new models
 Implement additional models is simple since it only requires to define a class that:
-- implement the partial abstract class ndlib.DiffusionModel
-- implement the iteration() method specifying its agent-based rules 
+- implement the partial abstract ```class ndlib.models.DiffusionModel```
+- implement the ```iteration()``` method specifying its agent-based rules 
 
 ### Structure Example
 ```python
-from ndlib.model.DiffusionModel import DiffusionModel
+from ndlib.models.DiffusionModel import DiffusionModel
 
 class MyModel(DiffusionModel):
 
