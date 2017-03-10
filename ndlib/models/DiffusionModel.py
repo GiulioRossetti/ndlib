@@ -109,6 +109,9 @@ class DiffusionModel(object):
     def get_name(self):
         return self.name
 
+    def get_status_map(self):
+        return self.available_statuses
+
     @abc.abstractmethod
     def iteration(self):
         pass

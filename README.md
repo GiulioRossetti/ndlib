@@ -47,7 +47,7 @@ sudo pip install ndlib
 
 Import the selected diffusion model with
 ```python
-import ndlib.VoterModel as m
+import ndlib.models.VoterModel as m
 ```
 
 Generate/load a graph with the [networkx](https://networkx.github.io/) library
@@ -59,9 +59,12 @@ Initialize the model on the graph
 ```python
 model = m.VoterModel(g)
 ```
-Set the nodel initial status
+Configure the nodel initial status
 ```python
-model.set_initial_status({'model': {'percentage_infected': 0.2}})
+import import ndlib.models.ModelConfig as mc
+config = mc.Configuration()
+config.add_model_parameter('percentage_infected', 0.2)
+model.set_initial_status(config)
 ```
 Request a single iteration of the simulation
 ```python
@@ -72,20 +75,20 @@ or a bunch of iterations
 it_bunch = model.iteration_bunch(bunch_size=10)
 ``` 
 
-Each model can assing multiple statuses to nodes. In the implemented models we used the following convention:
+Each model can assing multiple statuses to nodes. 
+Is it possible to retrive the map used by a given model to identify the available status with
 ```python
-Blocked Nodes: -1 # Only: Kertesz Threshold
-Susceptible: 0
-Infected: 1
-Removed: 2 # Only: SIR, Independent Cascades
+model.get_status_map()
 ```
-One model (Cognitive Opinion Dynamics), due to his definition, employs real values in [0,1] as node statuses.
 
 ## Rationale behind the implemented models
 
-- All models inherit from ndlib.DiffusionModel
+- All models inherit from ndlib.models.DiffusionModel
 
-- Model configuration and parameter settings is generalized by passing configuration dictionaries
+- Model configuration are handled by a ndlib.models.ModelConfig object that handle:
+	- **model** parameter (through, add_model_parameter(name, value))
+	- **node** configuration through, add_node_configuration(param_name, node_id, param_value)
+	- **edge** configuration through, add_edge_configuration(param_name, edge, param_value)
 
 - NDlib describes diffusion models as agent-based simulations occurring at discrete time: once configured the desired model and selected the target network, subsequent iterations will provide to the user the current status of each node.
 
@@ -96,42 +99,21 @@ Every model needs few parameters to be executed, in order to make general the in
 ```python
 model = m.SznajdModel(g)
 model = m.VoterModel(g) 
-model = m.QVoterModel(g, {'q': 5})
-model = m.CognitiveOpDynModel(g,{'I':0.15,'B_range_min':0, 'B_range_max':1,'T_range_min':0,'T_range_max':1,'R_fraction_negative':1/3.0,'R_fraction_neutral':1/3.0,'R_fraction_positive':1/3.0})
-model = m.IndependentCascadesModel(g) # needs edges threshold informations
-model = m.ThresholdModel(g) # needs node threshold informations
-model = m.ProfileModel(g)  # needs node profile informations
-model = m.ProfileThresholdModel(g) # needs node profile and threshold informations
-model = m.SIModel(g, {'beta': 0.1})
-model = m.SIRModel(g, {'beta': 0.1, 'gamma': 0.1})
-model = m.SISModel(g, {'beta': 0.1, 'lambda': 0.1})
-model = m.KerteszThresholdModel(g, {'adopter_rate': 0.1, 'blocked': 0.1}) # needs node threshold informations
+model = m.QVoterModel(g)
+model = m.CognitiveOpDynModel(g)
+model = m.IndependentCascadesModel(g) # needs edges threshold information
+model = m.ThresholdModel(g) # needs node threshold information
+model = m.ProfileModel(g)  # needs node profile information
+model = m.ProfileThresholdModel(g) # needs node profile and threshold information
+model = m.SIModel(g)
+model = m.SIRModel(g)
+model = m.SISModel(g)
+model = m.KerteszThresholdModel(g) # needs node threshold information
 ```
-All parameters are specified within each method description.
-
-Moreover, additional parameters can be specified to define the initial configuration of the network by using the set_initial_status method.
-In particular it takes as input a (not necessarely full defined) dictionary having the following form:
+All parameters are specified within each method description and retrievable through
 ```python
-{
- 'nodes': {'threshold': {}, 'profile': {}},
- 'edges': {},
- 'model': {'percentage_infected': 0, 'infected_nodes': []}
-}
+model.get_model_parameters()
 ```
-where:
-- the 'nodes' component describes the individual values of (all) node thresholds and/or profiles i.e.
-```python
-{'nodes':{ 'threshold': {node1: value1, node2: value2, node3: value3},
-          'profile': {node1: value1, node2: value2, node3: value3}}
-```
-- the 'edges' component describes the edge weights i.e.
-```python
-{'edges': [
-            {'source': node1, 'target': node2, 'weight': value},
-            {'source': node2, 'target': node3, 'weight': value}
-           ]}
-```
-- the 'model' component define either the percentage of initial nodes (selected at random) or a specific initial set of infected nodes. In case both 'percentage_infected' and 'infected_nodes' are specified the latter is ignored.
 
 ## Implement new models
 Implement additional models is simple since it only requires to define a class that:
@@ -140,11 +122,26 @@ Implement additional models is simple since it only requires to define a class t
 
 ### Structure Example
 ```python
-from ndlib.DiffusionModel import DiffusionModel
+from ndlib.model.DiffusionModel import DiffusionModel
 
 class MyModel(DiffusionModel):
+
+
+    def __init__(self):
+    	super(self.__class__, self).__init__(graph)
+        self.available_statuses = {
+            "Susceptible": 0, 
+            "Infected": 1
+        }
+
+		self.parameters = {"model:param1": "descr", "node:param2": "descr", "edge:param3": "descr"}
+
+        self.name = "MyModel"
     
     def iteration(self):
+    
+    	self.clean_initial_status(self.available_statuses.values())
+
     	
     	# if first iteration return the initial node status
         if self.actual_iteration == 0:
@@ -165,4 +162,4 @@ class MyModel(DiffusionModel):
         # return the actual configuration (only nodes with status updates)
         return self.actual_iteration - 1, delta
 ```
-If you like to include your model in NDlib (as well as in [NDlib-REST](https://github.com/GiulioRossetti/ndlib-rest)) open an issue and contact us.
+If you like to include your model in NDlib (as well as in [NDlib-REST](https://github.com/GiulioRossetti/ndlib-rest)) feel free to fork the project, open an issue and contact us.

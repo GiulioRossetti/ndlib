@@ -13,7 +13,7 @@ __email__ = "giulio.rossetti@gmail.com"
 #    long_description = f.read()
 
 setup(name='ndlib',
-      version='1.0b',
+      version='2.0',
       license='GNU General Public License v3 or later (GPLv3+)',
       description='Network Diffusion Library',
       url='https://github.com/GiulioRossetti/ndlib',
@@ -41,7 +41,7 @@ setup(name='ndlib',
           'Programming Language :: Python :: 2.7'
       ],
       keywords='epidemics opinion-dynamics simulator complex-networks',
-      install_requires=['numpy', 'networkx', 'scipy'],
+      install_requires=['numpy', 'networkx', 'scipy', 'bokeh'],
       packages=find_packages(),
 
       )
