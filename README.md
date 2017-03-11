@@ -124,14 +124,14 @@ Every model needs parameters to be executed, in particular:
  **Kertesz Threshold** | nodes:threshold <br/> model:adopter_rate <br/> model:blocked  | Node threshold (*) <br/> Exogenous adoption rate <br/> Percentage of blocked nodes 
  **Independent Cascades** | edges:threshold | Edge threshold (*)
  **Profile**   | nodes:profile | Node profile (*)  
- **Profile-Threshold** | nodes:threshold <br/> nodes:profile | Node threshold (*) <br/> Node profile (*) 
+ **Profile-Threshold** | nodes:threshold <br/> nodes:profile | Node threshold (\*) <br/> Node profile (\*) 
 
 **Opinion Dynamics**
 
  Model  | Parameters | Description 
  ------------- | ------------- | ------------- 
  **Voter**  | - | - 
- **Q-Voter** | model:q | Number of neighbours affecting agent's opinion 
+ **Q-Voter** | model:q | #neighbours affecting agent's opinion 
  **Majority Rule** | - | - 
  **Sznajd** | - | - 
  **Cognitive Opinion Dynamics** | model:I <br/> model:T_range_min <br/> model:T_range_max <br/> model:B_range_min <br/> model:B_range_max <br/> model:R_fraction_negative <br/> model:R_fraction_neutral <br/> model:R_fraction_positive | External information value <br/> Minimum of the range for T <br/> Maximum of the range for T <br/> Minimum of the range for B  <br/> Maximum of the range for B  <br/> Fraction of nodes having R=-1  <br/> Fraction of nodes having R=-0 <br/> Fraction of nodes having R=1   
