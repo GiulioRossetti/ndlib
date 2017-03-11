@@ -117,26 +117,21 @@ Every model needs parameters to be executed, in particular:
 
  Model  | Parameters | Description 
  ------------- | ------------- | ------------- 
-  **SI** |  model:beta  | Infection rate 
-   **SIR** | model:beta  | Infection rate 
-| | model:gamma | Recovery rate 
- **SIS** | model:beta  | Infection rate 
-| | model:lambda | Recovery rate 
+ **SI**  |  model:beta  | Infection rate 
+ **SIR** | model:beta <br/> model:gamma | Infection rate <br/> Recovery rate 
+ **SIS** | model:beta <br/>  model:lambda | Infection rate <br/> Recovery rate 
  **Threshold** | nodes:threshold | Node threshold (*)  
- **Kertesz Threshold** | nodes:threshold | Node threshold (*)  
-| | model:adopter_rate| Exogenous adoption rate 
-| | model:blocked | Percentage of blocked nodes 
+ **Kertesz Threshold** | nodes:threshold <br/> model:adopter_rate <br/> model:blocked  | Node threshold (*) <br/> Exogenous adoption rate <br/> Percentage of blocked nodes 
  **Independent Cascades** | edges:threshold | Edge threshold (*)
  **Profile**   | nodes:profile | Node profile (*)  
- **Profile-Threshold** | nodes:threshold | Node threshold (*) 
-| | nodes:profile** | Node profile (*) 
+ **Profile-Threshold** | nodes:threshold <br/> nodes:profile | Node threshold (*) <br/> Node profile (*) 
 
 **Opinion Dynamics**
 
  Model  | Parameters | Description 
  ------------- | ------------- | ------------- 
  **Voter**  | - | - 
- **Q-Voter** | model:q | Number of neighbours that affect the opinion of an agent 
+ **Q-Voter** | model:q | Number of neighbours affecting agent's opinion 
  **Majority Rule** | - | - 
  **Sznajd** | - | - 
  **Cognitive Opinion Dynamics** | model:I | External information value 
