@@ -13,7 +13,7 @@ It is implemented in Python 2.7 (support for Python 3.x pending).
 ## Available Diffusion models
 So far NDlib makes available the following diffusion models:
 
-**EPIDEMICS**
+**Epidemics**
 
 > 1. **SI** *(SIModel)*
 >   - W. O. Kermack and Ag McKendrick. A Contribution to the Mathematical Theory of Epidemics. Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, 1927.
@@ -30,7 +30,7 @@ So far NDlib makes available the following diffusion models:
 > 7. **Profile** *(ProfileModel)*
 > 8. **Profile Threshold** *(ProfileThresholdModel)*
  
-**OPINION DYNAMICS**
+**Opinion Dynamics**
 
 > 9. **Voter** *(VoterModel)*
 >    - Peter Clifford and Aidan Sudbury. A model for spatial conflict. Biometrika, 60(3), 1973. 
@@ -134,17 +134,10 @@ Every model needs parameters to be executed, in particular:
  **Q-Voter** | model:q | Number of neighbours affecting agent's opinion 
  **Majority Rule** | - | - 
  **Sznajd** | - | - 
- **Cognitive Opinion Dynamics** | model:I | External information value 
-| | model:T_range_min | Minimum of the range for node parameter T 
-| | model:T_range_max | Maximum of the range for node parameter T 
-| | model:B_range_min | Minimum of the range for node parameter B 
-| | model:B_range_max | Maximum of the range for node parameter B 
-| | model:R_fraction_negative |Fraction of individuals having R=-1 
-| | model:R_fraction_neutral | Fraction of individuals having R=0 
-| | model:R_fraction_positive | Fraction of individuals having R=1 
+ **Cognitive Opinion Dynamics** | model:I <br/> model:T_range_min <br/> model:T_range_max <br/> model:B_range_min <br/> model:B_range_max <br/> model:R_fraction_negative <br/> model:R_fraction_neutral <br/> model:R_fraction_positive | External information value <br/> Minimum of the range for T <br/> Maximum of the range for T <br/> Minimum of the range for B  <br/> Maximum of the range for B  <br/> Fraction of nodes having R=-1  <br/> Fraction of nodes having R=-0 <br/> Fraction of nodes having R=1   
 
 
-NB: the parameters marked with (*) are optionals: if not specified a uniform distribution is assumed.
+*N.B.: the parameters marked with (\*)  are optionals: if not specified a uniform distribution is assumed.*
 
 ## Visualize simulation Results
 
