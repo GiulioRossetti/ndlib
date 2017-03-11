@@ -3,37 +3,45 @@
 NDlib provides implementations of several spreading and opinion dynamics models.
 It is implemented in Python 2.7 (support for Python 3.x pending).
 
-At the moment NDlib makes available the following models
+## Rationale behind NDlib
+
+- A __simulation__ is univocally identified by a __graph__ and a (__configured__) __model__;
+- Each __model__ describes a peculiar kind of diffusion process as an agent-based __simulation__ occurring at discrete time;
+- A __configuration__ identifies the initial status of the diffusion and the parameters needed to instantiate the selected __model__;
+- Once a model has been __configured__, every __iteration__ of the __simulation__ returns only the nodes which changed their statuses.
+
+## Available Diffusion models
+So far NDlib makes available the following diffusion models:
 
 **EPIDEMICS**
 
-1. **SI** *(SIModel)*
- - W. O. Kermack and Ag McKendrick. A Contribution to the Mathematical Theory of Epidemics. Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, 1927.
-2. **SIR** *(SIRModel)*
- - W. O. Kermack and Ag McKendrick. A Contribution to the Mathematical Theory of Epidemics. Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, 1927.
-3. **SIS** *(SISModel)*
- - W. O. Kermack and Ag McKendrick. A Contribution to the Mathematical Theory of Epidemics. Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, 1927.
-4. **Threshold** *(ThresholdModel)*
- - M. Granovetter. Threshold models of collective behavior. American Journal of Sociology, 1978  
-5. **Kertesz Threshold** *(KerteszThresholdModel)*
- - Karsai M., Iniguez G., Kaski K., and Kertesz J., Complex contagion process in spreading of online innovation. Journal of the Royal Society, 11(101), 2014
-6. **Independent Cascades** *(IndependentCascadeModel)*
- - D. Kempe, J. Kleinberg, and E. Tardos. Maximizing the Spread of Influence through a Social Network. In KDD, 2003.
-7. **Profile** *(ProfileModel)*
-8. **Profile Threshold** *(ProfileThresholdModel)*
+> 1. **SI** *(SIModel)*
+>   - W. O. Kermack and Ag McKendrick. A Contribution to the Mathematical Theory of Epidemics. Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, 1927.
+> 2. **SIR** *(SIRModel)*
+>   - W. O. Kermack and Ag McKendrick. A Contribution to the Mathematical Theory of Epidemics. Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, 1927.
+> 3. **SIS** *(SISModel)*
+>   - W. O. Kermack and Ag McKendrick. A Contribution to the Mathematical Theory of Epidemics. Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, 1927.
+> 4. **Threshold** *(ThresholdModel)*
+>   - M. Granovetter. Threshold models of collective behavior. American Journal of Sociology, 1978  
+> 5. **Kertesz Threshold** *(KerteszThresholdModel)*
+>   - Karsai M., Iniguez G., Kaski K., and Kertesz J., Complex contagion process in spreading of online innovation. Journal of the Royal Society, 11(101), 2014
+> 6. **Independent Cascades** *(IndependentCascadeModel)*
+>   - D. Kempe, J. Kleinberg, and E. Tardos. Maximizing the Spread of Influence through a Social Network. In KDD, 2003.
+> 7. **Profile** *(ProfileModel)*
+> 8. **Profile Threshold** *(ProfileThresholdModel)*
  
 **OPINION DYNAMICS**
 
-9. **Voter** *(VoterModel)*
- - Peter Clifford and Aidan Sudbury. A model for spatial conflict. Biometrika, 60(3), 1973. 
-10. **QVoter** *(QVoterModel)*
- - Claudio Castellano, Miguel A Mu~noz, and Romualdo Pastor-Satorras. Nonlinear q-voter model. Physical Review E, 80(4), 2009.  
-11. **Majority Rule** *(MajorityRuleModel)*
- - S Galam. Real space renormalization group and totalitarian paradox of majority rule voting. Physica A, 285, 2000.  
-12. **Snajzd** *(SznajdModel)*
- - Katarzyna Sznajd-Weron and Jozef Sznajd. Opinion evolution in closed community. International Journal of Modern Physics C, 11(06), 2000. 
-13. **Cognitive Opinion Dynamics** *(CognitiveOpDynModel)*
- - Francesca Giardini, Daniele Vilone, and Rosaria Conte. Consensus emerging from the bottom-up: the role of cognitive variables in opinion dynamics. Frontiers in Physics, 2015  
+> 9. **Voter** *(VoterModel)*
+>    - Peter Clifford and Aidan Sudbury. A model for spatial conflict. Biometrika, 60(3), 1973. 
+> 10. **Q-Voter** *(QVoterModel)*
+>    - Claudio Castellano, Miguel A Munoz, and Romualdo Pastor-Satorras. Nonlinear q-voter model. Physical Review E, 80(4), 2009.  
+> 11. **Majority Rule** *(MajorityRuleModel)*
+>    - S Galam. Real space renormalization group and totalitarian paradox of majority rule voting. Physica A, 285, 2000.  
+> 12. **Snajzd** *(SznajdModel)*
+>    - Katarzyna Sznajd-Weron and Jozef Sznajd. Opinion evolution in closed community. International Journal of Modern Physics C, 11(06), 2000. 
+> 13. **Cognitive Opinion Dynamics** *(CognitiveOpDynModel)*
+>    - Francesca Giardini, Daniele Vilone, and Rosaria Conte. Consensus emerging from the bottom-up: the role of cognitive variables in opinion dynamics. Frontiers in Physics, 2015  
 
 ## Installation
 
@@ -59,76 +67,89 @@ Initialize the model on the graph
 ```python
 model = m.VoterModel(g)
 ```
-Configure the nodel initial status
+
+Configure model initial status
 ```python
 import import ndlib.models.ModelConfig as mc
 config = mc.Configuration()
 config.add_model_parameter('percentage_infected', 0.2)
 model.set_initial_status(config)
 ```
-Request a single iteration of the simulation
+
+Execute an iteration of the simulation
 ```python
 it_id, it_status = model.iteration()
 ```
-or a bunch of iterations
+
+Execute a bunch of iterations
 ```python
 it_bunch = model.iteration_bunch(bunch_size=10)
 ``` 
 
-Each model can assing multiple statuses to nodes. 
-Is it possible to retrive the map used by a given model to identify the available status with
+Each model defines its own node statuses: to retrieve the map used by a given model to identify the available use
 ```python
 model.get_status_map()
 ```
 
-## Rationale behind the implemented models
+## Model Configuration Object
 
-- All models inherit from ```ndlib.models.DiffusionModel```
+Model configuration are defined by a ```ndlib.models.ModelConfig``` object that handle four categories of parameters:
+- **model** parameters: ```add_model_parameter(name, value)```
+- **node** parameters: ```add_node_configuration(param_name, node_id, param_value)```
+- **edge** parameters: ```add_edge_configuration(param_name, edge, param_value)```
+- simulation initial **status**: ```add_model_initial_configuration(status_name, node_list)```
 
-- Model configuration are defined by a ```ndlib.models.ModelConfig``` object that handle:
-	- **model** parameter through, ```add_model_parameter(name, value)```
-	- **node** configuration through ```add_node_configuration(param_name, node_id, param_value)```
-	- **edge** configuration through ```add_edge_configuration(param_name, edge, param_value)```
+We identify a parameter of a given categories as ```category:parameter_name```.
 
-- NDlib describes diffusion models as agent-based simulations occurring at discrete time: once configured the desired model and selected the target network, subsequent iterations will provide to the user the current status of each node.
-
-- At each iteration are returned only the nodes (and current status) that changed their previous configuration. 
-
-### Model configuration
-Every model needs few parameters to be executed, in particular:
-
-| Model  | Parameters | Description |
-| ------------- | ------------- | ------------- |
-| **Sznajd** | - | - |
-| **Voter**  | - | - |
-| **Q-Voter** | model:q | Number of neighbours that affect the opinion of an agent |
-| **Majority** | - | - |
-| **Cognitive Opinion Dynamics** | model:I | External information value |
-| | model:T_range_min | Minimum of the range of initial values for node parameter T |
-| | model:T_range_max | Maximum of the range of initial values for node parameter T |
-| | model:B_range_min | Minimum of the range of initial values for node parameter B |
-| | model:B_range_max | Maximum of the range of initial values for node parameter B |
-| | model:R_fraction_negative |Fraction of individuals having the node parameter R=-1 |
-| | model:R_fraction_neutral | Fraction of individuals having the node parameter R=0 |
-| | model:R_fraction_positive | Fraction of individuals having the node parameter R=1 |
-| **Independent Cascades** | edges:threshold | Edge threshold (optional)|
-| **Threshold** | nodes:threshold | Node threshold (optional)  |
-| **Profile**   | nodes:profile | Node profile (optional)  |
-| **Profile-Threshold** | nodes:threshold | Node threshold (optional) |
-| | nodes:profile** | Node profile (optional) |
-| **Kertesz Threshold** | nodes:threshold | Node threshold (optional)  |
-| | model:adopter_rate| Exogenous adoption rate |
-| | model:blocked | Percentage of blocked nodes | 
-| **SI** |  model:beta  | Infection rate |
-| **SIS** | model:beta  | Infection rate |
-| | model:lambda | Recovery rate |
-| **SIR** | model:beta  | Infection rate |
-| | model:gamma | Recovery rate |
-
-All parameters are specified within each method description and retrievable through
+The the complete list of parameters needed by a model are retrievable through
 ```python
 model.get_model_parameters()
 ```
+
+Moreover, if the initial set of *Infected* nodes is not given it is mandatory to specify the percentage of infected through ```add_model_parameter("percentage_infected", p)```. 
+Doing so *p%* of randomly chosen nodes will be selected as the diffusion seeds. 
+
+
+### Available models and their parameters 
+Every model needs parameters to be executed, in particular:
+
+**Epidemics**
+
+ Model  | Parameters | Description 
+ ------------- | ------------- | ------------- 
+  **SI** |  model:beta  | Infection rate 
+   **SIR** | model:beta  | Infection rate 
+| | model:gamma | Recovery rate 
+ **SIS** | model:beta  | Infection rate 
+| | model:lambda | Recovery rate 
+ **Threshold** | nodes:threshold | Node threshold (*)  
+ **Kertesz Threshold** | nodes:threshold | Node threshold (*)  
+| | model:adopter_rate| Exogenous adoption rate 
+| | model:blocked | Percentage of blocked nodes 
+ **Independent Cascades** | edges:threshold | Edge threshold (*)
+ **Profile**   | nodes:profile | Node profile (*)  
+ **Profile-Threshold** | nodes:threshold | Node threshold (*) 
+| | nodes:profile** | Node profile (*) 
+
+**Opinion Dynamics**
+
+ Model  | Parameters | Description 
+ ------------- | ------------- | ------------- 
+ **Voter**  | - | - 
+ **Q-Voter** | model:q | Number of neighbours that affect the opinion of an agent 
+ **Majority Rule** | - | - 
+ **Sznajd** | - | - 
+ **Cognitive Opinion Dynamics** | model:I | External information value 
+| | model:T_range_min | Minimum of the range for node parameter T 
+| | model:T_range_max | Maximum of the range for node parameter T 
+| | model:B_range_min | Minimum of the range for node parameter B 
+| | model:B_range_max | Maximum of the range for node parameter B 
+| | model:R_fraction_negative |Fraction of individuals having R=-1 
+| | model:R_fraction_neutral | Fraction of individuals having R=0 
+| | model:R_fraction_positive | Fraction of individuals having R=1 
+
+
+NB: the parameters marked with (*) are optionals: if not specified a uniform distribution is assumed.
 
 ## Visualize simulation Results
 
@@ -154,11 +175,50 @@ p = viz.plot()
 show(p)
 ```
 
+In order to visually compare multiple executions it is possible to generate multi plots:
+
+```python
+import networkx as nx
+from bokeh.io import show
+import ndlib.models.ModelConfig as mc
+import ndlib.models.epidemics.SIRModel as sir
+from ndlib.viz.DiffusionTrend import VisualizeDiffusion, MultiPlot
+
+vm = MultiPlot()
+
+g = nx.erdos_renyi_graph(1000, 0.1)
+model = sir.SIRModel(g)
+config = mc.Configuration()
+config.add_model_parameter('beta', 0.001)
+config.add_model_parameter('gamma', 0.01)
+config.add_model_parameter("percentage_infected", 0.05)
+model.set_initial_status(config)
+iterations = model.iteration_bunch(200)
+viz = VisualizeDiffusion(model, iterations)
+p = viz.plot()
+vm.add_plot(p)
+
+
+model2 = sir.SIRModel(g)
+config2 = mc.Configuration()
+config2.add_model_parameter('beta', 0.005)
+config2.add_model_parameter('gamma', 0.02)
+config2.add_model_parameter("percentage_infected", 0.08)
+model2.set_initial_status(config)
+iterations2 = model2.iteration_bunch(200)
+viz2 = VisualizeDiffusion(model2, iterations2)
+p2 = viz2.plot()
+vm.add_plot(p2)
+
+m = vm.plot()
+show(m)
+```
+
 ## Implement new models
 Implement additional models is simple since it only requires to define a class that:
-- implement the partial abstract ```class ndlib.models.DiffusionModel```
-- redefine the ```__init__()``` method to provide model details
-- implement the ```iteration()``` method specifying its agent-based rules 
+- implement the partial abstract ```class ndlib.models.DiffusionModel```;
+- redefine the ```__init__()``` method to provide model details;
+- implement the ```iteration()``` method specifying its agent-based rules.
 
 ### Structure Example
 ```python
