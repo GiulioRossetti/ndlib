@@ -24,9 +24,31 @@ class KerteszThresholdModel(DiffusionModel):
             "Blocked": -1
         }
 
-        self.parameters = {"nodes:threshold": "Node threshold",
-                           "model:adopter_rate": "Exogenous adoption rate",
-                           "model:blocked": "Percentage of blocked nodes"}
+        self.parameters = {
+            "model": {
+                "adopter_rate": {
+                    "descr": "Exogenous adoption rate",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0
+                },
+                "percentage_blocked": {
+                    "descr": "Percentage of blocked nodes",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0.1
+                }
+            },
+            "nodes": {
+                "threshold": {
+                    "descr": "Node threshold",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0.1
+                }
+            },
+            "edges": {},
+        }
 
         self.name = "Kertesz Threhold"
 

@@ -19,7 +19,18 @@ class ThresholdModel(DiffusionModel):
             "Infected": 1
         }
 
-        self.parameters = {"nodes:threshold": "Node threshold (optional)"}
+        self.parameters = {
+            "model": {},
+            "nodes": {
+                "threshold": {
+                    "descr": "Node threshold",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0.1
+                }
+            },
+            "edges": {},
+        }
 
         self.name = "Threshold"
 

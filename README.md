@@ -53,24 +53,21 @@ sudo pip install ndlib
 
 ## Example usage
 
-Import the selected diffusion model with
-```python
-import ndlib.models.VoterModel as m
-```
-
 Generate/load a graph with the [networkx](https://networkx.github.io/) library
 ```python
 import networkx as nx
 g = nx.erdos_renyi_graph(1000, 0.1)
 ```
-Initialize the model on the graph
+
+Import and initialize the selected diffusion model
 ```python
+import ndlib.models.VoterModel as m
 model = m.VoterModel(g)
 ```
 
 Configure model initial status
 ```python
-import import ndlib.models.ModelConfig as mc
+import ndlib.models.ModelConfig as mc
 config = mc.Configuration()
 config.add_model_parameter('percentage_infected', 0.2)
 model.set_initial_status(config)
@@ -132,7 +129,7 @@ Every model needs parameters to be executed, in particular:
  ------------- | ------------- | ------------- 
  **Voter**  | - | - 
  **Q-Voter** | model:q | #neighbours affecting agent's opinion 
- **Majority Rule** | - | - 
+ **Majority Rule** | model:q | Number of randomly chosen voters 
  **Sznajd** | - | - 
  **Cognitive Opinion Dynamics** | model:I <br/> model:T_range_min <br/> model:T_range_max <br/> model:B_range_min <br/> model:B_range_max <br/> model:R_fraction_negative <br/> model:R_fraction_neutral <br/> model:R_fraction_positive | External information value <br/> Minimum of the range for T <br/> Maximum of the range for T <br/> Minimum of the range for B  <br/> Maximum of the range for B  <br/> Fraction of nodes having R=-1  <br/> Fraction of nodes having R=-0 <br/> Fraction of nodes having R=1   
 
@@ -214,36 +211,36 @@ from ndlib.models.DiffusionModel import DiffusionModel
 
 class MyModel(DiffusionModel):
 
-    def __init__(self, graph):
-    	super(self.__class__, self).__init__(graph)
-        self.available_statuses = {
-            "Susceptible": 0, 
-            "Infected": 1
-        }
+	def __init__(self, graph):
+		super(self.__class__, self).__init__(graph)
+		self.available_statuses = {
+			"Susceptible": 0, 
+			"Infected": 1
+		}
 		self.parameters = {"model:param1": "descr", "node:param2": "descr", "edge:param3": "descr"}
-        self.name = "MyModel"
-    
-    def iteration(self):
-    
-    	self.clean_initial_status(self.available_statuses.values())
+		self.name = "MyModel"
+	
+	def iteration(self):
+	
+		self.clean_initial_status(self.available_statuses.values())
 
-    	# if first iteration return the initial node status
-        if self.actual_iteration == 0:
-            self.actual_iteration += 1
-        return 0, self.status
-    
-        actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
-        for u in self.graph.nodes():
-            # evluate possible status changes using the model parameters (accessible via self.params)
-            # e.g. self.params['beta'], self.param['nodes']['threshold'][u], self.params['edges'][(id_node0, idnode1)]
-        
-        # identify the changes w.r.t. previous iteration
-        delta = self.status_delta(actual_status)
-        # update the actual status and iterative step
-        self.status = actual_status
-        self.actual_iteration += 1
-        
-        # return the actual configuration (only nodes with status updates)
-        return self.actual_iteration - 1, delta
+		# if first iteration return the initial node status
+		if self.actual_iteration == 0:
+			self.actual_iteration += 1
+		return 0, self.status
+	
+		actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
+		for u in self.graph.nodes():
+			# evluate possible status changes using the model parameters (accessible via self.params)
+			# e.g. self.params['beta'], self.param['nodes']['threshold'][u], self.params['edges'][(id_node0, idnode1)]
+		
+		# identify the changes w.r.t. previous iteration
+		delta = self.status_delta(actual_status)
+		# update the actual status and iterative step
+		self.status = actual_status
+		self.actual_iteration += 1
+		
+		# return the actual configuration (only nodes with status updates)
+		return self.actual_iteration - 1, delta
 ```
 If you like to include your model in NDlib (as well as in [NDlib-REST](https://github.com/GiulioRossetti/ndlib-rest)) feel free to fork the project, open an issue and contact us.

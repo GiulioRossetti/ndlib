@@ -22,7 +22,21 @@ class SIRModel(DiffusionModel):
             "Removed": 2
         }
 
-        self.parameters = {"model:beta": "Infection rate", "model:gamma": "Recovery rate"}
+        self.parameters = {
+            "model": {
+                "beta": {
+                    "descr": "Infection rate",
+                    "range": [0, 1],
+                    "optional": False},
+                "gamma": {
+                    "descr": "Recovery rate",
+                    "range": [0, 1],
+                    "optional": False
+                }
+            },
+            "nodes": {},
+            "edges": {},
+        }
 
         self.name = "SIR"
 

@@ -23,7 +23,16 @@ class QVoterModel(DiffusionModel):
             "Infected": 1
         }
 
-        self.parameters = {"model:q": "Number of neighbours that affect the opinion of an agent"}
+        self.parameters = {"model": {
+                "q": {
+                    "descr": "Number of neighbours that affect the opinion of an agent",
+                    "range": [0, len(self.graph.nodes())],
+                    "optional": False
+                }
+            },
+            "nodes": {},
+            "edges": {}
+        }
 
         self.name = "QVoter"
 

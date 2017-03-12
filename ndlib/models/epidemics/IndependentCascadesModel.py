@@ -21,7 +21,18 @@ class IndependentCascadesModel(DiffusionModel):
             "Removed": 2
         }
 
-        self.parameters = {"edges:threshold": "Edge threshold (optional)"}
+        self.parameters = {
+            "model": {},
+            "nodes": {},
+            "edges": {
+                "threshold": {
+                    "descr": "Edge threshold",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0.1
+                }
+            },
+        }
 
         self.name = "Independent Cascades"
 

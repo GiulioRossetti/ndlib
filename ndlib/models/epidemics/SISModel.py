@@ -21,7 +21,21 @@ class SISModel(DiffusionModel):
             "Infected": 1
         }
 
-        self.parameters = {"model:beta": "Infection rate", "model:lambda": "Recovery rate"}
+        self.parameters = {
+            "model": {
+                "beta": {
+                    "descr": "Infection rate",
+                    "range": [0, 1],
+                    "optional": False},
+                "lambda": {
+                    "descr": "Recovery rate",
+                    "range": [0, 1],
+                    "optional": False
+                }
+            },
+            "nodes": {},
+            "edges": {},
+        }
 
         self.name = "SIS"
 

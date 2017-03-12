@@ -200,3 +200,74 @@ class NdlibTest(unittest.TestCase):
         iteration = model.iteration()
         blocked = [x for x, v in iteration[1].iteritems() if v == -1]
         self.assertEqual(blocked, predefined_blocked)
+
+    def test_initial_infected(self):
+        g = nx.erdos_renyi_graph(1000, 0.1)
+        model = sis.SISModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('beta', 0.5)
+        config.add_model_parameter('lambda', 0.2)
+        predefined_infected = [0, 1, 2, 3, 4, 5]
+        config.add_model_initial_configuration("Infected", predefined_infected)
+        model.set_initial_status(config)
+        inft = [k for k, v in model.status.iteritems() if v == 1]
+        self.assertAlmostEqual(inft, predefined_infected)
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+
+    def test_optional_parameters(self):
+        g = nx.erdos_renyi_graph(1000, 0.1)
+        model = th.ThresholdModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+
+        model = ks.KerteszThresholdModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('adopter_rate', 0.4)
+        predefined_blocked = [0, 1, 2, 3, 4, 5]
+        config.add_model_initial_configuration("Blocked", predefined_blocked)
+        config.add_model_parameter('percentage_infected', 0.1)
+        model.set_initial_status(config)
+        iteration = model.iteration()
+        blocked = [x for x, v in iteration[1].iteritems() if v == -1]
+        self.assertEqual(blocked, predefined_blocked)
+
+        model = ids.IndependentCascadesModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+
+        model = pr.ProfileModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+
+        model = pt.ProfileThresholdModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+
+        model = th.ThresholdModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+
+        model = ks.KerteszThresholdModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('adopter_rate', 0.4)
+        config.add_model_parameter('percentage_blocked', 0.1)
+        config.add_model_parameter('percentage_infected', 0.1)
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)

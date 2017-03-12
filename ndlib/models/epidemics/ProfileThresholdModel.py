@@ -21,8 +21,24 @@ class ProfileThresholdModel(DiffusionModel):
             "Infected": 1
         }
 
-        self.parameters = {"nodes:threshold": "Node threshold (optional)",
-                           "nodes:profile": "Node profile (optional)"}
+        self.parameters = {
+            "model": {},
+            "nodes": {
+                "threshold": {
+                    "descr": "Node threshold",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0.1
+                },
+                "profile": {
+                    "descr": "Node profile",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0.1
+                }
+            },
+            "edges": {},
+        }
 
         self.name = "Profile-Threshold"
 

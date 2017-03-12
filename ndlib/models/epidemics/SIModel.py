@@ -20,7 +20,16 @@ class SIModel(DiffusionModel):
             "Infected": 1
         }
 
-        self.parameters = {"model:beta": "Infection rate"}
+        self.parameters = {
+            "model": {
+                "beta": {
+                    "descr": "Infection rate",
+                    "range": "[0,1]",
+                    "optional": False}
+            },
+            "nodes": {},
+            "edges": {},
+        }
 
         self.name = "SI"
 

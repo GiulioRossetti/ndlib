@@ -31,19 +31,59 @@ class CognitiveOpDynModel(DiffusionModel):
 
     def __init__(self, graph):
         super(self.__class__, self).__init__(graph)
+
+        self.discrete_state = False
+
         self.available_statuses = {
             "Infected": 0
         }
 
-        self.parameters = {"model:I": "External information value in [0,1]",
-                           "model:T_range_min": "minimum of the range of initial values for node parameter T [0,1]",
-                           "model:T_range_max": "maximum of the range of initial values for node parameter T [0,1]",
-                           "model:B_range_min": "minimum of the range of initial values for node parameter B [0,1]",
-                           "model:B_range_max": "maximum of the range of initial values for node parameter B [0,1]",
-                           "model:R_fraction_negative": "fraction of individuals having the node parameter R=-1",
-                           "model:R_fraction_neutral": "fraction of individuals having the node parameter R=0",
-                           "model:R_fraction_positive": "fraction of individuals having the node parameter R=1",
-                           }
+        self.parameters = {
+            "model": {
+                "I": {
+                    "descr": "External information",
+                    "range": [0, 1],
+                    "optional": False
+                },
+                "T_range_min": {
+                    "descr": "Minimum of the range of initial values for T",
+                    "range": [0, 1],
+                    "optional": False
+                },
+                "T_range_max": {
+                    "descr": "Maximum of the range of initial values for T",
+                    "range": [0, 1],
+                    "optional": False
+                },
+                "B_range_min": {
+                    "descr": "Minimum of the range of initial values for B",
+                    "range": [0, 1],
+                    "optional": False
+                },
+                "B_range_max": {
+                    "descr": "Maximum of the range of initial values for B",
+                    "range": [0, 1],
+                    "optional": False
+                },
+                "R_fraction_negative": {
+                    "descr": "Fraction of nodes having R=-1",
+                    "range": [0, 1],
+                    "optional": False
+                },
+                "R_fraction_neutral": {
+                    "descr": "Fraction of nodes having R=0",
+                    "range": [0, 1],
+                    "optional": False
+                },
+                "R_fraction_positive": {
+                    "descr": "Fraction of nodes having R=1",
+                    "range": [0, 1],
+                    "optional": False
+                }
+            },
+            "nodes": {},
+            "edges": {}
+        }
 
         self.name = "Cognitive Opinion Dynamics"
 

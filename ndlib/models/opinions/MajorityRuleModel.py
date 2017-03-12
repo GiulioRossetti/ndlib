@@ -22,7 +22,16 @@ class MajorityRuleModel(DiffusionModel):
             "Infected": 1,
         }
 
-        self.parameters = {"model:q": "Number of randomly chosen voters"}
+        self.parameters = {"model": {
+            "q": {
+                "descr": "Number of randomly chosen voters",
+                "range": [0, len(self.graph.nodes())],
+                "optional": False
+            }
+        },
+            "nodes": {},
+            "edges": {}
+        }
 
         self.name = "Majority Rule"
 

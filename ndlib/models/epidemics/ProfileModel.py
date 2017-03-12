@@ -20,7 +20,18 @@ class ProfileModel(DiffusionModel):
             "Infected": 1
         }
 
-        self.parameters = {"nodes:profile": "Node profile (optional)"}
+        self.parameters = {
+            "model": {},
+            "nodes": {
+                "profile": {
+                    "descr": "Node profile",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0.1
+                }
+            },
+            "edges": {},
+        }
 
         self.name = "Profile"
 
