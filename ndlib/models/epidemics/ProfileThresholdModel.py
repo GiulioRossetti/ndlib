@@ -1,4 +1,4 @@
-from DiffusionModel import DiffusionModel
+from ..DiffusionModel import DiffusionModel
 import numpy as np
 import networkx as nx
 
@@ -14,11 +14,39 @@ class ProfileThresholdModel(DiffusionModel):
     (2) nodes thresholds
     """
 
+    def __init__(self, graph):
+        super(self.__class__, self).__init__(graph)
+        self.available_statuses = {
+            "Susceptible": 0,
+            "Infected": 1
+        }
+
+        self.parameters = {
+            "model": {},
+            "nodes": {
+                "threshold": {
+                    "descr": "Node threshold",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0.1
+                },
+                "profile": {
+                    "descr": "Node profile",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0.1
+                }
+            },
+            "edges": {},
+        }
+
+        self.name = "Profile-Threshold"
+
     def iteration(self):
         """
 
         """
-        self.clean_initial_status([0, 1])
+        self.clean_initial_status(self.available_statuses.values())
         actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
 
         if self.actual_iteration == 0:

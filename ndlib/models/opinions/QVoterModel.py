@@ -1,4 +1,4 @@
-from DiffusionModel import DiffusionModel
+from ..DiffusionModel import DiffusionModel
 import networkx as nx
 import numpy as np
 
@@ -16,6 +16,26 @@ class QVoterModel(DiffusionModel):
 
     """
 
+    def __init__(self, graph):
+        super(self.__class__, self).__init__(graph)
+        self.available_statuses = {
+            "Susceptible": 0,
+            "Infected": 1
+        }
+
+        self.parameters = {"model": {
+                "q": {
+                    "descr": "Number of neighbours that affect the opinion of an agent",
+                    "range": [0, len(self.graph.nodes())],
+                    "optional": False
+                }
+            },
+            "nodes": {},
+            "edges": {}
+        }
+
+        self.name = "QVoter"
+
     def iteration(self):
         """
         One iteration changes the opinion of one voter using the following procedure:
@@ -23,7 +43,7 @@ class QVoterModel(DiffusionModel):
         - select randomly q of its neighbours (speakers)
         - if the q neighbours agree, the listener takes their opinion
         """
-        self.clean_initial_status([0, 1])
+        self.clean_initial_status(self.available_statuses.values())
 
         if self.actual_iteration == 0:
             self.actual_iteration += 1
@@ -41,7 +61,7 @@ class QVoterModel(DiffusionModel):
 
         # select q random neighbours (with repetitions)
         influence_group_state = [self.status[neighbours[i]]
-                                 for i in np.random.randint(0, len(neighbours), self.params['q'])]
+                                 for i in np.random.randint(0, len(neighbours), self.params['model']['q'])]
 
         delta = {}
         # if all neighbours agree (either on 0 or on 1)

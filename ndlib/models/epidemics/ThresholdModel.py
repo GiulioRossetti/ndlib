@@ -1,23 +1,45 @@
-from DiffusionModel import DiffusionModel
+from ..DiffusionModel import DiffusionModel
 import networkx as nx
-import numpy as np
 
 __author__ = "Giulio Rossetti"
 __email__ = "giulio.rossetti@gmail.com"
 
 
-class ProfileModel(DiffusionModel):
+class ThresholdModel(DiffusionModel):
     """
-    Implement the Profile model of Milli et al.
+    Implement the Threshold model of Granovetter
     Model Parameters:
-    (1) nodes profiles
+    (1) the node thresholds
     """
+
+    def __init__(self, graph):
+        super(self.__class__, self).__init__(graph)
+        self.available_statuses = {
+            "Susceptible": 0,
+            "Infected": 1
+        }
+
+        self.parameters = {
+            "model": {},
+            "nodes": {
+                "threshold": {
+                    "descr": "Node threshold",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0.1
+                }
+            },
+            "edges": {},
+        }
+
+        self.name = "Threshold"
 
     def iteration(self):
         """
 
         """
-        self.clean_initial_status([0, 1])
+        self.clean_initial_status(self.available_statuses.values())
+
         actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
 
         if self.actual_iteration == 0:
@@ -36,9 +58,9 @@ class ProfileModel(DiffusionModel):
             for v in neighbors:
                 infected += self.status[v]
 
-            if infected > 0:
-                eventp = np.random.random_sample()
-                if eventp >= self.params['nodes']['profile'][u]:
+            if len(neighbors) > 0:
+                infected_ratio = float(infected)/len(neighbors)
+                if infected_ratio >= self.params['nodes']['threshold'][u]:
                     actual_status[u] = 1
 
         delta = self.status_delta(actual_status)

@@ -1,4 +1,4 @@
-from DiffusionModel import DiffusionModel
+from ..DiffusionModel import DiffusionModel
 import numpy as np
 import networkx as nx
 
@@ -13,11 +13,31 @@ class SIModel(DiffusionModel):
     (1) the infection rate beta
     """
 
+    def __init__(self, graph):
+        super(self.__class__, self).__init__(graph)
+        self.available_statuses = {
+            "Susceptible": 0,
+            "Infected": 1
+        }
+
+        self.parameters = {
+            "model": {
+                "beta": {
+                    "descr": "Infection rate",
+                    "range": "[0,1]",
+                    "optional": False}
+            },
+            "nodes": {},
+            "edges": {},
+        }
+
+        self.name = "SI"
+
     def iteration(self):
         """
 
         """
-        self.clean_initial_status([0, 1])
+        self.clean_initial_status(self.available_statuses.values())
 
         actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
 
@@ -35,7 +55,7 @@ class SIModel(DiffusionModel):
 
             if u_status == 0:
                 infected_neighbors = len([v for v in neighbors if self.status[v] == 1])
-                if eventp < self.params['beta'] * infected_neighbors:
+                if eventp < self.params['model']['beta'] * infected_neighbors:
                     actual_status[u] = 1
 
         delta = self.status_delta(actual_status)
