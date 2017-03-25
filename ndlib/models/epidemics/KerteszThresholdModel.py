@@ -81,27 +81,31 @@ class KerteszThresholdModel(DiffusionModel):
             return 0, actual_status
 
         for node in self.graph.nodes():
-            if self.status[node] != -1:
-                xk = (0, 1)
-                pk = (1-self.params['model']['adopter_rate'], self.params['model']['adopter_rate'])
-                probability = stats.rv_discrete(name='probability', values=(xk, pk))
-                number_probability = probability.rvs()
+            if self.status[node] == 0:
+                if self.params['model']['adopter_rate'] > 0:
+                    xk = (0, 1)
+                    pk = (1-self.params['model']['adopter_rate'], self.params['model']['adopter_rate'])
+                    probability = stats.rv_discrete(name='probability', values=(xk, pk))
+                    number_probability = probability.rvs()
 
-                if number_probability == 1:
+                    if number_probability == 1:
+                        actual_status[node] = 1
+                        continue
+
+                neighbors = self.graph.neighbors(node)
+                if len(neighbors) == 0:
+                    continue
+
+                if isinstance(self.graph, nx.DiGraph):
+                    neighbors = self.graph.predecessors(node)
+
+                infected = 0
+                for v in neighbors:
+                    infected += self.status[v]
+
+                infected_ratio = float(infected)/len(neighbors)
+                if infected_ratio >= self.params['nodes']['threshold'][node]:
                     actual_status[node] = 1
-                else:
-                    neighbors = self.graph.neighbors(node)
-                    if isinstance(self.graph, nx.DiGraph):
-                        neighbors = self.graph.predecessors(node)
-
-                    infected = 0
-                    for v in neighbors:
-                        infected += self.status[v]
-
-                    if len(neighbors) > 0:
-                        infected_ratio = float(infected)/len(neighbors)
-                        if infected_ratio >= self.params['nodes']['threshold'][node]:
-                            actual_status[node] = 1
 
         delta = self.status_delta(actual_status)
         self.status = actual_status
