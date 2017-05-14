@@ -181,19 +181,12 @@ config.add_model_parameter('gamma', 0.01)
 config.add_model_parameter("percentage_infected", 0.05)
 model.set_initial_status(config)
 iterations = model.iteration_bunch(200)
+
 viz = DiffusionTrend(model, iterations)
 p = viz.plot()
 vm.add_plot(p)
 
-
-model2 = sir.SIRModel(g)
-config2 = mc.Configuration()
-config2.add_model_parameter('beta', 0.001)
-config2.add_model_parameter('gamma', 0.01)
-config2.add_model_parameter("percentage_infected", 0.05)
-model2.set_initial_status(config2)
-iterations2 = model2.iteration_bunch(200)
-viz2 = DiffusionPrevalence(model2, iterations2)
+viz2 = DiffusionPrevalence(model, iterations)
 p2 = viz2.plot()
 vm.add_plot(p2)
 
