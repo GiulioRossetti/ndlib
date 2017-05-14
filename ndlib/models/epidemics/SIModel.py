@@ -46,7 +46,6 @@ class SIModel(DiffusionModel):
             return 0, actual_status
 
         for u in self.graph.nodes():
-
             u_status = self.status[u]
             eventp = np.random.random_sample()
             neighbors = self.graph.neighbors(u)
