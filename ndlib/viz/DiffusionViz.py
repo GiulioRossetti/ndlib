@@ -37,9 +37,8 @@ class DiffusionPlot(object):
             p.line(range(0, len(l)), l, line_width=2, color=cols[i], legend=self.srev[k])
             i += 1
 
-        p.title.text = self.model.get_name()
         p.xaxis.axis_label = 'Iterations'
-        p.title.text = self.title
+        p.title.text = "%s - %s" % (self.model.get_name(), self.title)
         p.yaxis.axis_label = self.ylabel
         p.ygrid[0].grid_line_alpha = 0.5
         p.xgrid[0].grid_line_alpha = 0.5
