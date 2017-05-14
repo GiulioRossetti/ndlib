@@ -145,7 +145,7 @@ import networkx as nx
 from bokeh.io import show
 import ndlib.models.ModelConfig as mc
 import ndlib.models.epidemics.SIRModel as sir
-from ndlib.viz.DiffusionTrend import VisualizeDiffusion
+from ndlib.viz.DiffusionTrend import DiffusionTrend
 
 g = nx.erdos_renyi_graph(1000, 0.1)
 model = sir.SIRModel(g)
@@ -155,7 +155,7 @@ config.add_model_parameter('gamma', 0.01)
 config.add_model_parameter("percentage_infected", 0.05)
 model.set_initial_status(config)
 iterations = model.iteration_bunch(200)
-viz = VisualizeDiffusion(model, iterations)
+viz = DiffusionTrend(model, iterations)
 p = viz.plot()
 show(p)
 ```
@@ -167,7 +167,9 @@ import networkx as nx
 from bokeh.io import show
 import ndlib.models.ModelConfig as mc
 import ndlib.models.epidemics.SIRModel as sir
-from ndlib.viz.DiffusionTrend import VisualizeDiffusion, MultiPlot
+from ndlib.viz.DiffusionPrevalence import DiffusionPrevalence
+from ndlib.viz.DiffusionTrend import DiffusionTrend 
+from ndlib.viz.MultiPlot import MultiPlot
 
 vm = MultiPlot()
 
@@ -179,19 +181,19 @@ config.add_model_parameter('gamma', 0.01)
 config.add_model_parameter("percentage_infected", 0.05)
 model.set_initial_status(config)
 iterations = model.iteration_bunch(200)
-viz = VisualizeDiffusion(model, iterations)
+viz = DiffusionTrend(model, iterations)
 p = viz.plot()
 vm.add_plot(p)
 
 
 model2 = sir.SIRModel(g)
 config2 = mc.Configuration()
-config2.add_model_parameter('beta', 0.005)
-config2.add_model_parameter('gamma', 0.02)
-config2.add_model_parameter("percentage_infected", 0.08)
+config2.add_model_parameter('beta', 0.001)
+config2.add_model_parameter('gamma', 0.01)
+config2.add_model_parameter("percentage_infected", 0.05)
 model2.set_initial_status(config2)
 iterations2 = model2.iteration_bunch(200)
-viz2 = VisualizeDiffusion(model2, iterations2)
+viz2 = DiffusionPrevalence(model2, iterations2)
 p2 = viz2.plot()
 vm.add_plot(p2)
 
