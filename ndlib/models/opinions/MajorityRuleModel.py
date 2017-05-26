@@ -7,15 +7,15 @@ __email__ = "alina.sirbu@unipi.it"
 
 class MajorityRuleModel(DiffusionModel):
     """
-    Implements the majority rule model of opinion dynamics.
-    One model parameter is the state of the initial population controlled by the proportion of
-    "infected" individuals.
-    Second model parameter is size of groups, "q". Better to have "q" odd.
-    Applies to complete network setting (should not crash for other networks, but would not make sense).
 
     """
 
     def __init__(self, graph):
+        """
+            Model Constructor
+
+            :param graph: An networkx graph object
+        """
         super(self.__class__, self).__init__(graph)
         self.available_statuses = {
             "Susceptible": 0,

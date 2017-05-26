@@ -1,6 +1,7 @@
 from ..DiffusionModel import DiffusionModel
 import numpy as np
 import networkx as nx
+import future.utils
 
 __author__ = "Giulio Rossetti"
 __email__ = "giulio.rossetti@gmail.com"
@@ -8,13 +9,18 @@ __email__ = "giulio.rossetti@gmail.com"
 
 class ProfileThresholdModel(DiffusionModel):
     """
-    Implement the Profile Threshold model of Milli et al.
-    Model Parameters:
-    (1) nodes profiles
-    (2) nodes thresholds
+        Node Parameters to be specified via ModelConfig
+
+        :param profile: The node profile. As default a value of 0.1 is assumed for all nodes.
+        :param threshold: The node threshold. As default a value of 0.1 is assumed for all nodes.
     """
 
     def __init__(self, graph):
+        """
+            Model Constructor
+
+            :param graph: An networkx graph object
+        """
         super(self.__class__, self).__init__(graph)
         self.available_statuses = {
             "Susceptible": 0,
@@ -44,10 +50,12 @@ class ProfileThresholdModel(DiffusionModel):
 
     def iteration(self):
         """
+        Iteration step
 
+        :return: tuple (iid, nts)
         """
         self.clean_initial_status(self.available_statuses.values())
-        actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
+        actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
 
         if self.actual_iteration == 0:
             self.actual_iteration += 1

@@ -1,5 +1,6 @@
 from ..DiffusionModel import DiffusionModel
 import networkx as nx
+import future.utils
 
 __author__ = "Giulio Rossetti"
 __email__ = "giulio.rossetti@gmail.com"
@@ -7,9 +8,9 @@ __email__ = "giulio.rossetti@gmail.com"
 
 class ThresholdModel(DiffusionModel):
     """
-    Implement the Threshold model of Granovetter
-    Model Parameters:
-    (1) the node thresholds
+        Node Parameters to be specified via ModelConfig
+
+       :param threshold: The node threshold. If not specified otherwise a value of 0.1 is assumed for all nodes.
     """
 
     def __init__(self, graph):
@@ -36,11 +37,13 @@ class ThresholdModel(DiffusionModel):
 
     def iteration(self):
         """
+            Iteration step
 
+            :return: tuple (iid, nts)
         """
         self.clean_initial_status(self.available_statuses.values())
 
-        actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
+        actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
 
         if self.actual_iteration == 0:
             self.actual_iteration += 1

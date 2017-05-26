@@ -8,13 +8,15 @@ __email__ = "alina.sirbu@unipi.it"
 
 class VoterModel(DiffusionModel):
     """
-    Implements the voter model of opinion dynamics.
-    The only model parameter is the state of the initial population controlled by the proportion of
-    "infected" individuals
 
     """
 
     def __init__(self, graph):
+        """
+        Model Constructor
+
+        :param graph: An networkx graph object
+        """
         super(self.__class__, self).__init__(graph)
         self.available_statuses = {
             "Susceptible": 0,

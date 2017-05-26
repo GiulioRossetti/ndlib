@@ -1,4 +1,5 @@
 from DiffusionViz import DiffusionPlot
+import future.utils
 
 __author__ = 'Giulio Rossetti'
 __license__ = "GPL"
@@ -23,7 +24,7 @@ class DiffusionTrend(DiffusionPlot):
             for p in presences:
                 presences[p].append(presences[p][c - 1])
             actual_status = i['status']
-            for nid, v in actual_status.iteritems():
+            for nid, v in future.utils.iteritems(actual_status):
                 st = initial_status[nid]
                 presences[st][c] -= 1
                 presences[v][c] += 1

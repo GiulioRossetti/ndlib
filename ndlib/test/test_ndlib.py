@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import future.utils
 import unittest
 import networkx as nx
 import ndlib.models.ModelConfig as mc
@@ -198,7 +199,7 @@ class NdlibTest(unittest.TestCase):
 
         model.set_initial_status(config)
         iteration = model.iteration()
-        blocked = [x for x, v in iteration[1].iteritems() if v == -1]
+        blocked = [x for x, v in future.utils.iteritems(iteration[1]) if v == -1]
         self.assertEqual(blocked, predefined_blocked)
 
     def test_initial_infected(self):
@@ -210,7 +211,7 @@ class NdlibTest(unittest.TestCase):
         predefined_infected = [0, 1, 2, 3, 4, 5]
         config.add_model_initial_configuration("Infected", predefined_infected)
         model.set_initial_status(config)
-        inft = [k for k, v in model.status.iteritems() if v == 1]
+        inft = [k for k, v in future.utils.iteritems(model.status) if v == 1]
         self.assertAlmostEqual(inft, predefined_infected)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
@@ -232,7 +233,7 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter('percentage_infected', 0.1)
         model.set_initial_status(config)
         iteration = model.iteration()
-        blocked = [x for x, v in iteration[1].iteritems() if v == -1]
+        blocked = [x for x, v in future.utils.iteritems(iteration[1]) if v == -1]
         self.assertEqual(blocked, predefined_blocked)
 
         model = ids.IndependentCascadesModel(g)

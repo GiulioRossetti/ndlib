@@ -1,5 +1,6 @@
 from ..DiffusionModel import DiffusionModel
 import numpy as np
+import future.utils
 
 __author__ = "Alina Sirbu"
 __email__ = "alina.sirbu@unipi.it"
@@ -7,29 +8,30 @@ __email__ = "alina.sirbu@unipi.it"
 
 class CognitiveOpDynModel(DiffusionModel):
     """
-    Implements the cognitive model of opinion dynamics by Villone et al.
-    Model parameters: 
-    (1) self.params['I'], external information value in [0,1]; 
-    (2) self.params['T_range_min'], a value in [0,1] the minimum of the range of initial values for node parameter T;
-    (3) self.params['T_range_max'], a value in [0,1] the maximum of the range of initial values for node parameter T.
-    If T_range_min>T_range_max they are swapped;
-    (4) self.params['B_range_min'], a value in [0,1] the minimum of the range of initial values for node parameter B;
-    (5) self.params['B_range_max'], a value in [0,1] the maximum of the range of initial values for node parameter B.
-    If B_range_min>B_range_max they are swapped;
-    (6) self.params['R_fraction_negative'], a value in [0,1] the fraction of individuals having the node parameter R=-1;
-    (7) self.params['R_fraction_neutral'], a value in [0,1]  the fraction of individuals having the node parameter R=0;
-    (8) self.params['R_fraction_positive'], a value in [0,1] the fraction of individuals having the node parameter R=1.
+    Model Parameters to be specified via ModelConfig
+
+    :param I: external information value in [0,1]
+    :param T_range_min: the minimum of the range of initial values for  T. Range [0,1].
+    :param T_range_max: the maximum of the range of initial values for  T. Range [0,1].
+    :param B_range_min: the minimum of the range of initial values for  B. Range [0,1]
+    :param B_range_max: the maximum of the range of initial values for  B. Range [0,1].
+    :param R_fraction_negative: fraction of individuals having the node parameter R=-1.
+    :param R_fraction_positive: fraction of individuals having the node parameter R=1
+    :param R_fraction_neutral: fraction of individuals having the node parameter R=0
+
     The following relation should hold: R_fraction_negative+R_fraction_neutral+R_fraction_positive=1.
     To achieve this, the fractions selected will be normalised to sum 1.
     Node states are continuous values in [0,1].
 
-    Additional node parameters encode risk sensitivity R in {0,-1,+1},
-    tendency to communicate B in [0,1], trust towards institutions T in [0,1].
-    These are stored in the 'cognitive' node parameter.
     The initial state is generated randomly uniformly from the domain defined by model parameters.
     """
 
     def __init__(self, graph):
+        """
+            Model Constructor
+
+            :param graph: An networkx graph object
+        """
         super(self.__class__, self).__init__(graph)
 
         self.discrete_state = False
@@ -131,7 +133,7 @@ class CognitiveOpDynModel(DiffusionModel):
                                                        T_range[0] + (T_range[1] - T_range[0])*np.random.random_sample())
 
     def clean_initial_status(self, valid_status=None):
-        for n, s in self.status.iteritems():
+        for n, s in future.utils.iteritems(self.status):
             if s > 1 or s < 0:
                 self.status[n] = 0
 
@@ -145,7 +147,7 @@ class CognitiveOpDynModel(DiffusionModel):
 
         self.clean_initial_status(None)
 
-        actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
+        actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
 
         if self.actual_iteration == 0:
             self.actual_iteration += 1

@@ -2,6 +2,7 @@ from ..DiffusionModel import DiffusionModel
 import networkx as nx
 import numpy as np
 from scipy import stats
+import future.utils
 
 __author__ = "Letizia Milli"
 __email__ = "letizia.milli@di.unipi.it"
@@ -9,14 +10,19 @@ __email__ = "letizia.milli@di.unipi.it"
 
 class KerteszThresholdModel(DiffusionModel):
     """
-    Implements the blocked-nodes threshold model by Karsai et al.
-    Model Parameters:
-    (1) list of blocked nodes
-    (2) exogenous adopter rate
-    (3) node thresholds
-    """
+         Node/Model Parameters to be specified via ModelConfig
+
+        :param threshold: The node threshold. As default a value of 0.1 is assumed for all nodes.
+        :param adopter_rate: The probability of spontaneous adoptions. Defaults value 0.
+        :param percentage_infected: The percentage of blocked nodes. Default value 0.1.
+     """
 
     def __init__(self, graph):
+        """
+            Model Constructor
+
+            :param graph: An networkx graph object
+        """
         super(self.__class__, self).__init__(graph)
         self.available_statuses = {
             "Susceptible": 0,
@@ -54,10 +60,12 @@ class KerteszThresholdModel(DiffusionModel):
 
     def iteration(self):
         """
+        Iteration step
 
+        :return: tuple (iid, nts)
         """
         self.clean_initial_status(self.available_statuses.values())
-        actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
+        actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
 
         if self.actual_iteration == 0:
             if min(actual_status.values()) == 0:

@@ -2,6 +2,7 @@ import abc
 from bokeh.plotting import figure
 from bokeh.models import Title
 from bokeh.palettes import Category20_9 as cols
+import future.utils
 
 __author__ = 'Giulio Rossetti'
 __license__ = "GPL"
@@ -15,7 +16,7 @@ class DiffusionPlot(object):
         self.model = model
         self.iterations = iterations
         statuses = model.available_statuses
-        self.srev = {v: k for k, v in statuses.iteritems()}
+        self.srev = {v: k for k, v in future.utils.iteritems(statuses)}
         self.ylabel = ""
         self.title = ""
 
@@ -27,7 +28,7 @@ class DiffusionPlot(object):
         pres = self.iteration_series()
         infos = self.model.getinfo()
         descr = ""
-        for k, v in infos.iteritems():
+        for k, v in future.utils.iteritems(infos):
             descr += "%s: %s, " % (k, v)
         descr = descr[:-2].replace("_", " ")
 

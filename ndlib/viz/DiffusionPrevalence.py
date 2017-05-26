@@ -1,4 +1,6 @@
 from DiffusionViz import DiffusionPlot
+import future.utils
+import past.builtins
 
 __author__ = 'rossetti'
 __license__ = "GPL"
@@ -29,15 +31,15 @@ class DiffusionPrevalence(DiffusionPlot):
 
             actual_status = i['status']
 
-            for nid, v in actual_status.iteritems():
+            for nid, v in future.utils.iteritems(actual_status):
                 st = initial_status[nid]
                 presences[st][c] -= 1
                 presences[v][c] += 1
                 initial_status[nid] = v
             c += 1
 
-        for k, ls in presences.iteritems():
-            for x in xrange(1, len(ls)):
+        for k, ls in future.utils.iteritems(presences):
+            for x in past.builtins.xrange(1, len(ls)):
                 delta[k].append(ls[x] - ls[x-1])
 
         return delta

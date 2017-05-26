@@ -1,5 +1,6 @@
 from ..DiffusionModel import DiffusionModel
 import numpy as np
+import future.utils
 
 __author__ = 'Giulio Rossetti'
 __license__ = "GPL"
@@ -8,12 +9,17 @@ __email__ = "giulio.rossetti@gmail.com"
 
 class IndependentCascadesModel(DiffusionModel):
     """
-    Implements the independent cascade model by Kempe et al.
-    Model parameters:
-    (1) edge thresholds
+        Edge Parameters to be specified via ModelConfig
+
+        :param threshold: The edge threshold. As default a value of 0.1 is assumed for all edges.
     """
 
     def __init__(self, graph):
+        """
+            Model Constructor
+
+            :param graph: An networkx graph object
+        """
         super(self.__class__, self).__init__(graph)
         self.available_statuses = {
             "Susceptible": 0,
@@ -37,8 +43,13 @@ class IndependentCascadesModel(DiffusionModel):
         self.name = "Independent Cascades"
 
     def iteration(self):
+        """
+        Iteration step
+
+        :return: tuple (iid, nts)
+        """
         self.clean_initial_status(self.available_statuses.values())
-        actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
+        actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
 
         if self.actual_iteration == 0:
             self.actual_iteration += 1

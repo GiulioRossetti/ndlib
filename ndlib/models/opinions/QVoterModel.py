@@ -8,15 +8,17 @@ __email__ = "alina.sirbu@unipi.it"
 
 class QVoterModel(DiffusionModel):
     """
-    Implements the q-voter model of opinion dynamics.
-    Two model parameters:
-    - the state of the initial population controlled by the proportion of
-    "infected" individuals.
-    - parameter "q" which controls the number of neighbours that affect the opinion of an agent
+    Node Parameters to be specified via ModelConfig
 
+    :param q: the number of neighbors that affect the opinion of a node
     """
 
     def __init__(self, graph):
+        """
+            Model Constructor
+
+            :param graph: An networkx graph object
+        """
         super(self.__class__, self).__init__(graph)
         self.available_statuses = {
             "Susceptible": 0,
@@ -36,6 +38,7 @@ class QVoterModel(DiffusionModel):
 
         self.name = "QVoter"
 
+    @property
     def iteration(self):
         """
         One iteration changes the opinion of one voter using the following procedure:
