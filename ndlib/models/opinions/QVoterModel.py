@@ -38,7 +38,6 @@ class QVoterModel(DiffusionModel):
 
         self.name = "QVoter"
 
-    @property
     def iteration(self):
         """
         One iteration changes the opinion of one voter using the following procedure:
