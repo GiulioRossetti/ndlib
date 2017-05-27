@@ -1,13 +1,16 @@
 from __future__ import absolute_import
+
 import unittest
+
 import networkx as nx
-from bokeh.plotting.figure import Figure
 from bokeh.models.layouts import Column
+from bokeh.plotting.figure import Figure
+from ndlib.viz.bokeh.DiffusionPrevalence import DiffusionPrevalence
+from ndlib.viz.bokeh.MultiPlot import MultiPlot
+
 import ndlib.models.ModelConfig as mc
 import ndlib.models.epidemics.SIRModel as sir
-from ndlib.viz.DiffusionTrend import DiffusionTrend
-from ndlib.viz.DiffusionPrevalence import DiffusionPrevalence
-from ndlib.viz.MultiPlot import MultiPlot
+from ndlib.viz.bokeh.DiffusionTrend import DiffusionTrend
 
 
 class VizTest(unittest.TestCase):

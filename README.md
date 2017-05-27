@@ -145,7 +145,7 @@ import networkx as nx
 from bokeh.io import show
 import ndlib.models.ModelConfig as mc
 import ndlib.models.epidemics.SIRModel as sir
-from ndlib.viz.DiffusionTrend import DiffusionTrend
+from ndlib.viz.bokeh.DiffusionTrend import DiffusionTrend
 
 g = nx.erdos_renyi_graph(1000, 0.1)
 model = sir.SIRModel(g)
@@ -167,9 +167,9 @@ import networkx as nx
 from bokeh.io import show
 import ndlib.models.ModelConfig as mc
 import ndlib.models.epidemics.SIRModel as sir
-from ndlib.viz.DiffusionPrevalence import DiffusionPrevalence
-from ndlib.viz.DiffusionTrend import DiffusionTrend 
-from ndlib.viz.MultiPlot import MultiPlot
+from ndlib.viz.bokeh.DiffusionPrevalence import DiffusionPrevalence
+from ndlib.viz.bokeh.DiffusionTrend import DiffusionTrend 
+from ndlib.viz.bokeh.MultiPlot import MultiPlot
 
 vm = MultiPlot()
 
