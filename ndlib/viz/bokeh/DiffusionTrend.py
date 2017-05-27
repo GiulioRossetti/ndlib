@@ -9,6 +9,10 @@ __email__ = "giulio.rossetti@gmail.com"
 class DiffusionTrend(DiffusionPlot):
 
     def __init__(self, model, iterations):
+        """
+        :param model: The model object
+        :param iterations: The computed simulation iterations
+        """
         super(self.__class__, self).__init__(model, iterations)
         self.ylabel = "#Nodes"
         self.title = "Diffusion Trend"

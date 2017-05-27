@@ -25,6 +25,11 @@ class DiffusionPlot(object):
         pass
 
     def plot(self, width=500, height=500):
+        """
+        :param width: Image width. Default 500px.
+        :param height: Image height. Default 500px.
+        :return: a bokeh figure image
+        """
         pres = self.iteration_series()
         infos = self.model.getinfo()
         descr = ""

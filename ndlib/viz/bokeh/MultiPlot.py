@@ -10,9 +10,16 @@ class MultiPlot(object):
     def __init__(self):
         self.plots = []
 
-    def add_plot(self, p):
-        self.plots.append(p)
+    def add_plot(self, plot):
+        """
+        :param plot: The bokeh plot to add to the grid
+        """
+        self.plots.append(plot)
 
-    def plot(self):
-        grid = gridplot(self.plots, ncols=2)
+    def plot(self, ncols=2):
+        """
+        :param ncols: Number of grid columns
+        :return: a bokeh figure image
+        """
+        grid = gridplot(self.plots, ncols=ncols)
         return grid
