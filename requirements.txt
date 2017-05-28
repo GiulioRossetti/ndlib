@@ -1,2 +1,4 @@
+numpy
+future
 networkx==1.11
 bokeh
