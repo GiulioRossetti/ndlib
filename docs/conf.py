@@ -14,8 +14,9 @@
 
 import sys
 import os
-
+from mock import Mock as MagicMock
 import sphinx_rtd_theme
+
 html_theme = "sphinx_rtd_theme"
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
@@ -370,3 +371,10 @@ epub_exclude_files = ['search.html']
 #epub_use_index = True
 
 
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+            return MagicMock()
+
+MOCK_MODULES = ['pygtk', 'gtk', 'gobject', 'argparse', 'numpy', 'pandas']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
