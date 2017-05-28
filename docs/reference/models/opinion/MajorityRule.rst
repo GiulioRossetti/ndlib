@@ -1,0 +1,47 @@
+*************
+Majority Rule
+*************
+
+The Majority Rule model is a discrete model of opinion dynamics, proposed to describe public debates [#]_. 
+
+Agents take discrete opinions ±1, just like the Voter model. 
+At each time step a group of **r** agents is selected randomly and they all take the majority opinion within the group. 
+
+The group size can be fixed or taken at each time step from a specific distribution. 
+If **r** is odd, then the majority opinion is always defined, however if **r** is even there could be tied situations. To select a prevailing opinion in this case, a bias in favour of one opinion (+1) is introduced. 
+
+This idea is inspired by the concept of social inertia [#]_.
+
+
+.. autoclass:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel
+.. automethod:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel.__init__(graph)
+
+
+-------
+Example
+-------
+
+In the code below is shown an example of istantiation and execution of a Majority Rule model simultion on a random graph: we set the initial infected node set to the 10% of the overall population.
+
+.. code-block:: python
+    :linenos:
+
+    import networkx as nx
+    import ndlib.models.ModelConfig as mc
+    import ndlib.models.opinions.MajorityRuleModel as mr
+
+    # Network topology
+    g = nx.erdos_renyi_graph(1000, 0.1)
+
+    # Model selection
+    model = mr.MajorityRuleModel(g)
+    config = mc.Configuration()
+    config.add_model_parameter('percentage_infected', 0.1)
+    
+    model.set_initial_status(config)
+
+    # Simulation execution
+    iterations = model.iteration_bunch(200)
+
+
+.. [#] S.Galam, “Minority opinion spreading in random geometry.” Eur.Phys. J. B, vol. 25, no. 4, pp. 403–406, 2002... [#] R.Friedman and M.Friedman, "The Tyranny of the Status Quo." Orlando, FL, USA: Harcourt  Brace Company, 1984.
