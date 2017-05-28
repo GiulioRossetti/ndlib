@@ -92,3 +92,8 @@ ENV/
 # Rope project settings
 .ropeproject
 
+#docs
+
+docs/_build
+docs/_static
+docs/_templates
