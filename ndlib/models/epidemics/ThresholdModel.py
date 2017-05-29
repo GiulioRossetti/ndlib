@@ -14,6 +14,11 @@ class ThresholdModel(DiffusionModel):
     """
 
     def __init__(self, graph):
+        """
+            Model Constructor
+
+            :param graph: A networkx graph object
+        """
         super(self.__class__, self).__init__(graph)
         self.available_statuses = {
             "Susceptible": 0,

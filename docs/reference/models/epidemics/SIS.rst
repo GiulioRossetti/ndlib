@@ -13,9 +13,27 @@ SIS assumes that if, during a generic iteration, a susceptible node comes into c
 .. autoclass:: ndlib.models.epidemics.SISModel.SISModel
 .. automethod:: ndlib.models.epidemics.SISModel.SISModel.__init__(graph)
 
-=======
+----------
+Parameters
+----------
+
+======  =====  ===============  =======  =========  =====================
+Name    Type   Value Type       Default  Mandatory  Description
+======  =====  ===============  =======  =========  =====================
+beta    Model  float in [0, 1]           True       Infection probability
+lambda  Model  float in [0, 1]           True       Recovery probability
+======  =====  ===============  =======  =========  =====================
+
+The initial infection status can be defined via:
+
+    - **percentage_infected**: Model Parameter, float in [0, 1]
+    - **Infected**: Status Parameter, set of nodes
+
+The two options are mutually exclusive and the latter takes precedence over the former.
+
+-------
 Example
-=======
+-------
 
 In the code below is shown an example of istantiation and execution of an SIS simultion on a random graph: we set the initial set of infected nodes as 5% of the overall population, a probability of infection of 1%, and a probability of recovery of 0.5%.
 

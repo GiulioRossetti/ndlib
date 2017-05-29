@@ -15,7 +15,7 @@ class SznajdModel(DiffusionModel):
         """
         Model Constructor
 
-        :param graph: An networkx graph object
+        :param graph: A networkx graph object
         """
         super(self.__class__, self).__init__(graph)
         self.available_statuses = {

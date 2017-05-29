@@ -16,8 +16,9 @@ class DiffusionModel(object):
 
     def __init__(self, graph):
         """
+            Model Constructor
 
-        :rtype: object
+            :param graph: A networkx graph object
         """
         self.discrete_state = True
 

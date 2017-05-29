@@ -13,9 +13,26 @@ SI assumes that if, during a generic iteration, a susceptible node comes into co
 .. autoclass:: ndlib.models.epidemics.SIModel.SIModel
 .. automethod:: ndlib.models.epidemics.SIModel.SIModel.__init__(graph)
 
-=======
+----------
+Parameters
+----------
+
+=====  =====  ===============  =======  =========  =====================
+Name   Type   Value Type       Default  Mandatory  Description
+=====  =====  ===============  =======  =========  =====================
+beta   Model  float in [0, 1]           True       Infection probability
+=====  =====  ===============  =======  =========  =====================
+
+The initial infection status can be defined via:
+
+    - **percentage_infected**: Model Parameter, float in [0, 1]
+    - **Infected**: Status Parameter, set of nodes
+
+The two options are mutually exclusive and the latter takes precedence over the former.
+
+-------
 Example
-=======
+-------
 
 In the code below is shown an example of istantiation and execution of an SI simultion on a random graph: we set the initial set of infected nodes as 5% of the overall population and a probability of infection of 1%.
 

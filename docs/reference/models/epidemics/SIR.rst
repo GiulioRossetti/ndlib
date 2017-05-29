@@ -13,9 +13,28 @@ SIR assumes that if, during a generic iteration, a susceptible node comes into c
 .. autoclass:: ndlib.models.epidemics.SIRModel.SIRModel
 .. automethod:: ndlib.models.epidemics.SIRModel.SIRModel.__init__(graph)
 
-=======
+
+----------
+Parameters
+----------
+
+=====  =====  ===============  =======  =========  =====================
+Name   Type   Value Type       Default  Mandatory  Description
+=====  =====  ===============  =======  =========  =====================
+beta   Model  float in [0, 1]           True       Infection probability
+gamma  Model  float in [0, 1]           True       Removal probability
+=====  =====  ===============  =======  =========  =====================
+
+The initial infection status can be defined via:
+
+    - **percentage_infected**: Model Parameter, float in [0, 1]
+    - **Infected**: Status Parameter, set of nodes
+
+The two options are mutually exclusive and the latter takes precedence over the former.
+
+-------
 Example
-=======
+-------
 
 In the code below is shown an example of istantiation and execution of an SIR simultion on a random graph: we set the initial set of infected nodes as 5% of the overall population, a probability of infection of 1%, and a removal probability of 0.5%.
 
