@@ -16,6 +16,35 @@ This idea is inspired by the concept of social inertia [#]_.
 .. autoclass:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel
 .. automethod:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel.__init__(graph)
 
+--------
+Statuses
+--------
+
+During the simulation a node can experience the following statuses:
+
+===========  ====
+Name         Code
+===========  ====
+Susceptible  0
+Infected     1
+===========  ====
+
+----------
+Parameters
+----------
+
+=========  =====  ================  =======  =========  =====================
+Name       Type   Value Type        Default  Mandatory  Description
+=========  =====  ================  =======  =========  =====================
+q          Model  int in [0, V(G)]           True       Number of neighbours
+=========  =====  ================  =======  =========  =====================
+
+The initial infection status can be defined via:
+
+    - **percentage_infected**: Model Parameter, float in [0, 1]
+    - **Infected**: Status Parameter, set of nodes
+
+The two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
 Example
@@ -44,4 +73,5 @@ In the code below is shown an example of istantiation and execution of a Majorit
     iterations = model.iteration_bunch(200)
 
 
-.. [#] S.Galam, “Minority opinion spreading in random geometry.” Eur.Phys. J. B, vol. 25, no. 4, pp. 403–406, 2002... [#] R.Friedman and M.Friedman, "The Tyranny of the Status Quo." Orlando, FL, USA: Harcourt  Brace Company, 1984.
+.. [#] S.Galam, “Minority opinion spreading in random geometry.” Eur.Phys. J. B, vol. 25, no. 4, pp. 403–406, 2002.
+.. [#] R.Friedman and M.Friedman, "The Tyranny of the Status Quo." Orlando, FL, USA: Harcourt  Brace Company, 1984.

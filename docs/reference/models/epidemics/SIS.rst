@@ -13,6 +13,20 @@ SIS assumes that if, during a generic iteration, a susceptible node comes into c
 .. autoclass:: ndlib.models.epidemics.SISModel.SISModel
 .. automethod:: ndlib.models.epidemics.SISModel.SISModel.__init__(graph)
 
+
+--------
+Statuses
+--------
+
+During the simulation a node can experience the following statuses:
+
+===========  ====
+Name         Code
+===========  ====
+Susceptible  0
+Infected     1
+===========  ====
+
 ----------
 Parameters
 ----------

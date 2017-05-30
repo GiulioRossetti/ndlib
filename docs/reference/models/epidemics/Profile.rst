@@ -16,6 +16,37 @@ The diffusion process starts from a set of nodes that have already adopted a giv
 .. autoclass:: ndlib.models.epidemics.ProfileModel.ProfileModel
 .. automethod:: ndlib.models.epidemics.ProfileModel.ProfileModel.__init__(graph)
 
+
+--------
+Statuses
+--------
+
+During the simulation a node can experience the following statuses:
+
+===========  ====
+Name         Code
+===========  ====
+Susceptible  0
+Infected     1
+===========  ====
+
+----------
+Parameters
+----------
+
+=========  =====  ===============  =======  =========  ============
+Name       Type   Value Type       Default  Mandatory  Description
+=========  =====  ===============  =======  =========  ============
+profile    Node   float in [0, 1]   0.1     False      Node profile
+=========  =====  ===============  =======  =========  ============
+
+The initial infection status can be defined via:
+
+    - **percentage_infected**: Model Parameter, float in [0, 1]
+    - **Infected**: Status Parameter, set of nodes
+
+The two options are mutually exclusive and the latter takes precedence over the former.
+
 -------
 Example
 -------

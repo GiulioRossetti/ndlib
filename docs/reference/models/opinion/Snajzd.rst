@@ -15,6 +15,29 @@ The model has been shown to converge to one of the two agreeing stationary state
 .. autoclass:: ndlib.models.opinions.SznajdModel.SznajdModel
 .. automethod:: ndlib.models.opinions.SznajdModel.SznajdModel.__init__(graph)
 
+--------
+Statuses
+--------
+
+During the simulation a node can experience the following statuses:
+
+===========  ====
+Name         Code
+===========  ====
+Susceptible  0
+Infected     1
+===========  ====
+
+----------
+Parameters
+----------
+
+The initial infection status can be defined via:
+
+    - **percentage_infected**: Model Parameter, float in [0, 1]
+    - **Infected**: Status Parameter, set of nodes
+
+The two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
 Example

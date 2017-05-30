@@ -15,9 +15,39 @@ The model works as follows:
 .. autoclass:: ndlib.models.epidemics.ThresholdModel.ThresholdModel
 .. automethod:: ndlib.models.epidemics.ThresholdModel.ThresholdModel.__init__(graph)
 
-=======
+--------
+Statuses
+--------
+
+During the simulation a node can experience the following statuses:
+
+===========  ====
+Name         Code
+===========  ====
+Susceptible  0
+Infected     1
+===========  ====
+
+----------
+Parameters
+----------
+
+=========  =====  ===============  =======  =========  =====================
+Name       Type   Value Type       Default  Mandatory  Description
+=========  =====  ===============  =======  =========  =====================
+threshold  Node   float in [0, 1]   0.1      False     Individual threshold
+=========  =====  ===============  =======  =========  =====================
+
+The initial infection status can be defined via:
+
+    - **percentage_infected**: Model Parameter, float in [0, 1]
+    - **Infected**: Status Parameter, set of nodes
+
+The two options are mutually exclusive and the latter takes precedence over the former.
+
+-------
 Example
-=======
+-------
 
 In the code below is shown an example of istantiation and execution of a Threshold model simultion on a random graph: we set the initial set of infected nodes as 1% of the overall population, and assign a threshold of 0.25 to all the nodes.
 

@@ -11,6 +11,45 @@ Thus, the model distinguishes three kinds of node: **Blocked** (B), **Susceptibl
 .. autoclass:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel
 .. automethod:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel.__init__(graph)
 
+--------
+Statuses
+--------
+
+During the simulation a node can experience the following statuses:
+
+===========  ====
+Name         Code
+===========  ====
+Susceptible   0
+Infected      1
+Blocked      -1
+===========  ====
+
+
+----------
+Parameters
+----------
+
+==================  =====  ===============  =======  =========  =======================
+Name                Type   Value Type       Default  Mandatory  Description
+==================  =====  ===============  =======  =========  =======================
+adopter_rate        Model  float in [0, 1]   0       False      Exogenous adoption rate
+percentage_blocked  Model  float in [0, 1]   0.1     False      Blocked nodes
+threshold           Node   float in [0, 1]   0.1     False      Individual threshold
+==================  =====  ===============  =======  =========  =======================
+
+The initial infection status can be defined via:
+
+    - **percentage_infected**: Model Parameter, float in [0, 1]
+    - **Infected**: Status Parameter, set of nodes
+
+The initial blocked nodes can be defined via:
+
+    - **percentage_blocked**: Model Parameter, float in [0, 1]
+    - **Blocked**: Status Parameter, set of nodes
+
+In both cases, the two options are mutually exclusive and the latter takes precedence over the former.
+
 -------
 Example
 -------
@@ -48,4 +87,5 @@ In the code below is shown an example of istantiation and execution of a Kertesz
     iterations = model.iteration_bunch(200)
 
 
-.. [#] Z. Ruan, G. In ̃iguez, M. Karsai, and J. Kerte ́sz, “Kinetics of social contagion,” Phys. Rev. Lett., vol. 115, p. 218702, Nov 2015... [#] D. J. Watts, “A simple model of global cascades on random networks,” Proceedings of the National Academy of Sciences, vol. 99, no. 9, pp. 5766–5771, 2002.
+.. [#] Z. Ruan, G. In ̃iguez, M. Karsai, and J. Kerte ́sz, “Kinetics of social contagion,” Phys. Rev. Lett., vol. 115, p. 218702, Nov 2015.
+.. [#] D. J. Watts, “A simple model of global cascades on random networks,” Proceedings of the National Academy of Sciences, vol. 99, no. 9, pp. 5766–5771, 2002.

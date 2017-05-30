@@ -26,6 +26,41 @@ The model was shown to be able to reproduce well various real situations. In par
 .. automethod:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel.__init__(graph)
 
 
+--------
+Statuses
+--------
+
+Node statuses are continuous values in [0,1].
+
+----------
+Parameters
+----------
+
+===================  =====  ================  =======  =========  =============================================
+Name                 Type   Value Type        Default  Mandatory  Description
+===================  =====  ================  =======  =========  =============================================
+I                    Model  float in [0, 1]            True       External information
+T_range_min          Model  float in [0, 1]            True       Minimum of the range of initial values for T
+T_range_max          Model  float in [0, 1]            True       Maximum of the range of initial values for T
+B_range_min          Model  float in [0, 1]            True       Minimum of the range of initial values for B
+B_range_max          Model  float in [0, 1]            True       Maximum of the range of initial values for B
+R_fraction_negative  Model  float in [0, 1]            True       Fraction of nodes having R=-1
+R_fraction_neutral   Model  float in [0, 1]            True       Fraction of nodes having R=0
+R_fraction_positive  Model  float in [0, 1]            True       Fraction of nodes having R=1
+===================  =====  ================  =======  =========  =============================================
+
+The following relation should hold: ``R_fraction_negative+R_fraction_neutral+R_fraction_positive=1``.
+To achieve this, the fractions selected will be normalised to sum 1.
+
+The initial state is generated randomly uniformly from the domain defined by model parameters.
+
+The initial infection status can be defined via:
+
+    - **percentage_infected**: Model Parameter, float in [0, 1]
+    - **Infected**: Status Parameter, set of nodes
+
+The two options are mutually exclusive and the latter takes precedence over the former.
+
 -------
 Example
 -------
