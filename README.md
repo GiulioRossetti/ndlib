@@ -1,7 +1,9 @@
 # NDlib - Network Diffusion Library
 
 NDlib provides implementations of several spreading and opinion dynamics models.
-It is implemented in Python 2.7 (support for Python 3.x pending).
+It support both Python 2.7 and 3.x.
+
+The project documentation can be found on [ReadTheDocs](http://ndlib.readthedocs.io).
 
 ## Rationale behind NDlib
 
