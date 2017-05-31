@@ -9,9 +9,6 @@ The Multi Plot object allows the generation of composite grid figures composed b
 .. automethod:: ndlib.viz.bokeh.MultiPlot.MultiPlot.add_plot(plot)
 .. automethod:: ndlib.viz.bokeh.MultiPlot.MultiPlot.plot(width, height)
 
-.. automodule:: ndlib.viz.bokeh.MultiPlot
-   :members:
-
 .. code-block:: python
 
     import networkx as nx
