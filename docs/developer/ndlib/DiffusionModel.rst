@@ -21,7 +21,6 @@ As convention a new model should be described in a python file named after it, e
 In oder to effectively describe the model the ``__init__`` function of ``ndlib.models.DiffusionModel`` must be specified as follows:
 
 .. code-block:: python
-	:linenos:
 
 	from ndlib.models.DiffusionModel import DiffusionModel
 
@@ -39,31 +38,31 @@ In oder to effectively describe the model the ``__init__`` function of ``ndlib.m
 			self.available_statuses = {
 				"Status_0": 0,
 				"Status_1": 1
-				}
+			}
 			# Exposed Parameters
 			self.parameters = {
 				"model":
 	  				"parameter_name": {
-	     				"descr": "Description 1"
-	     				"range": [0,1],
-	     				"optional": False
-	   				},
-				},
+	     					"descr": "Description 1"
+	     					"range": [0,1],
+	     					"optional": False
+	   					},
+					},
 				"nodes":
 					"node_parameter_name": {
-	     				"descr": "Description 2"
-	     				"range": [0,1],
-	     				"optional": True
-	   				},
-				},
+	     					"descr": "Description 2"
+	     					"range": [0,1],
+	     					"optional": True
+	   					},
+					},
 				"edges":
 					"edge_parameter_name": {
-						"descr": "Description 3"
-						"range": [0,1],
-						"optional": False
+							"descr": "Description 3"
+							"range": [0,1],
+							"optional": False
+						},
 					},
-				},
-        	}
+				}
 
 In the ``__init__`` methods three components are used to completely specify the model:
 
@@ -84,7 +83,6 @@ Once described the model metadata it is necessary to provide the agent-based des
 To do so, the ``iteration()`` method of the base class has to be overridden in ``MyModel`` as follows:
 
 .. code-block:: python
-	:linenos:
 
 	def iteration(self):
 
