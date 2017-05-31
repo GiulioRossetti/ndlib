@@ -11,10 +11,6 @@ The state of the population varies based on a very simple update rule: at each i
 Starting from any initial configuration, on a complete network the entire population converges to consensus on one of the two options. The probability that consensus is reached on opinion +1 is equal to the initial fraction of individuals holding that opinion [#]_.
 
 
-.. autoclass:: ndlib.models.opinions.VoterModel.VoterModel
-.. automethod:: ndlib.models.opinions.VoterModel.VoterModel.__init__(graph)
-
-
 --------
 Statuses
 --------
@@ -45,13 +41,42 @@ The initial blocked nodes can be defined via:
 In both cases, the two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
+Methods
+-------
+
+The following class methods are made available to configure, describe and execute the simulation:
+
+^^^^^^^^^
+Configure
+^^^^^^^^^
+
+.. autoclass:: ndlib.models.opinions.VoterModel.VoterModel
+.. automethod:: ndlib.models.opinions.VoterModel.VoterModel.__init__(graph)
+
+.. automethod:: ndlib.models.opinions.VoterModel.VoterModel.set_initial_status(self, configuration)
+.. automethod:: ndlib.models.opinions.VoterModel.VoterModel.reset(self)
+
+^^^^^^^^
+Describe
+^^^^^^^^
+
+.. automethod:: ndlib.models.opinions.VoterModel.VoterModel.get_info(self)
+.. automethod:: ndlib.models.opinions.VoterModel.VoterModel.get_status_map(self)
+
+^^^^^^^^^^^^^^^^^^
+Execute Simulation
+^^^^^^^^^^^^^^^^^^
+.. automethod:: ndlib.models.opinions.VoterModel.VoterModel.iteration(self)
+.. automethod:: ndlib.models.opinions.VoterModel.VoterModel.iteration_bunch(self, bunch_size)
+
+
+-------
 Example
 -------
 
 In the code below is shown an example of istantiation and execution of a Voter model simultion on a random graph: we set the initial infected node set to the 10% of the overall population.
 
 .. code-block:: python
-    :linenos:
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc

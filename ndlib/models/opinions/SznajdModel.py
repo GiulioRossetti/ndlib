@@ -13,10 +13,10 @@ class SznajdModel(DiffusionModel):
 
     def __init__(self, graph):
         """
-        Model Constructor
+             Model Constructor
 
-        :param graph: A networkx graph object
-        """
+             :param graph: A networkx graph object
+         """
         super(self.__class__, self).__init__(graph)
         self.available_statuses = {
             "Susceptible": 0,
@@ -27,11 +27,14 @@ class SznajdModel(DiffusionModel):
 
     def iteration(self):
         """
-        One iteration changes the opinion of several voters using the following procedure:
-        - select randomly one voter (speaker 1)
-        - select randomly one of its neighbours (speaker 2)
-        - if the two voters agree, their neighbours take their opinion
+        Execute a single model iteration
+
+        :return: Iteration_id, Incremental node status (dictionary node->status)
         """
+        # One iteration changes the opinion of several voters using the following procedure:
+        # - select randomly one voter (speaker 1)
+        # - select randomly one of its neighbours (speaker 2)
+        # - if the two voters agree, their neighbours take their opinion
 
         self.clean_initial_status(self.available_statuses.values())
 

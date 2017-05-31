@@ -11,10 +11,6 @@ At each time step, a pair of neighbouring agents is selected and, if their opini
 
 The model has been shown to converge to one of the two agreeing stationary states, depending on the initial density of up-spins (transition at 50% density).
 
-
-.. autoclass:: ndlib.models.opinions.SznajdModel.SznajdModel
-.. automethod:: ndlib.models.opinions.SznajdModel.SznajdModel.__init__(graph)
-
 --------
 Statuses
 --------
@@ -40,13 +36,42 @@ The initial infection status can be defined via:
 The two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
+Methods
+-------
+
+The following class methods are made available to configure, describe and execute the simulation:
+
+^^^^^^^^^
+Configure
+^^^^^^^^^
+
+.. autoclass:: ndlib.models.opinions.SznajdModel.SznajdModel
+.. automethod:: ndlib.models.opinions.SznajdModel.SznajdModel.__init__(graph)
+
+.. automethod:: ndlib.models.opinions.SznajdModel.SznajdModel.set_initial_status(self, configuration)
+.. automethod:: ndlib.models.opinions.SznajdModel.SznajdModel.reset(self)
+
+^^^^^^^^
+Describe
+^^^^^^^^
+
+.. automethod:: ndlib.models.opinions.SznajdModel.SznajdModel.get_info(self)
+.. automethod:: ndlib.models.opinions.SznajdModel.SznajdModel.get_status_map(self)
+
+^^^^^^^^^^^^^^^^^^
+Execute Simulation
+^^^^^^^^^^^^^^^^^^
+.. automethod:: ndlib.models.opinions.SznajdModel.SznajdModel.iteration(self)
+.. automethod:: ndlib.models.opinions.SznajdModel.SznajdModel.iteration_bunch(self, bunch_size)
+
+
+-------
 Example
 -------
 
 In the code below is shown an example of istantiation and execution of a Sznajd model simultion on a random graph: we set the initial infected node set to the 10% of the overall population.
 
 .. code-block:: python
-    :linenos:
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc

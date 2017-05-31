@@ -28,10 +28,10 @@ class CognitiveOpDynModel(DiffusionModel):
 
     def __init__(self, graph):
         """
-            Model Constructor
+             Model Constructor
 
-            :param graph: A networkx graph object
-        """
+             :param graph: A networkx graph object
+         """
         super(self.__class__, self).__init__(graph)
 
         self.discrete_state = False
@@ -139,11 +139,14 @@ class CognitiveOpDynModel(DiffusionModel):
 
     def iteration(self):
         """
-        One iteration changes the opinion of all agents using the following procedure:
-        - first all agents communicate with institutional information I using a deffuant like rule
-        - then random pairs of agents are selected to interact  (N pairs)
-        - interaction depends on state of agents but also internal cognitive structure
+        Execute a single model iteration
+
+        :return: Iteration_id, Incremental node status (dictionary node->status)
         """
+        # One iteration changes the opinion of all agents using the following procedure:
+        # - first all agents communicate with institutional information I using a deffuant like rule
+        # - then random pairs of agents are selected to interact  (N pairs)
+        # - interaction depends on state of agents but also internal cognitive structure
 
         self.clean_initial_status(None)
 

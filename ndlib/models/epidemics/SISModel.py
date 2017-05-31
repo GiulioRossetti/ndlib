@@ -17,10 +17,10 @@ class SISModel(DiffusionModel):
 
     def __init__(self, graph):
         """
-            Model Constructor
+             Model Constructor
 
-            :param graph: A networkx graph object
-        """
+             :param graph: A networkx graph object
+         """
         super(self.__class__, self).__init__(graph)
         self.available_statuses = {
             "Susceptible": 0,
@@ -47,9 +47,9 @@ class SISModel(DiffusionModel):
 
     def iteration(self):
         """
-        Iteration step
+        Execute a single model iteration
 
-        :return: tuple (iid, nts)
+        :return: Iteration_id, Incremental node status (dictionary node->status)
         """
         self.clean_initial_status(self.available_statuses.values())
 

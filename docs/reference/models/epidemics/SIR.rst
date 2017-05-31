@@ -10,8 +10,6 @@ The model is instantiated on a graph having a non-empty set of infected nodes.
 
 SIR assumes that if, during a generic iteration, a susceptible node comes into contact with an infected one, it becomes infected with probability beta, than it can be switch to removed with probability gamma (the only transition allowed are S→I→R).
 
-.. autoclass:: ndlib.models.epidemics.SIRModel.SIRModel
-.. automethod:: ndlib.models.epidemics.SIRModel.SIRModel.__init__(graph)
 
 --------
 Statuses
@@ -46,13 +44,41 @@ The initial infection status can be defined via:
 The two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
+Methods
+-------
+
+The following class methods are made available to configure, describe and execute the simulation:
+
+^^^^^^^^^
+Configure
+^^^^^^^^^
+.. autoclass:: ndlib.models.epidemics.SIRModel.SIRModel
+.. automethod:: ndlib.models.epidemics.SIRModel.SIRModel.__init__(graph)
+
+.. automethod:: ndlib.models.epidemics.SIRModel.SIRModel.set_initial_status(self, configuration)
+.. automethod:: ndlib.models.epidemics.SIRModel.SIRModel.reset(self)
+
+^^^^^^^^
+Describe
+^^^^^^^^
+
+.. automethod:: ndlib.models.epidemics.SIRModel.SIRModel.get_info(self)
+.. automethod:: ndlib.models.epidemics.SIRModel.SIRModel.get_status_map(self)
+
+^^^^^^^^^^^^^^^^^^
+Execute Simulation
+^^^^^^^^^^^^^^^^^^
+.. automethod:: ndlib.models.epidemics.SIRModel.SIRModel.iteration(self)
+.. automethod:: ndlib.models.epidemics.SIRModel.SIRModel.iteration_bunch(self, bunch_size)
+
+
+-------
 Example
 -------
 
 In the code below is shown an example of istantiation and execution of an SIR simultion on a random graph: we set the initial set of infected nodes as 5% of the overall population, a probability of infection of 1%, and a removal probability of 0.5%.
 
 .. code-block:: python
-    :linenos:
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc

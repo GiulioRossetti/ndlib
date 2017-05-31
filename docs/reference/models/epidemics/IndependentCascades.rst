@@ -11,9 +11,6 @@ This model starts with an initial set of **active** nodes A0: the diffusive proc
 - If v succeeds, then w will become active in step t + 1; but whether or not v succeeds, it cannot make any further attempts to activate w in subsequent rounds. 
 - The process runs until no more activations are possible.
 
-.. autoclass:: ndlib.models.epidemics.IndependentCascadesModel.IndependentCascadesModel
-.. automethod:: ndlib.models.epidemics.IndependentCascadesModel.IndependentCascadesModel.__init__(graph)
-
 --------
 Statuses
 --------
@@ -47,6 +44,35 @@ The initial infection status can be defined via:
 The two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
+Methods
+-------
+
+The following class methods are made available to configure, describe and execute the simulation:
+
+^^^^^^^^^
+Configure
+^^^^^^^^^
+
+.. autoclass:: ndlib.models.epidemics.IndependentCascadesModel.IndependentCascadesModel
+.. automethod:: ndlib.models.epidemics.IndependentCascadesModel.IndependentCascadesModel.__init__(graph)
+
+.. automethod:: ndlib.models.epidemics.IndependentCascadesModel.IndependentCascadesModel.set_initial_status(self, configuration)
+.. automethod:: ndlib.models.epidemics.IndependentCascadesModel.IndependentCascadesModel.reset(self)
+
+^^^^^^^^
+Describe
+^^^^^^^^
+
+.. automethod:: ndlib.models.epidemics.IndependentCascadesModel.IndependentCascadesModel.get_info(self)
+.. automethod:: ndlib.models.epidemics.IndependentCascadesModel.IndependentCascadesModel.get_status_map(self)
+
+^^^^^^^^^^^^^^^^^^
+Execute Simulation
+^^^^^^^^^^^^^^^^^^
+.. automethod:: ndlib.models.epidemics.IndependentCascadesModel.IndependentCascadesModel.iteration(self)
+.. automethod:: ndlib.models.epidemics.IndependentCascadesModel.IndependentCascadesModel.iteration_bunch(self, bunch_size)
+
+-------
 Example
 -------
 
@@ -54,7 +80,6 @@ In the code below is shown an example of istantiation and execution of an Indepe
 
 
 .. code-block:: python
-    :linenos:
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc

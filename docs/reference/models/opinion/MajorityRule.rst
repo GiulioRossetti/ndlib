@@ -12,10 +12,6 @@ If **r** is odd, then the majority opinion is always defined, however if **r** i
 
 This idea is inspired by the concept of social inertia [#]_.
 
-
-.. autoclass:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel
-.. automethod:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel.__init__(graph)
-
 --------
 Statuses
 --------
@@ -47,13 +43,41 @@ The initial infection status can be defined via:
 The two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
+Methods
+-------
+
+The following class methods are made available to configure, describe and execute the simulation:
+
+^^^^^^^^^
+Configure
+^^^^^^^^^
+.. autoclass:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel
+.. automethod:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel.__init__(graph)
+
+.. automethod:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel.set_initial_status(self, configuration)
+.. automethod:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel.reset(self)
+
+^^^^^^^^
+Describe
+^^^^^^^^
+
+.. automethod:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel.get_info(self)
+.. automethod:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel.get_status_map(self)
+
+^^^^^^^^^^^^^^^^^^
+Execute Simulation
+^^^^^^^^^^^^^^^^^^
+.. automethod:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel.iteration(self)
+.. automethod:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel.iteration_bunch(self, bunch_size)
+
+
+-------
 Example
 -------
 
 In the code below is shown an example of istantiation and execution of a Majority Rule model simultion on a random graph: we set the initial infected node set to the 10% of the overall population.
 
 .. code-block:: python
-    :linenos:
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc

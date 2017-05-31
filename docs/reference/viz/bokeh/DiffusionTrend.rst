@@ -14,14 +14,34 @@ Each trend line describes the variation of the number of nodes for a given statu
 Below is shown an example of Diffusion Trend description and visualization for the SIR model.
 
 .. code-block:: python
-    :linenos:
 
     import networkx as nx
-    from bokeh.io import show    import ndlib.models.ModelConfig as mc    import ndlib.models.epidemics.SIRModel as sir 
-    from ndlib.viz.bokeh.DiffusionTrend import DiffusionTrend    # Network topology    g = nx.erdos_renyi_graph(1000, 0.1)
-    # Model selection    model = sir.SIRModel(g)    # Model Configuration    cfg = mc.Configuration()    cfg.add_model_parameter('beta', 0.001)    cfg.add_model_parameter('gamma', 0.01)    cfg.add_model_parameter("percentage_infected", 16 0.05)    model.set_initial_status(cfg)    # Simulation execution    iterations = model.iteration_bunch(200)
+    from bokeh.io import show
+    import ndlib.models.ModelConfig as mc
+    import ndlib.models.epidemics.SIRModel as sir 
+    from ndlib.viz.bokeh.DiffusionTrend import DiffusionTrend
 
-    # Visualization    viz = DiffusionTrend(model, iterations)    p = viz.plot(width=400, height=400)    show(p)
+
+    # Network topology
+    g = nx.erdos_renyi_graph(1000, 0.1)
+
+    # Model selection
+    model = sir.SIRModel(g)
+
+    # Model Configuration
+    cfg = mc.Configuration()
+    cfg.add_model_parameter('beta', 0.001)
+    cfg.add_model_parameter('gamma', 0.01)
+    cfg.add_model_parameter("percentage_infected", 16 0.05)
+    model.set_initial_status(cfg)
+
+    # Simulation execution
+    iterations = model.iteration_bunch(200)
+
+    # Visualization
+    viz = DiffusionTrend(model, iterations)
+    p = viz.plot(width=400, height=400)
+    show(p)
 
 
 

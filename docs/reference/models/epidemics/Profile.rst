@@ -13,8 +13,6 @@ The diffusion process starts from a set of nodes that have already adopted a giv
 -  for each of the susceptible nodes' in the neighborhood of a node u in S an unbalanced coin is flipped, the unbalance given by the personal profile of the susceptible node;
 - if a positive result is obtained the susceptible node will adopt the behaviour, thus becoming infected.
 
-.. autoclass:: ndlib.models.epidemics.ProfileModel.ProfileModel
-.. automethod:: ndlib.models.epidemics.ProfileModel.ProfileModel.__init__(graph)
 
 
 --------
@@ -48,13 +46,41 @@ The initial infection status can be defined via:
 The two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
+Methods
+-------
+
+The following class methods are made available to configure, describe and execute the simulation:
+
+^^^^^^^^^
+Configure
+^^^^^^^^^
+.. autoclass:: ndlib.models.epidemics.ProfileModel.ProfileModel
+.. automethod:: ndlib.models.epidemics.ProfileModel.ProfileModel.__init__(graph)
+
+.. automethod:: ndlib.models.epidemics.ProfileModel.ProfileModel.set_initial_status(self, configuration)
+.. automethod:: ndlib.models.epidemics.ProfileModel.ProfileModel.reset(self)
+
+^^^^^^^^
+Describe
+^^^^^^^^
+
+.. automethod:: ndlib.models.epidemics.ProfileModel.ProfileModel.get_info(self)
+.. automethod:: ndlib.models.epidemics.ProfileModel.ProfileModel.get_status_map(self)
+
+^^^^^^^^^^^^^^^^^^
+Execute Simulation
+^^^^^^^^^^^^^^^^^^
+.. automethod:: ndlib.models.epidemics.ProfileModel.ProfileModel.iteration(self)
+.. automethod:: ndlib.models.epidemics.ProfileModel.ProfileModel.iteration_bunch(self, bunch_size)
+
+
+-------
 Example
 -------
 
 In the code below is shown an example of istantiation and execution of a Profile model simultion on a random graph: we set the initial infected node set to the 10% of the overall population and assign a profile of 0.25 to all the nodes.
 
 .. code-block:: python
-    :linenos:
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc

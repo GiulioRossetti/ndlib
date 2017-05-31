@@ -8,8 +8,6 @@ The authors extend the classical model introducing a density **r** of blocked no
 
 Thus, the model distinguishes three kinds of node: **Blocked** (B), **Susceptible** (S) and **Adoptiong** (A). The latter class breaks into two categories: vulnerable and stable nodes. A node can adopt either under its neighbors’ influence, or spontaneously, due to endogenous effects.
 
-.. autoclass:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel
-.. automethod:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel.__init__(graph)
 
 --------
 Statuses
@@ -51,6 +49,34 @@ The initial blocked nodes can be defined via:
 In both cases, the two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
+Methods
+-------
+
+The following class methods are made available to configure, describe and execute the simulation:
+
+^^^^^^^^^
+Configure
+^^^^^^^^^
+.. autoclass:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel
+.. automethod:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel.__init__(graph)
+
+.. automethod:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel.set_initial_status(self, configuration)
+.. automethod:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel.reset(self)
+
+^^^^^^^^
+Describe
+^^^^^^^^
+
+.. automethod:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel.get_info(self)
+.. automethod:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel.get_status_map(self)
+
+^^^^^^^^^^^^^^^^^^
+Execute Simulation
+^^^^^^^^^^^^^^^^^^
+.. automethod:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel.iteration(self)
+.. automethod:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel.iteration_bunch(self, bunch_size)
+
+-------
 Example
 -------
 
@@ -58,7 +84,6 @@ In the code below is shown an example of istantiation and execution of a Kertesz
 
 
 .. code-block:: python
-    :linenos:
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc

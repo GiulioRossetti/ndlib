@@ -10,9 +10,6 @@ The model is instantiated on a graph having a non-empty set of infected nodes.
 
 SIS assumes that if, during a generic iteration, a susceptible node comes into contact with an infected one, it becomes infected with probability beta, than it can be switch again to susceptible with probability lambda (the only transition allowed are S→I→S).
 
-.. autoclass:: ndlib.models.epidemics.SISModel.SISModel
-.. automethod:: ndlib.models.epidemics.SISModel.SISModel.__init__(graph)
-
 
 --------
 Statuses
@@ -46,13 +43,41 @@ The initial infection status can be defined via:
 The two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
+Methods
+-------
+
+The following class methods are made available to configure, describe and execute the simulation:
+
+^^^^^^^^^
+Configure
+^^^^^^^^^
+.. autoclass:: ndlib.models.epidemics.SISModel.SISModel
+.. automethod:: ndlib.models.epidemics.SISModel.SISModel.__init__(graph)
+
+.. automethod:: ndlib.models.epidemics.SISModel.SISModel.set_initial_status(self, configuration)
+.. automethod:: ndlib.models.epidemics.SISModel.SISModel.reset(self)
+
+^^^^^^^^
+Describe
+^^^^^^^^
+
+.. automethod:: ndlib.models.epidemics.SISModel.SISModel.get_info(self)
+.. automethod:: ndlib.models.epidemics.SISModel.SISModel.get_status_map(self)
+
+^^^^^^^^^^^^^^^^^^
+Execute Simulation
+^^^^^^^^^^^^^^^^^^
+.. automethod:: ndlib.models.epidemics.SISModel.SISModel.iteration(self)
+.. automethod:: ndlib.models.epidemics.SISModel.SISModel.iteration_bunch(self, bunch_size)
+
+
+-------
 Example
 -------
 
 In the code below is shown an example of istantiation and execution of an SIS simultion on a random graph: we set the initial set of infected nodes as 5% of the overall population, a probability of infection of 1%, and a probability of recovery of 0.5%.
 
 .. code-block:: python
-    :linenos:
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc

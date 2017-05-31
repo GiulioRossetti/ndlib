@@ -22,10 +22,6 @@ The update rules define how **Oi** values change in time.
 The model was shown to be able to reproduce well various real situations. In particular, it is visible that risk sensitivity is more important than trust in institutional information when it comes to evaluating risky situations.
 
 
-.. autoclass:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel
-.. automethod:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel.__init__(graph)
-
-
 --------
 Statuses
 --------
@@ -62,13 +58,41 @@ The initial infection status can be defined via:
 The two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
+Methods
+-------
+
+The following class methods are made available to configure, describe and execute the simulation:
+
+^^^^^^^^^
+Configure
+^^^^^^^^^
+.. autoclass:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel
+.. automethod:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel.__init__(graph)
+
+.. automethod:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel.set_initial_status(self, configuration)
+.. automethod:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel.reset(self)
+
+^^^^^^^^
+Describe
+^^^^^^^^
+
+.. automethod:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel.get_info(self)
+.. automethod:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel.get_status_map(self)
+
+^^^^^^^^^^^^^^^^^^
+Execute Simulation
+^^^^^^^^^^^^^^^^^^
+.. automethod:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel.iteration(self)
+.. automethod:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel.iteration_bunch(self, bunch_size)
+
+
+-------
 Example
 -------
 
 In the code below is shown an example of istantiation and execution of a Cognitive Opinion Dynamics model simultion on a random graph: we set the initial infected node set to the 10% of the overall population, the external information value to 015, the B and T intervals equal to [0,1] and the fraction of positive/neutral/infected equal to 1/3.
 
 .. code-block:: python
-    :linenos:
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc

@@ -28,7 +28,6 @@ Model configuration involves the instantiation of both the *mandatory* and *opti
 Model parameters can be setted as in the following example:
 
 .. code-block:: python
-    :linenos:
 
     import ndlib.models.ModelConfig as mc
 
@@ -52,7 +51,6 @@ Node configuration involves the instantiation of both the *mandatory* and *optio
 Node parameters can be set as in the following example:
 
 .. code-block:: python
-    :linenos:
 
     import ndlib.models.ModelConfig as mc
 
@@ -78,7 +76,6 @@ Edge configuration involves the instantiation of both the *mandatory* and *optio
 Edge parameters can be set as in the following example:
 
 .. code-block:: python
-    :linenos:
 
     import ndlib.models.ModelConfig as mc
 
@@ -102,7 +99,6 @@ Status configuration allows to specify explicitly the status of a set of nodes a
 Node statuses can be set as in the following example:
 
 .. code-block:: python
-    :linenos:
 
     import ndlib.models.ModelConfig as mc
 

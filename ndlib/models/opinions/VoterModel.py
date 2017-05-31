@@ -13,10 +13,10 @@ class VoterModel(DiffusionModel):
 
     def __init__(self, graph):
         """
-        Model Constructor
+             Model Constructor
 
-        :param graph: A networkx graph object
-        """
+             :param graph: A networkx graph object
+         """
         super(self.__class__, self).__init__(graph)
         self.available_statuses = {
             "Susceptible": 0,
@@ -27,11 +27,14 @@ class VoterModel(DiffusionModel):
 
     def iteration(self):
         """
-        One iteration changes the opinion of one voter using the following procedure:
-        - select randomly one voter (listener)
-        - selecting randomly one of its peers (speaker)
-        - the first voter takes the opinion of the peer (listener takes the opinion of speaker)
+        Execute a single model iteration
+
+        :return: Iteration_id, Incremental node status (dictionary node->status)
         """
+        # One iteration changes the opinion of one voter using the following procedure:
+        # - select randomly one voter (listener)
+        # - selecting randomly one of its peers (speaker)
+        # - the first voter takes the opinion of the peer (listener takes the opinion of speaker)
 
         self.clean_initial_status(self.available_statuses.values())
 

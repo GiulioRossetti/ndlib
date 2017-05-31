@@ -22,6 +22,11 @@ class DiffusionPlot(object):
 
     @abc.abstractmethod
     def iteration_series(self):
+        """
+        Prepare the data to be visualized
+
+        :return: a dictionary where iteration ids are keys and the associated values are the computed measures
+        """
         pass
 
     def plot(self, width=500, height=500):
@@ -31,7 +36,7 @@ class DiffusionPlot(object):
         :return: a bokeh figure image
         """
         pres = self.iteration_series()
-        infos = self.model.getinfo()
+        infos = self.model.get_info()
         descr = ""
         for k, v in future.utils.iteritems(infos):
             descr += "%s: %s, " % (k, v)

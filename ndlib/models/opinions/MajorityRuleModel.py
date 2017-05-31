@@ -12,10 +12,10 @@ class MajorityRuleModel(DiffusionModel):
 
     def __init__(self, graph):
         """
-            Model Constructor
+             Model Constructor
 
-            :param graph: A networkx graph object
-        """
+             :param graph: A networkx graph object
+         """
         super(self.__class__, self).__init__(graph)
         self.available_statuses = {
             "Susceptible": 0,
@@ -37,12 +37,17 @@ class MajorityRuleModel(DiffusionModel):
 
     def iteration(self):
         """
-        One iteration changes the opinion of at most q voters using the following procedure:
-        - select randomly q voters
-        - compute majority opinion
-        - if tie all agents take opinion +1
-        - if not tie, all agents take majority opinion
+        Execute a single model iteration
+
+        :return: Iteration_id, Incremental node status (dictionary node->status)
         """
+
+        # One iteration changes the opinion of at most q voters using the following procedure:
+        # - select randomly q voters
+        # - compute majority opinion
+        # - if tie all agents take opinion +1
+        # - if not tie, all agents take majority opinion
+
         self.clean_initial_status(self.available_statuses.values())
 
         if self.actual_iteration == 0:

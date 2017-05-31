@@ -104,6 +104,11 @@ class DiffusionModel(object):
                                           "parameters": "percentage_infected"})
 
     def set_initial_status(self, configuration):
+        """
+        Set the initial model configuration
+
+        :param configuration: a ```ndlib.models.ModelConfig.Configuration``` object
+        """
 
         self.__validate_configuration(configuration)
 
@@ -156,19 +161,34 @@ class DiffusionModel(object):
                 self.status[n] = 0
 
     def iteration_bunch(self, bunch_size):
+        """
+        Execute a bunch of model iterations
+
+        :param bunch_size: the number of iterations to execute
+
+        :return: a list containing for each iteration a dictionary {"iteration": iteration_id, "status": dictionary_node_to_status}
+        """
         system_status = []
         for it in past.builtins.xrange(0, bunch_size):
             itd, status = self.iteration()
             system_status.append({"iteration": itd, "status": status.copy()})
         return system_status
 
-    def getinfo(self):
+    def get_info(self):
+        """
+        Describes the current model parameters (nodes, edges, status)
+
+        :return: a dictionary containing for each parameter class the values specified during model configuration
+        """
         info = {k: v for k, v in future.utils.iteritems(self.params) if k not in ['nodes', 'edges', 'status']}
         if 'infected_nodes' in self.params['status']:
             info['selected_initial_infected'] = True
         return info['model']
 
     def reset(self):
+        """
+        Reset the simulation setting the actual status to the initial configuration.
+        """
         self.actual_iteration = 0
         self.status = self.initial_status
 
@@ -179,14 +199,19 @@ class DiffusionModel(object):
         return self.name
 
     def get_status_map(self):
+        """
+        Specify the statuses allowed by the model and their numeric code
+
+        :return: a dictionary (status->code)
+        """
         return self.available_statuses
 
     @abc.abstractmethod
     def iteration(self):
         """
-        Single model iteration
+        Execute a single model iteration
 
-        :return: Iteration_id, Incremental node status
+        :return: Iteration_id, Incremental node status (dictionary node->status)
         """
         pass
 

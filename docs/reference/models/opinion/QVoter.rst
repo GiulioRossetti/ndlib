@@ -13,10 +13,6 @@ It is clear that the voter and Sznajd models are special cases of this more rece
 Analytic results for q ≤ 3 validate the numerical results obtained for the special case models, with transitions from a ordered phase (small ε) to a disordered one (large ε). 
 For q > 3, a new type of transition between the two phases appears, which consist of passing through an intermediate regime where the final state depends on the initial condition. We implemented in NDlib the model with ε = 0.
 
-
-.. autoclass:: ndlib.models.opinions.QVoterModel.QVoterModel
-.. automethod:: ndlib.models.opinions.QVoterModel.QVoterModel.__init__(graph)
-
 --------
 Statuses
 --------
@@ -48,13 +44,42 @@ The initial infection status can be defined via:
 The two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
+Methods
+-------
+
+The following class methods are made available to configure, describe and execute the simulation:
+
+^^^^^^^^^
+Configure
+^^^^^^^^^
+
+.. autoclass:: ndlib.models.opinions.QVoterModel.QVoterModel
+.. automethod:: ndlib.models.opinions.QVoterModel.QVoterModel.__init__(graph)
+
+.. automethod:: ndlib.models.opinions.QVoterModel.QVoterModel.set_initial_status(self, configuration)
+.. automethod:: ndlib.models.opinions.QVoterModel.QVoterModel.reset(self)
+
+^^^^^^^^
+Describe
+^^^^^^^^
+
+.. automethod:: ndlib.models.opinions.QVoterModel.QVoterModel.get_info(self)
+.. automethod:: ndlib.models.opinions.QVoterModel.QVoterModel.get_status_map(self)
+
+^^^^^^^^^^^^^^^^^^
+Execute Simulation
+^^^^^^^^^^^^^^^^^^
+.. automethod:: ndlib.models.opinions.QVoterModel.QVoterModel.iteration(self)
+.. automethod:: ndlib.models.opinions.QVoterModel.QVoterModel.iteration_bunch(self, bunch_size)
+
+
+-------
 Example
 -------
 
 In the code below is shown an example of istantiation and execution of a Q-Voter model simultion on a random graph: we set the initial infected node set to the 10% of the overall population and the number **q** of influencing neighbors equals to 5.
 
 .. code-block:: python
-    :linenos:
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc
