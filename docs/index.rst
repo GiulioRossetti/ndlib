@@ -6,8 +6,12 @@
 NDlib - Network Diffusion Library
 =================================
 
-Release:	2.0.1
-Date:	May 26, 2017
+NDlib is a Python software package that allows to describe, simulate, and study diffusion processes on complex networks.
+
+=========== ============= =================== ==================  ==========  ===============
+**Release**    **Date**   **Python Versions**     **Author**      **GitHub**      **pypl**
+   2.0.1    May 31, 2017       2.7.x/3.x      `Giulio Rossetti`_  `Source`_   `Distribution`_
+=========== ============= =================== ==================  ==========  ===============
 
 Contents:
 
@@ -22,17 +26,7 @@ Contents:
    reference/reference.rst
    developer/developer.rst
    bibliography.rst
-  
 
-
-
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
+.. _`Giulio Rossetti`: http://www.about.giuliorossetti.net
+.. _`Source`: https://github.com/GiulioRossetti/ndlib
+.. _`Distribution`: https://pypi.python.org/pypi/ndlib
