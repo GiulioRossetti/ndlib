@@ -8,10 +8,13 @@ __email__ = "giulio.rossetti@gmail.com"
 
 
 class ConfigurationException(Exception):
-    """Raise for my specific kind of exception"""
+    """Configuration Exception"""
 
 
 class DiffusionModel(object):
+    """
+        Partial Abstract Class that defines Diffusion Models
+    """
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, graph):
@@ -180,6 +183,11 @@ class DiffusionModel(object):
 
     @abc.abstractmethod
     def iteration(self):
+        """
+        Single model iteration
+
+        :return: Iteration_id, Incremental node status
+        """
         pass
 
     @staticmethod
