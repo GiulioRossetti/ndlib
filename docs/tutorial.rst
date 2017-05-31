@@ -62,7 +62,7 @@ It is also possible to explicitly specify an initial set of infected nodes: see 
 Execute the simulation
 ----------------------
 
-In order to execute the simulation one, or more, iterations must be required using the ``model.iteratio()`` and/or ``model.iteration_bunch(n_iterations)`` methods.
+In order to execute the simulation one, or more, iterations must be required using the ``model.iteration()`` and/or ``model.iteration_bunch(n_iterations)`` methods.
 
 .. code:: python
 
