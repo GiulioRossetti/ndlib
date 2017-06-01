@@ -92,7 +92,7 @@ Local testing
 
     python ndrest.py
 
-Local testig with multiple workers (using [gunicorn](http://gunicorn.org/) web server):
+Local testig with multiple workers (using gunicorn_ web server):
 
 .. code-block:: python
 
@@ -109,7 +109,7 @@ To update the API page run the command:
 Docker Container
 ----------------
 
-The web application is shipped in a Docker (https://www.docker.com/) container.
+The web application is shipped in a Docker_  container.
 You can use the Dockerfile to create a new image and run the web application using the gunicorn application server.
 
 To create the Docker image, install Docker on your machine.
@@ -179,3 +179,5 @@ Dependencies
 - scipy==0.18.1
 - ndlib==1.0b
 
+.. _gunicorn: http://gunicorn.org/
+.. _Docker: https://www.docker.com/

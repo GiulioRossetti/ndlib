@@ -97,7 +97,7 @@ The following are packages required by ``NDlib``.
 ^^^^^^^^
 NetworkX
 ^^^^^^^^
-Provides the graph representation used by the diffusion models implemented in NDlib.
+Provides the graph representation used by the diffusion models implemented in ``NDlib``.
 
 Download: http://networkx.github.io/download.html
 
