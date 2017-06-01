@@ -8,7 +8,7 @@ Before installing ``NDlib``, you need to have setuptools installed.
 Quick install
 =============
 
-Get ``NDlib`` from the Python Package Index at _pypl.
+Get ``NDlib`` from the Python Package Index at pypl_.
 
 or install it with
 
@@ -104,19 +104,19 @@ Download: http://networkx.github.io/download.html
 -----------------
 Optional packages
 -----------------
-The following are optional packages that NetworkX can use to provide additional functions.
+The following are optional packages that ``NDlib`` can use to provide additional functions.
 
 ^^^^^
 Bokeh
 ^^^^^
-Provides support to the visualization facilities offered by NDlib.
+Provides support to the visualization facilities offered by ``NDlib``.
 
 Download: http://bokeh.pydata.org/en/latest/
 
 --------------
 Other packages
 --------------
-These are extra packages you may consider using with NetworkX
+These are extra packages you may consider using with ``NDlib``
 
 IPython, interactive Python shell, http://ipython.scipy.org/
 
