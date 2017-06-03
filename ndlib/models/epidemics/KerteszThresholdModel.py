@@ -68,6 +68,7 @@ class KerteszThresholdModel(DiffusionModel):
         actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
 
         if self.actual_iteration == 0:
+
             if min(actual_status.values()) == 0:
                 number_node_blocked = int(float(self.graph.number_of_nodes()) *
                                           float(self.params['model']['percentage_blocked']))
@@ -109,7 +110,8 @@ class KerteszThresholdModel(DiffusionModel):
 
                 infected = 0
                 for v in neighbors:
-                    infected += self.status[v]
+                    if self.status[v] != -1:
+                        infected += self.status[v]
 
                 infected_ratio = float(infected)/len(neighbors)
                 if infected_ratio >= self.params['nodes']['threshold'][node]:
