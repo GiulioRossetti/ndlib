@@ -262,9 +262,9 @@ class DiffusionModel(object):
         :param iteration_number: number of iterations
         :return: node count and status delta trends
         """
-        result = {}
+        result = []
         for it in past.builtins.xrange(0, execution_number):
-            result[it] = self.build_trends(self.iteration_bunch(iteration_number, False))
+            result.append(self.build_trends(self.iteration_bunch(iteration_number, False))[0])
 
             # Reset status
             self.actual_iteration = 0
@@ -282,7 +282,7 @@ class DiffusionModel(object):
 
         return result
 
-    def build_trends(self, data):
+    def build_trends(self, iterations):
         """
         Build node status and node delta trends from model iteration bunch
 
@@ -292,9 +292,9 @@ class DiffusionModel(object):
         status_delta = {status: [] for status in self.available_statuses.values()}
         node_count = {status: [] for status in self.available_statuses.values()}
 
-        for it in data:
+        for it in iterations:
             for st in self.available_statuses.values():
                 status_delta[st].append(it['status_delta'][st])
                 node_count[st].append(it['node_count'][st])
 
-        return {"node_count": node_count, "status_delta": status_delta}
+        return [{"trends": {"node_count": node_count, "status_delta": status_delta}}]
