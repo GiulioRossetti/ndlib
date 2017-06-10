@@ -25,7 +25,7 @@ class SznajdModel(DiffusionModel):
 
         self.name = "Sznajd"
 
-    def iteration(self):
+    def iteration(self, node_status=True):
         """
         Execute a single model iteration
 
@@ -40,8 +40,17 @@ class SznajdModel(DiffusionModel):
 
         if self.actual_iteration == 0:
             self.actual_iteration += 1
-            return 0, self.status
+            delta, node_count, status_delta = self.status_delta(self.status)
+            if node_status:
+                return {"iteration": 0, "status": self.status.copy(),
+                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+            else:
+                return {"iteration": 0, "status": {},
+                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+
         delta = {}
+        status_delta = {st: 0 for st in self.available_statuses.values()}
+
         # select a random node
         speaker1 = self.graph.nodes()[np.random.randint(0, self.graph.number_of_nodes())]
 
@@ -66,8 +75,23 @@ class SznajdModel(DiffusionModel):
             for listener in neighbours:
                 if self.status[speaker1] != self.status[listener]:
                     delta[listener] = self.status[speaker1]
+                    status_delta[self.status[listener]] += 1
+                    for x in self.available_statuses.values():
+                        if x != self.status[listener]:
+                            status_delta[x] -= 1
+
                 self.status[listener] = self.status[speaker1]
+
+        node_count = {st: len([n for n in self.status if self.status[n] == st])
+                      for st in self.available_statuses.values()}
 
         self.actual_iteration += 1
 
-        return self.actual_iteration - 1, delta
+        if node_status:
+            return {"iteration": self.actual_iteration - 1, "status": delta.copy(),
+                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+        else:
+            return {"iteration": self.actual_iteration - 1, "status": {},
+                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+
+

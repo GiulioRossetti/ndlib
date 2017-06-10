@@ -160,18 +160,19 @@ class DiffusionModel(object):
             if s not in valid_status:
                 self.status[n] = 0
 
-    def iteration_bunch(self, bunch_size):
+    def iteration_bunch(self, bunch_size, node_status=True):
         """
         Execute a bunch of model iterations
 
         :param bunch_size: the number of iterations to execute
+        :param node_status: if the incremental node status has to be returned.
 
         :return: a list containing for each iteration a dictionary {"iteration": iteration_id, "status": dictionary_node_to_status}
         """
         system_status = []
         for it in past.builtins.xrange(0, bunch_size):
-            itd, status = self.iteration()
-            system_status.append({"iteration": itd, "status": status.copy()})
+            its = self.iteration(node_status)
+            system_status.append(its)
         return system_status
 
     def get_info(self):
@@ -207,11 +208,16 @@ class DiffusionModel(object):
         return self.available_statuses
 
     @abc.abstractmethod
-    def iteration(self):
+    def iteration(self, node_status=True):
         """
         Execute a single model iteration
 
-        :return: Iteration_id, Incremental node status (dictionary node->status)
+        :param node_status: if the incremental node status has to be returned.
+
+        :return: Iteration_id,
+                 (optional) Incremental node status (dictionary node->status),
+                 Status count (dictionary status->node count),
+                 Status delta (dictionary status->node delta)
         """
         pass
 
@@ -225,8 +231,70 @@ class DiffusionModel(object):
         return True
 
     def status_delta(self, actual_status):
+        """
+        Compute the point-to-point variations for each status w.r.t. the previous system configuration
+
+        :param actual_status: the actual simulation status
+        :return: node that have changed their statuses (dictionary status->nodes),
+                 count of actual nodes per status (dictionary status->node count),
+                 delta of nodes per status w.r.t the previous configuration (dictionary status->delta)
+        """
+        actual_status_count = {}
+        old_status_count = {}
         delta = {}
         for n, v in future.utils.iteritems(self.status):
             if v != actual_status[n]:
                 delta[n] = actual_status[n]
-        return delta
+
+        for st in self.available_statuses.values():
+            actual_status_count[st] = len([x for x in actual_status if actual_status[x] == st])
+            old_status_count[st] = len([x for x in self.status if self.status[x] == st])
+
+        status_delta = {st: actual_status_count[st] - old_status_count[st] for st in actual_status_count}
+
+        return delta, actual_status_count, status_delta
+
+    def multiple_executions(self, execution_number=1, iteration_number=10):
+        """
+        Execute multiple times the same model varying the initial infection sources
+
+        :param execution_number: number of folds
+        :param iteration_number: number of iterations
+        :return: node count and status delta trends
+        """
+        result = {}
+        for it in past.builtins.xrange(0, execution_number):
+            result[it] = self.build_trends(self.iteration_bunch(iteration_number, False))
+
+            # Reset status
+            self.actual_iteration = 0
+            for n in self.status:
+                self.status[n] = 0
+
+            number_of_initial_infected = len(self.graph.nodes()) * float(self.params['model']['percentage_infected'])
+
+            available_nodes = [n for n in self.status if self.status[n] == 0]
+            sampled_nodes = np.random.choice(available_nodes, int(number_of_initial_infected), replace=False)
+            for k in sampled_nodes:
+                self.status[k] = self.available_statuses['Infected']
+
+            self.initial_status = self.status
+
+        return result
+
+    def build_trends(self, data):
+        """
+        Build node status and node delta trends from model iteration bunch
+
+        :param data:
+        :return:
+        """
+        status_delta = {status: [] for status in self.available_statuses.values()}
+        node_count = {status: [] for status in self.available_statuses.values()}
+
+        for it in data:
+            for st in self.available_statuses.values():
+                status_delta[st].append(it['status_delta'][st])
+                node_count[st].append(it['node_count'][st])
+
+        return {"node_count": node_count, "status_delta": status_delta}

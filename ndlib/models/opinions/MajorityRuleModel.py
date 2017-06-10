@@ -35,7 +35,7 @@ class MajorityRuleModel(DiffusionModel):
 
         self.name = "Majority Rule"
 
-    def iteration(self):
+    def iteration(self, node_status=True):
         """
         Execute a single model iteration
 
@@ -52,7 +52,13 @@ class MajorityRuleModel(DiffusionModel):
 
         if self.actual_iteration == 0:
             self.actual_iteration += 1
-            return self.actual_iteration, self.status
+            delta, node_count, status_delta = self.status_delta(self.status)
+            if node_status:
+                return {"iteration": 0, "status": self.status.copy(),
+                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+            else:
+                return {"iteration": 0, "status": {},
+                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
         # select q random nodes
         discussion_group = [self.graph.nodes()[i]
@@ -66,11 +72,30 @@ class MajorityRuleModel(DiffusionModel):
 
         # update status of nodes in discussion group
         delta = {}
+        status_delta = {st: 0 for st in self.available_statuses.values()}
+
         for listener in discussion_group:
             if majority_vote != self.status[listener]:
                 delta[listener] = majority_vote
+
+                status_delta[self.status[listener]] += 1
+                for x in self.available_statuses.values():
+                    if x != self.status[listener]:
+                        status_delta[x] -= 1
+
             self.status[listener] = majority_vote
+
+        # fix
+        node_count = {st: len([n for n in self.status if self.status[n] == st])
+                      for st in self.available_statuses.values()}
 
         self.actual_iteration += 1
 
-        return self.actual_iteration - 1, delta
+        if node_status:
+            return {"iteration": self.actual_iteration - 1, "status": delta.copy(),
+                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+        else:
+            return {"iteration": self.actual_iteration - 1, "status": {},
+                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+
+

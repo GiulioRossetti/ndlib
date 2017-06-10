@@ -126,6 +126,16 @@ class NdlibTest(unittest.TestCase):
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
+    def test_multiple_si_model(self):
+        g = nx.erdos_renyi_graph(1000, 0.1)
+        model = si.SIModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('beta', 0.01)
+        config.add_model_parameter("percentage_infected", 0.1)
+        model.set_initial_status(config)
+        executions = model.multiple_executions(execution_number=10, iteration_number=10)
+        self.assertEqual(len(executions), 10)
+
     def test_threshold_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
         model = th.ThresholdModel(g)
@@ -199,7 +209,7 @@ class NdlibTest(unittest.TestCase):
 
         model.set_initial_status(config)
         iteration = model.iteration()
-        blocked = [x for x, v in future.utils.iteritems(iteration[1]) if v == -1]
+        blocked = [x for x, v in future.utils.iteritems(iteration['status']) if v == -1]
         self.assertEqual(blocked, predefined_blocked)
 
     def test_initial_infected(self):
@@ -233,7 +243,7 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter('percentage_infected', 0.1)
         model.set_initial_status(config)
         iteration = model.iteration()
-        blocked = [x for x, v in future.utils.iteritems(iteration[1]) if v == -1]
+        blocked = [x for x, v in future.utils.iteritems(iteration["status"]) if v == -1]
         self.assertEqual(blocked, predefined_blocked)
 
         model = ids.IndependentCascadesModel(g)
