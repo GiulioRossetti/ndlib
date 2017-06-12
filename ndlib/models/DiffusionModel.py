@@ -1,4 +1,5 @@
 import abc
+import warnings
 import numpy as np
 import past.builtins
 import future.utils
@@ -100,8 +101,9 @@ class DiffusionModel(object):
         # Checking initial simulation status
         sts = set(configuration.get_model_configuration().keys())
         if self.discrete_state and "Infected" not in sts and "percentage_infected" not in mdp:
-            raise ConfigurationException({"message": "Missing mandatory initial infection status",
-                                          "parameters": "percentage_infected"})
+            warnings.warn('Initial infection status not specified: '
+                          'a random sample of 5% of graph nodes will be set as infected')
+            self.params['model']["percentage_infected"] = 0.05
 
     def set_initial_status(self, configuration):
         """
@@ -143,11 +145,12 @@ class DiffusionModel(object):
 
         # Handle initial infection
         if 'Infected' not in self.params['status']:
-            if 'percentage_infected' not in model_params:
-                percentage_infected = 0.1
-                self.params['model']['percentage_infected'] = percentage_infected
 
             number_of_initial_infected = len(self.graph.nodes()) * float(self.params['model']['percentage_infected'])
+            if number_of_initial_infected < 1:
+                warnings.warn('Graph with less than 100 nodes: a single node will be set as infected')
+                number_of_initial_infected = 1
+
             available_nodes = [n for n in self.status if self.status[n] == 0]
             sampled_nodes = np.random.choice(available_nodes, int(number_of_initial_infected), replace=False)
             for k in sampled_nodes:
