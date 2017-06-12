@@ -7,10 +7,15 @@ __license__ = "GPL"
 __email__ = "giulio.rossetti@gmail.com"
 
 
-def multi_runs(model, execution_number=1, iteration_number=50):
+def multi_runs(model, execution_number=1, iteration_number=50, infection_sets=None):
+
+    if infection_sets is not None:
+        if len(infection_sets) != execution_number:
+            raise Exception
+
     executions = []
     pool = multiprocessing.Pool()
-    tasks = [copy.deepcopy(model).reset() for _ in past.builtins.xrange(0, execution_number)]
+    tasks = [copy.deepcopy(model).reset(infection_sets[i]) for i in past.builtins.xrange(0, execution_number)]
     results = [pool.apply_async(__execute, (t, iteration_number)) for t in tasks]
 
     for result in results:

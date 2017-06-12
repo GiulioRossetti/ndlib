@@ -186,21 +186,35 @@ class DiffusionModel(object):
             info['selected_initial_infected'] = True
         return info['model']
 
-    def reset(self):
+    def reset(self, infected_nodes=None):
         """
         Reset the simulation setting the actual status to the initial configuration.
         """
         self.actual_iteration = 0
-        for n in self.status:
-            self.status[n] = 0
-        number_of_initial_infected = len(self.graph.nodes()) * float(self.params['model']['percentage_infected'])
-        available_nodes = [n for n in self.status if self.status[n] == 0]
-        sampled_nodes = np.random.choice(available_nodes, int(number_of_initial_infected), replace=False)
 
-        for k in sampled_nodes:
-            self.status[k] = self.available_statuses['Infected']
+        if infected_nodes is not None:
+            for n in self.status:
+                self.status[n] = 0
+            for n in infected_nodes:
+                self.status[n] = self.available_statuses['Infected']
+            self.initial_status = self.status
 
-        self.initial_status = self.status
+        else:
+            if 'percentage_infected' in self.params['model']:
+                for n in self.status:
+                    self.status[n] = 0
+
+                number_of_initial_infected = len(self.graph.nodes()) * float(self.params['model']['percentage_infected'])
+                available_nodes = [n for n in self.status if self.status[n] == 0]
+                sampled_nodes = np.random.choice(available_nodes, int(number_of_initial_infected), replace=False)
+
+                for k in sampled_nodes:
+                    self.status[k] = self.available_statuses['Infected']
+
+                self.initial_status = self.status
+            else:
+                self.status = self.initial_status
+
         return self
 
     def get_model_parameters(self):
