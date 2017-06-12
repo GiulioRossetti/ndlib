@@ -1,21 +1,25 @@
 from __future__ import absolute_import
-import future.utils
+
 import unittest
+
+import future.utils
 import networkx as nx
+
 import ndlib.models.ModelConfig as mc
-import ndlib.models.opinions.VoterModel as vm
-import ndlib.models.opinions.SznajdModel as sm
-import ndlib.models.opinions.MajorityRuleModel as mrm
-import ndlib.models.opinions.QVoterModel as qvm
-import ndlib.models.opinions.CognitiveOpDynModel as cm
-import ndlib.models.epidemics.SIModel as si
-import ndlib.models.epidemics.KerteszThresholdModel as ks
-import ndlib.models.epidemics.SIRModel as sir
-import ndlib.models.epidemics.SISModel as sis
 import ndlib.models.epidemics.IndependentCascadesModel as ids
-import ndlib.models.epidemics.ThresholdModel as th
+import ndlib.models.epidemics.KerteszThresholdModel as ks
 import ndlib.models.epidemics.ProfileModel as pr
 import ndlib.models.epidemics.ProfileThresholdModel as pt
+import ndlib.models.epidemics.SIModel as si
+import ndlib.models.epidemics.SIRModel as sir
+import ndlib.models.epidemics.SISModel as sis
+import ndlib.models.epidemics.ThresholdModel as th
+import ndlib.models.opinions.CognitiveOpDynModel as cm
+import ndlib.models.opinions.MajorityRuleModel as mrm
+import ndlib.models.opinions.QVoterModel as qvm
+import ndlib.models.opinions.SznajdModel as sm
+import ndlib.models.opinions.VoterModel as vm
+import ndlib.utils as ut
 
 __author__ = 'Giulio Rossetti'
 __license__ = "GPL"
@@ -133,7 +137,7 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter('beta', 0.01)
         config.add_model_parameter("percentage_infected", 0.1)
         model.set_initial_status(config)
-        executions = model.multiple_executions(execution_number=10, iteration_number=10)
+        executions = ut.multi_runs(model, execution_number=10, iteration_number=50)
         self.assertEqual(len(executions), 10)
 
     def test_threshold_model(self):

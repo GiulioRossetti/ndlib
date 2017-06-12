@@ -191,7 +191,17 @@ class DiffusionModel(object):
         Reset the simulation setting the actual status to the initial configuration.
         """
         self.actual_iteration = 0
-        self.status = self.initial_status
+        for n in self.status:
+            self.status[n] = 0
+        number_of_initial_infected = len(self.graph.nodes()) * float(self.params['model']['percentage_infected'])
+        available_nodes = [n for n in self.status if self.status[n] == 0]
+        sampled_nodes = np.random.choice(available_nodes, int(number_of_initial_infected), replace=False)
+
+        for k in sampled_nodes:
+            self.status[k] = self.available_statuses['Infected']
+
+        self.initial_status = self.status
+        return self
 
     def get_model_parameters(self):
         return self.parameters
@@ -254,39 +264,11 @@ class DiffusionModel(object):
 
         return delta, actual_status_count, status_delta
 
-    def multiple_executions(self, execution_number=1, iteration_number=10):
-        """
-        Execute multiple times the same model varying the initial infection sources
-
-        :param execution_number: number of folds
-        :param iteration_number: number of iterations
-        :return: node count and status delta trends
-        """
-        result = []
-        for it in past.builtins.xrange(0, execution_number):
-            result.append(self.build_trends(self.iteration_bunch(iteration_number, False))[0])
-
-            # Reset status
-            self.actual_iteration = 0
-            for n in self.status:
-                self.status[n] = 0
-
-            number_of_initial_infected = len(self.graph.nodes()) * float(self.params['model']['percentage_infected'])
-
-            available_nodes = [n for n in self.status if self.status[n] == 0]
-            sampled_nodes = np.random.choice(available_nodes, int(number_of_initial_infected), replace=False)
-            for k in sampled_nodes:
-                self.status[k] = self.available_statuses['Infected']
-
-            self.initial_status = self.status
-
-        return result
-
     def build_trends(self, iterations):
         """
         Build node status and node delta trends from model iteration bunch
 
-        :param data:
+        :param iterations:
         :return:
         """
         status_delta = {status: [] for status in self.available_statuses.values()}
