@@ -101,8 +101,7 @@ class DiffusionModel(object):
         # Checking initial simulation status
         sts = set(configuration.get_model_configuration().keys())
         if self.discrete_state and "Infected" not in sts and "percentage_infected" not in mdp:
-            warnings.warn('Initial infection status not specified: '
-                          'a random sample of 5% of graph nodes will be set as infected')
+            warnings.warn('Initial infection missing: a random sample of 5% of graph nodes will be set as infected')
             self.params['model']["percentage_infected"] = 0.05
 
     def set_initial_status(self, configuration):
