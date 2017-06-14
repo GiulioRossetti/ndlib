@@ -74,7 +74,7 @@ class ProfileModel(DiffusionModel):
 
             if infected > 0:
                 eventp = np.random.random_sample()
-                if eventp >= self.params['nodes']['profile'][u]:
+                if eventp > self.params['nodes']['profile'][u]:
                     actual_status[u] = 1
 
         delta, node_count, status_delta = self.status_delta(actual_status)
