@@ -82,7 +82,7 @@ class ProfileModel(DiffusionModel):
 
             if infected > 0 and actual_status[u] == 0:
                 eventp = np.random.random_sample()
-                if eventp > self.params['nodes']['profile'][u]:
+                if eventp >= self.params['nodes']['profile'][u]:
                     actual_status[u] = 1
                 else:
                     if self.params['model']['blocked']:
