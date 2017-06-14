@@ -1,4 +1,5 @@
 import multiprocessing
+from contextlib import closing
 import copy
 import past
 
@@ -14,24 +15,27 @@ def multi_runs(model, execution_number=1, iteration_number=50, infection_sets=No
         nprocesses = multiprocessing.cpu_count()
 
     executions = []
-    pool = multiprocessing.Pool(processes=nprocesses)
 
     if infection_sets is not None:
         if len(infection_sets) != execution_number:
             raise Exception
 
         for x in past.builtins.xrange(0, execution_number, nprocesses):
-            tasks = [copy.deepcopy(model).reset(infection_sets[i]) for i in
-                     past.builtins.xrange(x, min(x + nprocesses, execution_number))]
-            results = [pool.apply_async(__execute, (t, iteration_number)) for t in tasks]
+
+            with closing(multiprocessing.Pool(processes=nprocesses, maxtasksperchild=10)) as pool:
+                tasks = [copy.copy(model).reset(infection_sets[i]) for i in
+                         past.builtins.xrange(x, min(x + nprocesses, execution_number))]
+                results = [pool.apply_async(__execute, (t, iteration_number)) for t in tasks]
 
             for result in results:
                 executions.append(result.get())
     else:
         for x in past.builtins.xrange(0, execution_number, nprocesses):
-            tasks = [copy.deepcopy(model).reset() for _ in
-                     past.builtins.xrange(x, min(x + nprocesses, execution_number))]
-            results = [pool.apply_async(__execute, (t, iteration_number)) for t in tasks]
+            with closing(multiprocessing.Pool(processes=nprocesses, maxtasksperchild=10)) as pool:
+
+                tasks = [copy.deepcopy(model).reset() for _ in
+                         past.builtins.xrange(x, min(x + nprocesses, execution_number))]
+                results = [pool.apply_async(__execute, (t, iteration_number)) for t in tasks]
 
             for result in results:
                 executions.append(result.get())
