@@ -23,11 +23,19 @@ class ProfileModel(DiffusionModel):
         super(self.__class__, self).__init__(graph)
         self.available_statuses = {
             "Susceptible": 0,
-            "Infected": 1
+            "Infected": 1,
+            "Blocked": -1
         }
 
         self.parameters = {
-            "model": {},
+            "model": {
+                "blocked": {
+                    "descr": "Presence of blocked nodes",
+                    "range": bool,
+                    "optional": True,
+                    "default": False
+                }
+            },
             "nodes": {
                 "profile": {
                     "descr": "Node profile",
@@ -72,10 +80,13 @@ class ProfileModel(DiffusionModel):
             for v in neighbors:
                 infected += self.status[v]
 
-            if infected > 0:
+            if infected > 0 and actual_status[u] == 0:
                 eventp = np.random.random_sample()
                 if eventp > self.params['nodes']['profile'][u]:
                     actual_status[u] = 1
+                else:
+                    if self.params['model']['blocked']:
+                        actual_status[u] = -1
 
         delta, node_count, status_delta = self.status_delta(actual_status)
         self.status = actual_status

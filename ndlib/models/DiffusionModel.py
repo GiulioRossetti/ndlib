@@ -144,16 +144,16 @@ class DiffusionModel(object):
 
         # Handle initial infection
         if 'Infected' not in self.params['status']:
+            if 'percentage_infected' in self.params['model']:
+                number_of_initial_infected = len(self.graph.nodes()) * float(self.params['model']['percentage_infected'])
+                if number_of_initial_infected < 1:
+                    warnings.warn('Graph with less than 100 nodes: a single node will be set as infected')
+                    number_of_initial_infected = 1
 
-            number_of_initial_infected = len(self.graph.nodes()) * float(self.params['model']['percentage_infected'])
-            if number_of_initial_infected < 1:
-                warnings.warn('Graph with less than 100 nodes: a single node will be set as infected')
-                number_of_initial_infected = 1
-
-            available_nodes = [n for n in self.status if self.status[n] == 0]
-            sampled_nodes = np.random.choice(available_nodes, int(number_of_initial_infected), replace=False)
-            for k in sampled_nodes:
-                self.status[k] = self.available_statuses['Infected']
+                available_nodes = [n for n in self.status if self.status[n] == 0]
+                sampled_nodes = np.random.choice(available_nodes, int(number_of_initial_infected), replace=False)
+                for k in sampled_nodes:
+                    self.status[k] = self.available_statuses['Infected']
 
         self.initial_status = self.status
 
