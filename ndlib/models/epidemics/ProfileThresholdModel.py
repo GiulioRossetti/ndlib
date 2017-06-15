@@ -2,6 +2,7 @@ from ..DiffusionModel import DiffusionModel
 import numpy as np
 import networkx as nx
 import future.utils
+from scipy import stats
 
 __author__ = "Giulio Rossetti"
 __email__ = "giulio.rossetti@gmail.com"
@@ -36,6 +37,12 @@ class ProfileThresholdModel(DiffusionModel):
                     "optional": True,
                     "default": False
                 },
+                "adopter_rate": {
+                    "descr": "Exogenous adoption rate",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0
+                }
             },
             "nodes": {
                 "threshold": {
@@ -76,8 +83,18 @@ class ProfileThresholdModel(DiffusionModel):
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
         for u in self.graph.nodes():
-            if actual_status[u] == 1:
+            if actual_status[u] != 0:
                 continue
+
+            if self.params['model']['adopter_rate'] > 0:
+                xk = (0, 1)
+                pk = (1 - self.params['model']['adopter_rate'], self.params['model']['adopter_rate'])
+                probability = stats.rv_discrete(name='probability', values=(xk, pk))
+                number_probability = probability.rvs()
+
+                if number_probability == 1:
+                    actual_status[u] = 1
+                    continue
 
             neighbors = self.graph.neighbors(u)
             if isinstance(self.graph, nx.DiGraph):
