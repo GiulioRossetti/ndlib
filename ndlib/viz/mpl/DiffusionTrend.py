@@ -1,6 +1,5 @@
 from DiffusionViz import DiffusionPlot
 import numpy as np
-import future.utils
 
 __author__ = 'Giulio Rossetti'
 __license__ = "GPL"

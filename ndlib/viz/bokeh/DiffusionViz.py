@@ -8,34 +8,39 @@ __author__ = 'Giulio Rossetti'
 __license__ = "GPL"
 __email__ = "giulio.rossetti@gmail.com"
 
-
 class DiffusionPlot(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, model, iterations):
+    def __init__(self, model, trends):
         self.model = model
-        self.iterations = iterations
+        self.trends = trends
         statuses = model.available_statuses
         self.srev = {v: k for k, v in future.utils.iteritems(statuses)}
         self.ylabel = ""
         self.title = ""
+        self.nnodes = model.graph.number_of_nodes()
+        self.normalized = True
 
     @abc.abstractmethod
-    def iteration_series(self):
+    def iteration_series(self, percentile=100):
         """
         Prepare the data to be visualized
 
+        :param percentile: The percentile for the trend variance area
         :return: a dictionary where iteration ids are keys and the associated values are the computed measures
         """
         pass
 
-    def plot(self, width=500, height=500):
+    def plot(self, percentile=100, width=500, height=500):
         """
+        Generates the plot
+
+        :param percentile: The percentile for the trend variance area
         :param width: Image width. Default 500px.
         :param height: Image height. Default 500px.
         :return: a bokeh figure image
         """
-        pres = self.iteration_series()
+        pres = self.iteration_series(percentile)
         infos = self.model.get_info()
         descr = ""
         for k, v in future.utils.iteritems(infos):
@@ -45,7 +50,13 @@ class DiffusionPlot(object):
         p = figure(width=width, height=height)
         i = 0
         for k, l in future.utils.iteritems(pres):
-            p.line(range(0, len(l)), l, line_width=2, color=cols[i], legend=self.srev[k])
+
+            mx = len(l[0])
+            if self.normalized:
+                p.line(range(0, mx), l[1] / self.nnodes, line_width=2, legend=self.srev[k], alpha=0.5, color=cols[i])
+            else:
+                p.line(range(0, mx), l[1], line_width=2, legend=self.srev[k], alpha=0.5, color=cols[i])
+
             i += 1
 
         p.xaxis.axis_label = 'Iterations'
@@ -55,5 +66,6 @@ class DiffusionPlot(object):
         p.xgrid[0].grid_line_alpha = 0.5
         p.add_layout(Title(text=descr, align="center"), "below")
         p.legend.orientation = "horizontal"
+
 
         return p
