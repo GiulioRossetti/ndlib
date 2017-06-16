@@ -10,6 +10,16 @@ __email__ = "giulio.rossetti@gmail.com"
 
 def multi_runs(model, execution_number=1, iteration_number=50, infection_sets=None,
                nprocesses=multiprocessing.cpu_count()):
+    """
+    Multiple executions of a given model varying the initial set of infected nodes
+
+    :param model: a configured diffusion model
+    :param execution_number: number of instantiations
+    :param iteration_number: number of iterations per execution
+    :param infection_sets: predefined set of infected nodes sets
+    :param nprocesses: number of processes. Default values cpu number.
+    :return: resulting trends for all the executions
+    """
 
     if nprocesses > multiprocessing.cpu_count():
         nprocesses = multiprocessing.cpu_count()
@@ -44,6 +54,13 @@ def multi_runs(model, execution_number=1, iteration_number=50, infection_sets=No
 
 
 def __execute(model, iteration_number):
+    """
+    Execute a simulation model
+
+    :param model: a configured diffusion model
+    :param iteration_number: number of iterations
+    :return: computed trends
+    """
     iterations = model.iteration_bunch(iteration_number, False)
     trends = model.build_trends(iterations)[0]
     del iterations
