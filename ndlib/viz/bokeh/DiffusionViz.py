@@ -44,7 +44,7 @@ class DiffusionPlot(object):
 
         p = figure(width=width, height=height)
         i = 0
-        for k, l in pres.iteritems():
+        for k, l in future.utils.iteritems(pres):
             p.line(range(0, len(l)), l, line_width=2, color=cols[i], legend=self.srev[k])
             i += 1
 

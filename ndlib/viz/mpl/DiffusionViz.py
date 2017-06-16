@@ -24,6 +24,7 @@ class DiffusionPlot(object):
         """
         Prepare the data to be visualized
 
+        :param percentile: The percentile for the trend variance area
         :return: a dictionary where iteration ids are keys and the associated values are the computed measures
         """
         pass
@@ -55,4 +56,3 @@ class DiffusionPlot(object):
 
         plt.tight_layout()
         plt.savefig(filename)
-

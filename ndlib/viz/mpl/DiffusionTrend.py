@@ -12,7 +12,7 @@ class DiffusionTrend(DiffusionPlot):
     def __init__(self, model, trends):
         """
         :param model: The model object
-        :param iterations: The computed simulation iterations
+        :param trends: The computed simulation trends
         """
         super(self.__class__, self).__init__(model, trends)
         self.ylabel = "#Nodes"
