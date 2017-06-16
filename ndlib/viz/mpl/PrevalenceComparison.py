@@ -8,13 +8,13 @@ __email__ = "giulio.rossetti@gmail.com"
 
 class DiffusionPrevalenceComparison(ComparisonPlot):
 
-    def __init__(self, models, trends, classes=("Infected")):
+    def __init__(self, models, trends, statuses=("Infected")):
         """
         :param models: A list of model object
         :param trends: A list of computed simulation trends
-        :param classes: The model classes for which make the plot
+        :param statuses: The model statuses for which make the plot
         """
-        super(self.__class__, self).__init__(models, trends, classes)
+        super(self.__class__, self).__init__(models, trends, statuses)
         self.ylabel = "#Nodes"
         self.title = "DPrevalence"
         self.normalized = False

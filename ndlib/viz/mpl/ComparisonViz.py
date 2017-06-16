@@ -1,7 +1,6 @@
 import abc
 from bokeh.palettes import Category20_9 as cols
 import matplotlib.pyplot as plt
-import numpy as np
 import future.utils
 import past
 
@@ -10,23 +9,27 @@ __license__ = "GPL"
 __email__ = "giulio.rossetti@gmail.com"
 
 
+class InitializationException(Exception):
+    """Initialization Exception"""
+
+
 class ComparisonPlot(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, models, trends, classes=("Infected")):
+    def __init__(self, models, trends, statuses=("Infected")):
         self.models = models
         self.trends = trends
         if len(models) != len(trends):
-            raise Exception
+            raise InitializationException({"message": "The number of models does not match the number of trends"})
 
-        statuses = [model.available_statuses for model in models]
+        sts = [model.available_statuses for model in models]
         self.mnames = ["%s_%s" % (models[i].name, i) for i in past.builtins.xrange(0, len(models))]
         self.srev = {}
         i = 0
 
         available_classes = {}
         for model in models:
-            srev = {v: k for k, v in future.utils.iteritems(statuses[i])}
+            srev = {v: k for k, v in future.utils.iteritems(sts[i])}
             self.nnodes = model.graph.number_of_nodes()
             for cl in srev.values():
                 available_classes[cl] = None
@@ -34,11 +37,11 @@ class ComparisonPlot(object):
             self.srev["%s_%s" % (model.name, i)] = srev
             i += 1
 
-        cls = set(classes) & set(available_classes.keys())
+        cls = set(statuses) & set(available_classes.keys())
         if len(cls) > 0:
             self.classes = cls
         else:
-            raise Exception
+            raise InitializationException({"message": "Statuses specified not available for the model (or missing)"})
 
         self.ylabel = ""
         self.title = ""

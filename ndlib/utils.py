@@ -8,6 +8,10 @@ __license__ = "GPL"
 __email__ = "giulio.rossetti@gmail.com"
 
 
+class InitializationException(Exception):
+    """Initialization Exception"""
+
+
 def multi_runs(model, execution_number=1, iteration_number=50, infection_sets=None,
                nprocesses=multiprocessing.cpu_count()):
     """
@@ -28,7 +32,8 @@ def multi_runs(model, execution_number=1, iteration_number=50, infection_sets=No
 
     if infection_sets is not None:
         if len(infection_sets) != execution_number:
-            raise Exception
+            raise InitializationException(
+                {"message": "Number of infection sets provided does not match the number of executions required"})
 
         for x in past.builtins.xrange(0, execution_number, nprocesses):
 

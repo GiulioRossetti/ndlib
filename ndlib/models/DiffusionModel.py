@@ -54,6 +54,11 @@ class DiffusionModel(object):
         self.initial_status = {}
 
     def __validate_configuration(self, configuration):
+        """
+        Validate the consistency of a Configuration object for the specific model
+
+        :param configuration: a Configuration object instance
+        """
 
         # Checking mandatory parameters
         omp = set([k for k in self.parameters['model'].keys() if not self.parameters['model'][k]['optional']])
@@ -118,7 +123,8 @@ class DiffusionModel(object):
 
         for param, node_to_value in future.utils.iteritems(nodes_cfg):
             if len(node_to_value) < len(self.graph.nodes()):
-                raise Exception
+                raise ConfigurationException({"message": "Not all nodes have a configuration specified"})
+            
             self.params['nodes'][param] = node_to_value
 
         edges_cfg = configuration.get_edges_configuration()
@@ -158,6 +164,10 @@ class DiffusionModel(object):
         self.initial_status = self.status
 
     def clean_initial_status(self, valid_status=None):
+        """
+        Check the consistency of initial status
+        :param valid_status: valid node configurations
+        """
         for n, s in future.utils.iteritems(self.status):
             if s not in valid_status:
                 self.status[n] = 0
@@ -249,6 +259,13 @@ class DiffusionModel(object):
 
     @staticmethod
     def check_status_similarity(actual, previous):
+        """
+        Evaluate similarity among statuses
+
+        :param actual: actual status
+        :param previous: previous status
+        :return: True if the two statuses are the same, False otherwise
+        """
         for n, v in future.utils.iteritems(actual):
             if n not in previous:
                 return False
@@ -284,8 +301,8 @@ class DiffusionModel(object):
         """
         Build node status and node delta trends from model iteration bunch
 
-        :param iterations:
-        :return:
+        :param iterations: a set of iterations
+        :return: a trend description
         """
         status_delta = {status: [] for status in self.available_statuses.values()}
         node_count = {status: [] for status in self.available_statuses.values()}
