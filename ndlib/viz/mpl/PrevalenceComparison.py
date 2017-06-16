@@ -17,6 +17,7 @@ class DiffusionPrevalenceComparison(ComparisonPlot):
         super(self.__class__, self).__init__(models, trends, classes)
         self.ylabel = "#Nodes"
         self.title = "DPrevalence"
+        self.normalized = False
 
     def iteration_series(self, percentile):
 

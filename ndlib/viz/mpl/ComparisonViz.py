@@ -1,6 +1,7 @@
 import abc
 from bokeh.palettes import Category20_9 as cols
 import matplotlib.pyplot as plt
+import numpy as np
 import future.utils
 import past
 
@@ -26,6 +27,7 @@ class ComparisonPlot(object):
         available_classes = {}
         for model in models:
             srev = {v: k for k, v in future.utils.iteritems(statuses[i])}
+            self.nnodes = model.graph.number_of_nodes()
             for cl in srev.values():
                 available_classes[cl] = None
 
@@ -40,6 +42,8 @@ class ComparisonPlot(object):
 
         self.ylabel = ""
         self.title = ""
+        self.normalized = True
+
 
     @abc.abstractmethod
     def iteration_series(self, percentile):
@@ -61,9 +65,16 @@ class ComparisonPlot(object):
             j = 0
             for st in l:
                 mx = len(l[st][0])
-                plt.plot(range(0, mx), l[st][1], lw=2, label="%s - %s" % (self.mnames[i].split("_")[0], st),
-                         alpha=0.9, color=cols[h+j])
-                plt.fill_between(range(0,  mx), l[st][0], l[st][2], alpha=0.2, color=cols[h+j])
+                if self.normalized:
+                    plt.plot(range(0, mx), l[st][1]/self.nnodes, lw=2,
+                             label="%s - %s" % (self.mnames[i].split("_")[0], st), alpha=0.9, color=cols[h+j])
+                    plt.fill_between(range(0,  mx), l[st][0]/self.nnodes,
+                                     l[st][2]/self.nnodes, alpha=0.2, color=cols[h+j])
+                else:
+                    plt.plot(range(0, mx), l[st][1], lw=2,
+                             label="%s - %s" % (self.mnames[i].split("_")[0], st), alpha=0.9, color=cols[h + j])
+                    plt.fill_between(range(0, mx), l[st][0],
+                                     l[st][2], alpha=0.2, color=cols[h + j])
                 j += 1
             i += 1
             h += 2
@@ -71,8 +82,12 @@ class ComparisonPlot(object):
         plt.grid(axis="y")
         plt.xlabel("Iterations", fontsize=24)
         plt.ylabel(self.ylabel, fontsize=24)
-        plt.legend(loc="best", fontsize=20)
+        plt.legend(loc="best", fontsize=18)
         plt.xlim((0, mx))
+
+        if self.normalized:
+            plt.ylim((0, 1))
 
         plt.tight_layout()
         plt.savefig(filename)
+        plt.clf()

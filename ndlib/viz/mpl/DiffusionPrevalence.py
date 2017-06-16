@@ -16,6 +16,7 @@ class DiffusionPrevalence(DiffusionPlot):
         super(self.__class__, self).__init__(model, trends)
         self.ylabel = "#Delta Nodes"
         self.title = "Prevalence"
+        self.normalized = False
 
     def iteration_series(self, percentile):
 

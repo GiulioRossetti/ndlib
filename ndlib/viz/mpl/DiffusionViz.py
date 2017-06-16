@@ -18,6 +18,8 @@ class DiffusionPlot(object):
         self.srev = {v: k for k, v in future.utils.iteritems(statuses)}
         self.ylabel = ""
         self.title = ""
+        self.nnodes = model.graph.number_of_nodes()
+        self.normalized = True
 
     @abc.abstractmethod
     def iteration_series(self, percentile):
@@ -43,16 +45,24 @@ class DiffusionPlot(object):
         i = 0
         for k, l in pres.iteritems():
             mx = len(l[0])
-            plt.plot(range(0, mx), l[1], lw=2, label=self.srev[k], alpha=0.5, color=cols[i])
-            plt.fill_between(range(0,  mx), l[0], l[2], alpha="0.2", color=cols[i])
+            if self.normalized:
+                plt.plot(range(0, mx), l[1]/self.nnodes, lw=2, label=self.srev[k], alpha=0.5, color=cols[i])
+                plt.fill_between(range(0,  mx), l[0]/self.nnodes, l[2], alpha="0.2",
+                                 color=cols[i])
+            else:
+                plt.plot(range(0, mx), l[1], lw=2, label=self.srev[k], alpha=0.5, color=cols[i])
+                plt.fill_between(range(0, mx), l[0], l[2], alpha="0.2",
+                                 color=cols[i])
+
             i += 1
 
         plt.grid(axis="y")
         plt.title(descr)
         plt.xlabel("Iterations", fontsize=24)
         plt.ylabel(self.ylabel, fontsize=24)
-        plt.legend(loc="best", fontsize=24)
+        plt.legend(loc="best", fontsize=18)
         plt.xlim((0, mx))
 
         plt.tight_layout()
         plt.savefig(filename)
+        plt.clf()
