@@ -54,11 +54,18 @@ class ComparisonPlot(object):
         Prepare the data to be visualized
 
         :param percentile: The percentile for the trend variance area
-        :return: a dictionary where iteration ids are keys and the associated values are the computed measures
+        :return: a dictionary where iteration ids are keys and the associated values are the computed measures.
         """
         pass
 
     def plot(self, filename, percentile=90):
+        """
+        Plot the comparison on file.
+
+        :param filename: the output filename
+        :param percentile: The percentile for the trend variance area. Default 90.
+
+        """
 
         pres = self.iteration_series(percentile)
 

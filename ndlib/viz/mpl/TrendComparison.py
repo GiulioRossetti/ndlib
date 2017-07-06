@@ -12,7 +12,7 @@ class DiffusionTrendComparison(ComparisonPlot):
         """
         :param models: A list of model object
         :param trends: A list of computed simulation trends
-        :param statuses: The model statuses for which make the plot
+        :param statuses: The model statuses for which make the plot. Default ["Infected"].
         """
         super(self.__class__, self).__init__(models, trends, statuses)
         self.ylabel = "% Nodes"
