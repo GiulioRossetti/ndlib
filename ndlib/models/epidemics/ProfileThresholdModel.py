@@ -33,9 +33,9 @@ class ProfileThresholdModel(DiffusionModel):
             "model": {
                 "blocked": {
                     "descr": "Presence of blocked nodes",
-                    "range": bool,
+                    "range": [0, 1],
                     "optional": True,
-                    "default": False
+                    "default": 0
                 },
                 "adopter_rate": {
                     "descr": "Exogenous adoption rate",
@@ -112,8 +112,10 @@ class ProfileThresholdModel(DiffusionModel):
                     if eventp >= self.params['nodes']['profile'][u]:
                         actual_status[u] = 1
                     else:
-                        if self.params['model']['blocked']:
-                            actual_status[u] = -1
+                        if self.params['model']['blocked'] != 0:
+                            blip = np.random.random_sample()
+                            if blip > self.params['model']['blocked']:
+                                actual_status[u] = -1
 
         delta, node_count, status_delta = self.status_delta(actual_status)
         self.status = actual_status
