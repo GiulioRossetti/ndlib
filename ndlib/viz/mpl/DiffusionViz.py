@@ -31,7 +31,7 @@ class DiffusionPlot(object):
         """
         pass
 
-    def plot(self, filename, percentile=90):
+    def plot(self, filename=None, percentile=90):
         """
         Generates the plot
 
@@ -70,5 +70,8 @@ class DiffusionPlot(object):
         plt.xlim((0, mx))
 
         plt.tight_layout()
-        plt.savefig(filename)
-        plt.clf()
+        if filename is not None:
+            plt.savefig(filename)
+            plt.clf()
+        else:
+            plt.show()
