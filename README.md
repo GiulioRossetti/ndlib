@@ -227,36 +227,43 @@ class MyModel(DiffusionModel):
 			"Infected": 1
 		}
 		self.parameters = {
-            "model": {
-                "param1": {
-                    "descr": "descr1",
-                    "range": [0, 1],
-                    "optional": False},
-                "param2": {
-                    "descr": "descr2",
-                    "range": [0, 1],
-                    "optional": True}
-                }
-            },
-            "nodes": {
-            	"param3": {
-                    "descr": "descr3",
-                    "range": [0, 1],
-                    "optional": False}
-            },
-            "edges": {
-            	"param4": {
-                    "descr": "descr4",
-                    "range": [0, 1],
-                    "optional": False}
-            },
-        }
+			"model": {
+				"param1": {
+					"descr": "descr1",
+					"range": [0, 1],
+					"optional": False},
+				"param2": {
+					"descr": "descr2",
+					"range": [0, 1],
+					"optional": True}
+				},
+			"nodes": {
+				"param3": {
+					"descr": "descr3",
+					"range": [0, 1],
+					"optional": True},
+				"param4": {
+					"descr": "descr4",
+					"range": [0, 1],
+					"optional": True}
+				},
+			"edges": {
+				"param5": {
+					"descr": "descr5",
+					"range": [0, 1],
+					"optional": False},
+				"param6": {
+					"descr": "descr6",
+					"range": [0, 1],
+					"optional": True}
+				},
+			}
 		self.name = "MyModel"
+	
 	
 	def iteration(self, node_status=True):
 	
 		self.clean_initial_status(self.available_statuses.values())
-
 		# if first iteration return the initial node status
 		if self.actual_iteration == 0:
 			self.actual_iteration += 1
