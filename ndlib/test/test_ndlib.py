@@ -13,6 +13,8 @@ import ndlib.models.epidemics.ProfileThresholdModel as pt
 import ndlib.models.epidemics.SIModel as si
 import ndlib.models.epidemics.SIRModel as sir
 import ndlib.models.epidemics.SISModel as sis
+import ndlib.models.epidemics.SEIRModel as seir
+import ndlib.models.epidemics.SEISModel as seis
 import ndlib.models.epidemics.ThresholdModel as th
 import ndlib.models.opinions.CognitiveOpDynModel as cm
 import ndlib.models.opinions.MajorityRuleModel as mrm
@@ -98,6 +100,30 @@ class NdlibTest(unittest.TestCase):
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.5)
         config.add_model_parameter('gamma', 0.2)
+        config.add_model_parameter("percentage_infected", 0.1)
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+
+    def test_seir_model(self):
+        g = nx.erdos_renyi_graph(1000, 0.1)
+        model = seir.SEIRModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('beta', 0.5)
+        config.add_model_parameter('gamma', 0.2)
+        config.add_model_parameter('alpha', 0.05)
+        config.add_model_parameter("percentage_infected", 0.1)
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+
+    def test_seis_model(self):
+        g = nx.erdos_renyi_graph(1000, 0.1)
+        model = seis.SEISModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('beta', 0.5)
+        config.add_model_parameter('lambda', 0.2)
+        config.add_model_parameter('alpha', 0.05)
         config.add_model_parameter("percentage_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
