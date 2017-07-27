@@ -3,7 +3,7 @@ SEIR
 ****
 
  
-In the SEIR model, during the course of an epidemics, a node is allowed to change its status  from **Susceptible** (S) to **Exposed** (E) to **Infected** (I), then to **Removed** (R).
+In the SEIR model [#]_, during the course of an epidemics, a node is allowed to change its status  from **Susceptible** (S) to **Exposed** (E) to **Infected** (I), then to **Removed** (R).
 
 The model is instantiated on a graph having a non-empty set of infected nodes.
 
@@ -103,3 +103,5 @@ In the code below is shown an example of istantiation and execution of an SIR si
     iterations = model.iteration_bunch(200)
 
 
+
+.. [#] J.L. Aron and I.B. Schwartz. Seasonality and period-doubling bifurcations in an epidemic model. Journal Theoretical Biology, 110:665-679, 1984

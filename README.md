@@ -32,9 +32,10 @@ So far NDlib makes available the following diffusion models:
 > 2. **SIR** *(SIRModel)*
 >   - W. O. Kermack and Ag McKendrick. A Contribution to the Mathematical Theory of Epidemics. Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, 1927.
 > 3. **SIS** *(SISModel)*
+>   - W. O. Kermack and Ag McKendrick. A Contribution to the Mathematical Theory of Epidemics. Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, 1927.
 > 4. **SEIS** *(SEISModel)*
 > 5. **SEIR** *(SEIRModel)*
->   - W. O. Kermack and Ag McKendrick. A Contribution to the Mathematical Theory of Epidemics. Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, 1927.
+>   - J.L. Aron and I.B. Schwartz. Seasonality and period-doubling bifurcations in an epidemic model. Journal Theoretical Biology, 110:665-679, 1984
 > 6. **Threshold** *(ThresholdModel)*
 >   - M. Granovetter. Threshold models of collective behavior. American Journal of Sociology, 1978  
 > 7. **Kertesz Threshold** *(KerteszThresholdModel)*

@@ -15,8 +15,8 @@ class SEIRModel(DiffusionModel):
 
         self.available_statuses = {
             "Susceptible": 0,
-            "Exposed": 1,
-            "Infected": 2,
+            "Exposed": 2,
+            "Infected": 1,
             "Removed": 3
         }
         self.parameters = {
@@ -63,15 +63,15 @@ class SEIRModel(DiffusionModel):
                 neighbors = self.graph.predecessors(u)
 
             if u_status == 0:  # Susceptible
-                infected_neighbors = len([v for v in neighbors if self.status[v] == 1 or self.status[v] == 2])
+                infected_neighbors = len([v for v in neighbors if self.status[v] == 2 or self.status[v] == 1])
                 if eventp < self.params['model']['beta'] * infected_neighbors:
-                    actual_status[u] = 1  # Exposed
+                    actual_status[u] = 2  # Exposed
             elif 1 <= u_status <= 1.9:
                 if u_status < self.params['model']['alpha']:
                     actual_status[u] += 0.01
                 else:
-                    actual_status[u] = 2  # Infected
-            elif u_status == 2:
+                    actual_status[u] = 1  # Infected
+            elif u_status == 1:
                 if eventp < self.params['model']['gamma']:
                     actual_status[u] = 3  # Removed
 
