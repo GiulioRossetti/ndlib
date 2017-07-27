@@ -155,7 +155,7 @@ Every model needs parameters to be executed, in particular:
 
 ## Visualize simulation Results
 
-NDlib comes with basic visualization facilities embedded in ```ndlib.viz.DiffusionTrend```.
+NDlib comes with basic visualization facilities embedded in ```ndlib.viz.bokeh.DiffusionTrend``` and ```ndlib.viz.mpl.DiffusionTrend```.
 
 ```python
 import networkx as nx
@@ -172,7 +172,8 @@ config.add_model_parameter('gamma', 0.01)
 config.add_model_parameter("percentage_infected", 0.05)
 model.set_initial_status(config)
 iterations = model.iteration_bunch(200)
-viz = DiffusionTrend(model, iterations)
+trends = model.build_trends(iterations)
+viz = DiffusionTrend(model, trends)
 p = viz.plot()
 show(p)
 ```
@@ -198,12 +199,13 @@ config.add_model_parameter('gamma', 0.01)
 config.add_model_parameter("percentage_infected", 0.05)
 model.set_initial_status(config)
 iterations = model.iteration_bunch(200)
+trends = model.build_trends(iterations)
 
-viz = DiffusionTrend(model, iterations)
+viz = DiffusionTrend(model, trends)
 p = viz.plot()
 vm.add_plot(p)
 
-viz2 = DiffusionPrevalence(model, iterations)
+viz2 = DiffusionPrevalence(model, trends)
 p2 = viz2.plot()
 vm.add_plot(p2)
 
@@ -211,11 +213,13 @@ m = vm.plot()
 show(m)
 ```
 
+Matplotlib based visualizations, offered by ```ndlib.viz.bokeh.DiffusionTrend```, also support out-of-the-box model comparisons.
+
 ## Implement new models
 Implement additional models is simple since it only requires to define a class that:
 - implement the partial abstract ```class ndlib.models.DiffusionModel```;
 - redefine the ```__init__()``` method to provide model details;
-- implement the ```iteration()``` method specifying its agent-based rules.
+- implement the ```iteration(node_status)``` method specifying its agent-based rules.
 
 ### Structure Example
 ```python
