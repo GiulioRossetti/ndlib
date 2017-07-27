@@ -20,8 +20,8 @@ During the simulation a node can experience the following statuses:
 Name         Code
 ===========  ====
 Susceptible  0
-Exposed		 1
-Infected     2
+Infected     1
+Exposed		 2
 ===========  ====
 
 ----------
