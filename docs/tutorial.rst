@@ -68,19 +68,20 @@ In order to execute the simulation one, or more, iterations must be required usi
 
 	# Simulation
 	iterations = model.iteration_bunch(200)
+    trends = model.build_trends(iterations)
 
 ---------------------
 Visualize the results
 ---------------------
 
-At the end of the simulation the diffusion trend can be visualized as follows
+At the end of the simulation the diffusion trend can be visualized as follows (for ``matplotlib`` change ``ndlib.viz.bokeh`` in ``ndlib.viz.mpl``)
 
 .. code:: python
 
 	from bokeh.io import output_notebook, show
 	from ndlib.viz.bokeh.DiffusionTrend import DiffusionTrend
 
-	viz = DiffusionTrend(model, iterations)
+	viz = DiffusionTrend(model, trends)
 	p = viz.plot(width=400, height=400)
 	show(p)
 
@@ -92,7 +93,7 @@ The prevalence plot captures the variation (delta) of nodes for each status in c
 
 	from ndlib.viz.bokeh.DiffusionPrevalence import DiffusionPrevalence
 
-	viz2 = DiffusionPrevalence(model, iterations)
+	viz2 = DiffusionPrevalence(model, trends)
 	p2 = viz2.plot(width=400, height=400)
 	show(p2)
 
@@ -109,7 +110,7 @@ Multiple plots can be combined in a multiplot to provide a complete description 
 	show(m)
 
 
-Multiplots are also useful to compare different diffusion models applied to the same graph (as well as a same model instantiated with different parameters)
+Multiplots - implemented only for the ``bokeh`` provider - are also useful to compare different diffusion models applied to the same graph (as well as a same model instantiated with different parameters)
 
 .. code:: python
 
@@ -128,7 +129,9 @@ Multiplots are also useful to compare different diffusion models applied to the 
 	config.add_model_parameter("percentage_infected", 0.05)
 	sis_model.set_initial_status(config)
 	iterations = sis_model.iteration_bunch(200)
-	viz = DiffusionTrend(sis_model, iterations)
+    trends = model.build_trends(iterations)
+
+	viz = DiffusionTrend(sis_model, trends)
 	p3 = viz.plot(width=400, height=400)
 	vm.add_plot(p3)
 
@@ -139,7 +142,9 @@ Multiplots are also useful to compare different diffusion models applied to the 
 	config.add_model_parameter("percentage_infected", 0.05)
 	si_model.set_initial_status(config)
 	iterations = si_model.iteration_bunch(200)
-	viz = DiffusionTrend(si_model, iterations)
+    trends = model.build_trends(iterations)
+
+	viz = DiffusionTrend(si_model, trends)
 	p4 = viz.plot(width=400, height=400)
 	vm.add_plot(p4)
 
@@ -155,7 +160,9 @@ Multiplots are also useful to compare different diffusion models applied to the 
 	config.add_model_parameter("percentage_infected", 0.30)
 	th_model.set_initial_status(config)
 	iterations = th_model.iteration_bunch(60)
-	viz = DiffusionTrend(th_model, iterations)
+    trends = model.build_trends(iterations)
+
+	viz = DiffusionTrend(th_model, trends)
 	p5 = viz.plot(width=400, height=400)
 	vm.add_plot(p5)
 

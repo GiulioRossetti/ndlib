@@ -37,9 +37,10 @@ Below is shown an example of Diffusion Trend description and visualization for t
 
     # Simulation execution
     iterations = model.iteration_bunch(200)
+    trends = model.build_trends(iterations)
 
     # Visualization
-    viz = DiffusionTrend(model, iterations)
+    viz = DiffusionTrend(model, trends)
     p = viz.plot(width=400, height=400)
     show(p)
 

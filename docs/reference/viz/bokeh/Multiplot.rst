@@ -36,14 +36,15 @@ The Multi Plot object allows the generation of composite grid figures composed b
 
     # Simulation execution
     iterations = model.iteration_bunch(200)
+    trends = model.build_trends(iterations)
 
     # Diffusion Trend
-    viz = DiffusionTrend(model, iterations)
+    viz = DiffusionTrend(model, trends)
     p = viz.plot(width=400, height=400)
     vm.add_plot(p)
 
     # Diffusion Prevalence
-    viz = DiffusionPrevalence(model, iterations)
+    viz = DiffusionPrevalence(model, trends)
     p1 = viz.plot(width=400, height=400)
     
     vm.add_plot(p1)

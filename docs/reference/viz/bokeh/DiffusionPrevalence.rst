@@ -38,9 +38,10 @@ Below is shown an example of Diffusion Prevalence description and visualization 
 
     # Simulation execution
     iterations = model.iteration_bunch(200)
+    trends = model.build_trends(iterations)
 
     # Visualization
-    viz = DiffusionPrevalence(model, iterations)
+    viz = DiffusionPrevalence(model, trends)
     p = viz.plot(width=400, height=400)
     show(p)
 
