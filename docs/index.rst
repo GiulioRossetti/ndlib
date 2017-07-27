@@ -10,7 +10,7 @@ NDlib is a Python software package that allows to describe, simulate, and study 
 
 =========== ============= =================== ==================  ==========  ===============
 **Release**    **Date**   **Python Versions**   **Main Author**   **GitHub**     **pypl**
-   2.0.1    May 31, 2017       2.7.x/3.x      `Giulio Rossetti`_  `Source`_   `Distribution`_
+   2.1.0    July 27, 2017       2.7.x/3.x     `Giulio Rossetti`_  `Source`_   `Distribution`_
 =========== ============= =================== ==================  ==========  ===============
 
 

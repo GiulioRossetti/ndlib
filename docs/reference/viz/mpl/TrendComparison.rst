@@ -31,7 +31,7 @@ Below is shown an example of Diffusion Trend description and visualization for t
     cfg = mc.Configuration()
     cfg.add_model_parameter('beta', 0.001)
     cfg.add_model_parameter('gamma', 0.01)
-    cfg.add_model_parameter("percentage_infected", 0.05)
+    cfg.add_model_parameter("percentage_infected", 0.01)
     model.set_initial_status(cfg)
 
     # Simulation execution
@@ -43,9 +43,9 @@ Below is shown an example of Diffusion Trend description and visualization for t
 
     # 2° Model Configuration
     cfg = mc.Configuration()
-    cfg.add_model_parameter('beta', 0.004)
+    cfg.add_model_parameter('beta', 0.001)
     cfg.add_model_parameter('gamma', 0.02)
-    cfg.add_model_parameter("percentage_infected", 0.05)
+    cfg.add_model_parameter("percentage_infected", 0.01)
     model1.set_initial_status(cfg)
 
     # 2° Simulation execution
@@ -59,9 +59,9 @@ Below is shown an example of Diffusion Trend description and visualization for t
 
 
 
-.. figure:: diff_trend.png
+.. figure:: trend_comparison.png
    :scale: 80 %
    :align: center 
-   :alt: SIR Diffusion Trend Example
+   :alt: SIR-SI Diffusion Trend Comparison Example
 
-   SIR Diffusion Trend Example.
+   SIR-SI Diffusion Trend Comparison Example.

@@ -16,7 +16,7 @@ class InitializationException(Exception):
 class ComparisonPlot(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, models, trends, statuses=("Infected")):
+    def __init__(self, models, trends, statuses=["Infected"]):
         self.models = models
         self.trends = trends
         if len(models) != len(trends):
@@ -37,7 +37,10 @@ class ComparisonPlot(object):
             self.srev["%s_%s" % (model.name, i)] = srev
             i += 1
 
-        cls = set(statuses) & set(available_classes.keys())
+        if type(statuses) == list:
+            cls = set(statuses) & set(available_classes.keys())
+        else:
+            cls = set([statuses]) & set(available_classes.keys())
         if len(cls) > 0:
             self.classes = cls
         else:
@@ -77,12 +80,12 @@ class ComparisonPlot(object):
                 mx = len(l[st][0])
                 if self.normalized:
                     plt.plot(range(0, mx), l[st][1]/self.nnodes, lw=2,
-                             label="%s - %s" % (self.mnames[i].split("_")[0], st), alpha=0.9, color=cols[h+j])
+                             label="%s - %s" % (k.split("_")[0], st), alpha=0.9, color=cols[h+j])
                     plt.fill_between(range(0,  mx), l[st][0]/self.nnodes,
                                      l[st][2]/self.nnodes, alpha=0.2, color=cols[h+j])
                 else:
                     plt.plot(range(0, mx), l[st][1], lw=2,
-                             label="%s - %s" % (self.mnames[i].split("_")[0], st), alpha=0.9, color=cols[h + j])
+                             label="%s - %s" % (k.split("_")[0], st), alpha=0.9, color=cols[h + j])
                     plt.fill_between(range(0, mx), l[st][0],
                                      l[st][2], alpha=0.2, color=cols[h + j])
                 j += 1

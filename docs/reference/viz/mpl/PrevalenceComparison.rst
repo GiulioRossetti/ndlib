@@ -18,7 +18,8 @@ Below is shown an example of Diffusion Prevalence description and visualization 
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.epidemics.SIRModel as sir 
+    import ndlib.models.epidemics.SIRModel as sir
+    import ndlib.models.epidemics.SIModel as si
     from ndlib.viz.mpl.PrevalenceComparison import DiffusionPrevalenceComparison
 
 
@@ -31,8 +32,8 @@ Below is shown an example of Diffusion Prevalence description and visualization 
     # Model Configuration
     cfg = mc.Configuration()
     cfg.add_model_parameter('beta', 0.001)
-    cfg.add_model_parameter('gamma', 0.01)
-    cfg.add_model_parameter("percentage_infected", 16 0.05)
+    cfg.add_model_parameter('gamma', 0.02)
+    cfg.add_model_parameter("percentage_infected", 0.01)
     model.set_initial_status(cfg)
 
     # Simulation execution
@@ -40,13 +41,12 @@ Below is shown an example of Diffusion Prevalence description and visualization 
     trends = model.build_trends(iterations)
 
     # 2° Model selection
-    model1 = sir.SIRModel(g)
+    model1 = si.SIModel(g)
 
     # 2° Model Configuration
     cfg = mc.Configuration()
-    cfg.add_model_parameter('beta', 0.004)
-    cfg.add_model_parameter('gamma', 0.02)
-    cfg.add_model_parameter("percentage_infected", 0.05)
+    cfg.add_model_parameter('beta', 0.001)
+    cfg.add_model_parameter("percentage_infected", 0.01)
     model1.set_initial_status(cfg)
 
     # 2° Simulation execution
@@ -59,9 +59,9 @@ Below is shown an example of Diffusion Prevalence description and visualization 
 
 
 
-.. figure:: diff_prevalence.png
+.. figure:: prevalence_comparison.png
    :scale: 80 %
    :align: center 
-   :alt: SIR Diffusion Prevalence Example
+   :alt: SIR-SI Diffusion Prevalence Comparison Example
 
-   SIR Diffusion Prevalence Example.
+   SIR-SI Diffusion Prevalence Comparison Example.
