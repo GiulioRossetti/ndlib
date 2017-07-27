@@ -68,7 +68,7 @@ In order to execute the simulation one, or more, iterations must be required usi
 
 	# Simulation
 	iterations = model.iteration_bunch(200)
-    trends = model.build_trends(iterations)
+	trends = model.build_trends(iterations)
 
 ---------------------
 Visualize the results
@@ -129,7 +129,7 @@ Multiplots - implemented only for the ``bokeh`` provider - are also useful to co
 	config.add_model_parameter("percentage_infected", 0.05)
 	sis_model.set_initial_status(config)
 	iterations = sis_model.iteration_bunch(200)
-    trends = model.build_trends(iterations)
+	trends = model.build_trends(iterations)
 
 	viz = DiffusionTrend(sis_model, trends)
 	p3 = viz.plot(width=400, height=400)
@@ -142,7 +142,7 @@ Multiplots - implemented only for the ``bokeh`` provider - are also useful to co
 	config.add_model_parameter("percentage_infected", 0.05)
 	si_model.set_initial_status(config)
 	iterations = si_model.iteration_bunch(200)
-    trends = model.build_trends(iterations)
+	trends = model.build_trends(iterations)
 
 	viz = DiffusionTrend(si_model, trends)
 	p4 = viz.plot(width=400, height=400)
@@ -160,7 +160,7 @@ Multiplots - implemented only for the ``bokeh`` provider - are also useful to co
 	config.add_model_parameter("percentage_infected", 0.30)
 	th_model.set_initial_status(config)
 	iterations = th_model.iteration_bunch(60)
-    trends = model.build_trends(iterations)
+	trends = model.build_trends(iterations)
 
 	viz = DiffusionTrend(th_model, trends)
 	p5 = viz.plot(width=400, height=400)
