@@ -3,11 +3,11 @@ SEIS
 ****
 
 
-In the SEIR model, during the course of an epidemics, a node is allowed to change its status  from **Susceptible** (S) to **Exposed** (E) to **Infected** (I), then to **Removed** (R).
+In the SEIR model, during the course of an epidemics, a node is allowed to change its status  from **Susceptible** (S) to **Exposed** (E) to **Infected** (I), then again to **Susceptible** (S).
 
 The model is instantiated on a graph having a non-empty set of infected nodes.
 
-SEIR assumes that if, during a generic iteration, a susceptible node comes into contact with an infected one, it becomes infected after an exposition period with probability beta, than it can be switch to removed with probability gamma (the only transition allowed are S→I→R).
+SEIS assumes that if, during a generic iteration, a susceptible node comes into contact with an infected one, it becomes infected after an exposition period with probability beta, than it can switch back to susceptible with probability lambda (the only transition allowed are S→E→I→S).
 
 
 --------
