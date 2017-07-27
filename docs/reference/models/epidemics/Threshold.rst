@@ -75,7 +75,7 @@ Execute Simulation
 Example
 -------
 
-In the code below is shown an example of istantiation and execution of a Threshold model simultion on a random graph: we set the initial set of infected nodes as 1% of the overall population, and assign a threshold of 0.25 to all the nodes.
+In the code below is shown an example of instantiation and execution of a Threshold model simulation on a random graph: we set the initial set of infected nodes as 1% of the overall population, and assign a threshold of 0.25 to all the nodes.
 
 
 .. code-block:: python

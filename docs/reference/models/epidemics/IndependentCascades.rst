@@ -76,7 +76,7 @@ Execute Simulation
 Example
 -------
 
-In the code below is shown an example of istantiation and execution of an Independent Cascades model simultion on a random graph: we set the initial set of infected nodes as 1% of the overall population, and assign a threshold of 0.1 to all the edges.
+In the code below is shown an example of instantiation and execution of an Independent Cascades model simulation on a random graph: we set the initial set of infected nodes as 1% of the overall population, and assign a threshold of 0.1 to all the edges.
 
 
 .. code-block:: python

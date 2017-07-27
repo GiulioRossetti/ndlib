@@ -76,7 +76,7 @@ Execute Simulation
 Example
 -------
 
-In the code below is shown an example of istantiation and execution of an SEIS simultion on a random graph:
+In the code below is shown an example of instantiation and execution of an SEIS simulation on a random graph:
 we set the initial set of infected nodes as 5% of the overall population, a probability of infection of 1%, a removal probability of 0.5% and an incubation period of 5% (e.g. 20 iterations).
 
 .. code-block:: python

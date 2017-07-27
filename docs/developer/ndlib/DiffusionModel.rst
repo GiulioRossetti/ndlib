@@ -84,31 +84,48 @@ To do so, the ``iteration()`` method of the base class has to be overridden in `
 
 .. code-block:: python
 
-	def iteration(self):
+	def iteration(self, node_status=True):
 
-		# Set initial node statuses
-		actual_status = {node: nstatus for node, nstatus in self.status.items()}
+		self.clean_initial_status(self.available_statuses.values())
 
-		# first iteration
+		# if first iteration return the initial node status
 		if self.actual_iteration == 0:
 			self.actual_iteration += 1
-			return 0, actual_status
+			delta, node_count, status_delta = self.status_delta(actual_status)
+			if node_status:
+				return {"iteration": 0, "status": actual_status.copy(),
+						"node_count": node_count.copy(), "status_delta": status_delta.copy()}
+			else:
+				return {"iteration": 0, "status": {},
+						"node_count": node_count.copy(), "status_delta": status_delta.copy()}
+
+		actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
 
 		# iteration inner loop
 		for u in self.graph.nodes():
-			# Iteration updates
+			# evluate possible status changes using the model parameters (accessible via self.params)
+			# e.g. self.params['beta'], self.param['nodes']['threshold'][u], self.params['edges'][(id_node0, idnode1)]
 
-		# Incremental result
-		delta = self.status_delta(actual_status)
+		# identify the changes w.r.t. previous iteration
+		delta, node_count, status_delta = self.status_delta(actual_status)
+
+		# update the actual status and iterative step
 		self.status = actual_status
 		self.actual_iteration += 1
 
-		return self.actual_iteration - 1, delta
+		# return the actual configuration (only nodes with status updates)
+		if node_status:
+			return {"iteration": self.actual_iteration - 1, "status": delta.copy(),
+					"node_count": node_count.copy(), "status_delta": status_delta.copy()}
+		else:
+			return {"iteration": self.actual_iteration - 1, "status": {},
+			"node_count": node_count.copy(), "status_delta": status_delta.copy()}
+
 
 The provided template is composed by 4 steps:
 
-1. making a copy of the actual diffusion status;
-2. first iteration handling: if present the model returns as result of the first iteration is initial status;
+1. first iteration handling: if present the model returns as result of the first iteration is initial status;
+2. making a copy of the actual diffusion status;
 3. iteration loop: definition, and application, of the rules that regulates individual node status transitions;
 4. construction of the incremental result.
 

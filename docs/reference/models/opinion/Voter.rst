@@ -74,7 +74,7 @@ Execute Simulation
 Example
 -------
 
-In the code below is shown an example of istantiation and execution of a Voter model simultion on a random graph: we set the initial infected node set to the 10% of the overall population.
+In the code below is shown an example of instantiation and execution of a Voter model simulation on a random graph: we set the initial infected node set to the 10% of the overall population.
 
 .. code-block:: python
 

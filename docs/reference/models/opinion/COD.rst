@@ -90,7 +90,7 @@ Execute Simulation
 Example
 -------
 
-In the code below is shown an example of istantiation and execution of a Cognitive Opinion Dynamics model simultion on a random graph: we set the initial infected node set to the 10% of the overall population, the external information value to 015, the B and T intervals equal to [0,1] and the fraction of positive/neutral/infected equal to 1/3.
+In the code below is shown an example of instantiation and execution of a Cognitive Opinion Dynamics model simulation on a random graph: we set the initial infected node set to the 10% of the overall population, the external information value to 015, the B and T intervals equal to [0,1] and the fraction of positive/neutral/infected equal to 1/3.
 
 .. code-block:: python
 

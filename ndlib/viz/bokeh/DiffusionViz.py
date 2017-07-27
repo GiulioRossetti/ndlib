@@ -67,5 +67,4 @@ class DiffusionPlot(object):
         p.add_layout(Title(text=descr, align="center"), "below")
         p.legend.orientation = "horizontal"
 
-
         return p

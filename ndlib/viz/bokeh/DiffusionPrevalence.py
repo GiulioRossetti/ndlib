@@ -18,7 +18,7 @@ class DiffusionPrevalence(DiffusionPlot):
         self.title = "Prevalence"
         self.normalized = False
 
-    def iteration_series(self, percentile):
+    def iteration_series(self, percentile=100):
 
         series = {k: [] for k in self.srev.keys()}
 

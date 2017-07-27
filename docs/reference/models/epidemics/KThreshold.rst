@@ -80,7 +80,7 @@ Execute Simulation
 Example
 -------
 
-In the code below is shown an example of istantiation and execution of a Kertesz Threshold model simultion on a random graph: we set the initial infected as well blocked node sets equals to the 10% of the overall population, assign a threshold of 0.25 to all the nodes and impose an probability of spontaneous adoptions of 40%.
+In the code below is shown an example of instantiation and execution of a Kertesz Threshold model simulation on a random graph: we set the initial infected as well blocked node sets equals to the 10% of the overall population, assign a threshold of 0.25 to all the nodes and impose an probability of spontaneous adoptions of 40%.
 
 
 .. code-block:: python
@@ -112,5 +112,5 @@ In the code below is shown an example of istantiation and execution of a Kertesz
     iterations = model.iteration_bunch(200)
 
 
-.. [#] Z. Ruan, G. In ̃iguez, M. Karsai, and J. Kerte ́sz, “Kinetics of social contagion,” Phys. Rev. Lett., vol. 115, p. 218702, Nov 2015.
+.. [#] Z. Ruan, G. In ̃iguez, M. Karsai, and J. Kertész, “Kinetics of social contagion,” Phys. Rev. Lett., vol. 115, p. 218702, Nov 2015.
 .. [#] D. J. Watts, “A simple model of global cascades on random networks,” Proceedings of the National Academy of Sciences, vol. 99, no. 9, pp. 5766–5771, 2002.

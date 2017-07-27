@@ -10,8 +10,10 @@ Each node has its own profile describing how many it is likely to accept a behav
 
 The diffusion process starts from a set of nodes that have already adopted a given behaviour S:
 
--  for each of the susceptible nodes' in the neighborhood of a node u in S an unbalanced coin is flipped, the unbalance given by the personal profile of the susceptible node;
+- for each of the susceptible nodes' in the neighborhood of a node u in S an unbalanced coin is flipped, the unbalance given by the personal profile of the susceptible node;
 - if a positive result is obtained the susceptible node will adopt the behaviour, thus becoming infected.
+- if the **blocked** status is enabled, after having rejected the adoption with probability ``blocked`` a node becomes immune to the infection.
+- every iteration ``adopter_rate`` percentage of nodes spontaneous became infected to endogenous effects.
 
 
 
@@ -26,17 +28,20 @@ Name         Code
 ===========  ====
 Susceptible  0
 Infected     1
+Blocked      -1
 ===========  ====
 
 ----------
 Parameters
 ----------
 
-=========  =====  ===============  =======  =========  ============
-Name       Type   Value Type       Default  Mandatory  Description
-=========  =====  ===============  =======  =========  ============
-profile    Node   float in [0, 1]   0.1     False      Node profile
-=========  =====  ===============  =======  =========  ============
+============  =====  ===============  =======  =========  ===================
+Name          Type   Value Type       Default  Mandatory  Description
+============  =====  ===============  =======  =========  ===================
+profile       Node   float in [0, 1]   0.1     False      Node profile
+blocked       Model  float in [0, 1]   0       False      Blocked nodes
+adopter_rate  Model  float in [0, 1]   0       False      Autonomous adoption
+============  =====  ===============  =======  =========  ===================
 
 The initial infection status can be defined via:
 
@@ -78,7 +83,7 @@ Execute Simulation
 Example
 -------
 
-In the code below is shown an example of istantiation and execution of a Profile model simultion on a random graph: we set the initial infected node set to the 10% of the overall population and assign a profile of 0.25 to all the nodes.
+In the code below is shown an example of instantiation and execution of a Profile model simulation on a random graph: we set the initial infected node set to the 10% of the overall population and assign a profile of 0.25 to all the nodes.
 
 .. code-block:: python
 
@@ -92,6 +97,8 @@ In the code below is shown an example of istantiation and execution of a Profile
     # Model selection
     model = pr.ProfileModel(g)
     config = mc.Configuration()
+    config.add_model_parameter('blocked', 0)
+    config.add_model_parameter('adopter_rate', 0)
     config.add_model_parameter('percentage_infected', 0.1)
 
     # Setting nodes parameters

@@ -77,7 +77,7 @@ Execute Simulation
 Example
 -------
 
-In the code below is shown an example of istantiation and execution of a Q-Voter model simultion on a random graph: we set the initial infected node set to the 10% of the overall population and the number **q** of influencing neighbors equals to 5.
+In the code below is shown an example of instantiation and execution of a Q-Voter model simulation on a random graph: we set the initial infected node set to the 10% of the overall population and the number **q** of influencing neighbors equals to 5.
 
 .. code-block:: python
 

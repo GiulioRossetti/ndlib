@@ -73,7 +73,7 @@ Execute Simulation
 Example
 -------
 
-In the code below is shown an example of istantiation and execution of an SI simultion on a random graph: we set the initial set of infected nodes as 5% of the overall population and a probability of infection of 1%.
+In the code below is shown an example of instantiation and execution of an SI simulation on a random graph: we set the initial set of infected nodes as 5% of the overall population and a probability of infection of 1%.
 
 .. code-block:: python
 
@@ -97,4 +97,4 @@ In the code below is shown an example of istantiation and execution of an SI sim
     iterations = model.iteration_bunch(200)
 
 
-.. [#] W. O. Kermack and A. McKendrick, “A Contribution to the Mathemat- ical Theory of Epidemics,” Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, vol. 115, no. 772, pp. 700–721, Aug. 1927.
+.. [#] W. O. Kermack and A. McKendrick, “A Contribution to the Mathematical Theory of Epidemics,” Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, vol. 115, no. 772, pp. 700–721, Aug. 1927.
