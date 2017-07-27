@@ -70,3 +70,28 @@ Example
     # Simulation multiple execution
     infection_sets = [(1, 2, 3, 4, 5), (3, 23, 22, 54, 2), (98, 2, 12, 26, 3), (4, 6, 9) ]
     trends = multi_runs(model1, execution_number=2, iteration_number=100, infection_sets=infection_sets, nprocesses=4)
+
+**Plot multiple executions**
+
+The ``ndlib.viz.mpl`` package offers support for visualization of multiple runs.
+
+In order to visualize the average trend/prevalence along with its inter-percentile range use the following pattern (assuming ``model1`` and ``trends`` be the results of the previous code snippet).
+
+
+.. code-block:: python
+
+	from ndlib.viz.mpl.DiffusionTrend import DiffusionTrend
+	viz = DiffusionTrend(model1, trends)
+	viz.plot("diffusion.pdf", percentile=90)
+
+where ``percentile`` identifies the upper and lower bound (e.g. setting it to 90 implies a range 10-90).
+
+The same pattern can be also applied to comparison plots.
+
+
+.. figure:: diffusion.png
+   :scale: 80 %
+   :align: center
+   :alt: Multiple run visualization
+
+   Multiple run visualization.
