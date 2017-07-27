@@ -3,7 +3,7 @@ SEIS
 ****
 
 
-In the SEIR model, during the course of an epidemics, a node is allowed to change its status  from **Susceptible** (S) to **Exposed** (E) to **Infected** (I), then again to **Susceptible** (S).
+In the SEIS model, during the course of an epidemics, a node is allowed to change its status  from **Susceptible** (S) to **Exposed** (E) to **Infected** (I), then again to **Susceptible** (S).
 
 The model is instantiated on a graph having a non-empty set of infected nodes.
 
