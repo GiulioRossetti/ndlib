@@ -45,7 +45,7 @@ class SISModel(DiffusionModel):
 
         self.name = "SIS"
 
-    def iteration(self):
+    def iteration(self, node_status=True):
         """
         Execute a single model iteration
 
@@ -57,7 +57,13 @@ class SISModel(DiffusionModel):
 
         if self.actual_iteration == 0:
             self.actual_iteration += 1
-            return 0, actual_status
+            delta, node_count, status_delta = self.status_delta(actual_status)
+            if node_status:
+                return {"iteration": 0, "status": actual_status.copy(),
+                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+            else:
+                return {"iteration": 0, "status": {},
+                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
         for u in self.graph.nodes():
 
@@ -75,8 +81,14 @@ class SISModel(DiffusionModel):
                 if eventp < self.params['model']['lambda']:
                     actual_status[u] = 0
 
-        delta = self.status_delta(actual_status)
+        delta, node_count, status_delta = self.status_delta(actual_status)
         self.status = actual_status
         self.actual_iteration += 1
 
-        return self.actual_iteration - 1, delta
+        if node_status:
+            return {"iteration": self.actual_iteration - 1, "status": delta.copy(),
+                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+        else:
+            return {"iteration": self.actual_iteration - 1, "status": {},
+                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+

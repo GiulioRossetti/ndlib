@@ -3,15 +3,15 @@ import numpy as np
 import networkx as nx
 import future.utils
 
-__author__ = "Giulio Rossetti"
-__email__ = "giulio.rossetti@gmail.com"
+__author__ = "Elisa Salatti"
 
 
-class SIModel(DiffusionModel):
+class SEISModel(DiffusionModel):
     """
-    Model Parameters to be specified via ModelConfig
+       Model Parameters to be specified via ModelConfig
 
-    :param beta: The infection rate (float value in [0,1])
+       :param beta: The infection rate (float value in [0,1])
+       :param lambda: The recovery rate (float value in [0,1])
     """
 
     def __init__(self, graph):
@@ -23,21 +23,31 @@ class SIModel(DiffusionModel):
         super(self.__class__, self).__init__(graph)
         self.available_statuses = {
             "Susceptible": 0,
+            "Exposed": 2,
             "Infected": 1
         }
 
         self.parameters = {
             "model": {
+                "alpha": {
+                    "descr": "Incubation period",
+                    "range": [0, 1],
+                    "optional": False},
                 "beta": {
                     "descr": "Infection rate",
-                    "range": "[0,1]",
-                    "optional": False}
+                    "range": [0, 1],
+                    "optional": False},
+                "lambda": {
+                    "descr": "Recovery rate",
+                    "range": [0, 1],
+                    "optional": False
+                }
             },
             "nodes": {},
             "edges": {},
         }
 
-        self.name = "SI"
+        self.name = "SEIS"
 
     def iteration(self, node_status=True):
         """
@@ -60,16 +70,25 @@ class SIModel(DiffusionModel):
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
         for u in self.graph.nodes():
+
             u_status = self.status[u]
             eventp = np.random.random_sample()
             neighbors = self.graph.neighbors(u)
             if isinstance(self.graph, nx.DiGraph):
                 neighbors = self.graph.predecessors(u)
 
-            if u_status == 0:
-                infected_neighbors = len([v for v in neighbors if self.status[v] == 1])
+            if u_status == 0:  # Susceptible
+                infected_neighbors = len([v for v in neighbors if self.status[v] == 2 or self.status[v] == 1])
                 if eventp < self.params['model']['beta'] * infected_neighbors:
-                    actual_status[u] = 1
+                    actual_status[u] = 2  # Exposed
+            elif 1 <= u_status <= 1.9:
+                if u_status < self.params['model']['alpha']:
+                    actual_status[u] += 0.01
+                else:
+                    actual_status[u] = 1  # Infected
+            elif u_status == 1:
+                if eventp < self.params['model']['lambda']:
+                    actual_status[u] = 0  # Susceptible
 
         delta, node_count, status_delta = self.status_delta(actual_status)
         self.status = actual_status
@@ -81,4 +100,3 @@ class SIModel(DiffusionModel):
         else:
             return {"iteration": self.actual_iteration - 1, "status": {},
                     "node_count": node_count.copy(), "status_delta": status_delta.copy()}
-

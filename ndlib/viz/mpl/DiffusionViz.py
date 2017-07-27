@@ -1,12 +1,12 @@
 import abc
-from bokeh.plotting import figure
-from bokeh.models import Title
 from bokeh.palettes import Category20_9 as cols
+import matplotlib.pyplot as plt
 import future.utils
 
 __author__ = 'Giulio Rossetti'
 __license__ = "GPL"
 __email__ = "giulio.rossetti@gmail.com"
+
 
 class DiffusionPlot(object):
     __metaclass__ = abc.ABCMeta
@@ -22,7 +22,7 @@ class DiffusionPlot(object):
         self.normalized = True
 
     @abc.abstractmethod
-    def iteration_series(self, percentile=100):
+    def iteration_series(self, percentile):
         """
         Prepare the data to be visualized
 
@@ -31,41 +31,47 @@ class DiffusionPlot(object):
         """
         pass
 
-    def plot(self, percentile=100, width=500, height=500):
+    def plot(self, filename=None, percentile=90):
         """
         Generates the plot
 
+        :param filename: Output filename
         :param percentile: The percentile for the trend variance area
-        :param width: Image width. Default 500px.
-        :param height: Image height. Default 500px.
-        :return: a bokeh figure image
         """
+
         pres = self.iteration_series(percentile)
         infos = self.model.get_info()
         descr = ""
+
         for k, v in future.utils.iteritems(infos):
             descr += "%s: %s, " % (k, v)
         descr = descr[:-2].replace("_", " ")
 
-        p = figure(width=width, height=height)
+        mx = 0
         i = 0
-        for k, l in future.utils.iteritems(pres):
-
+        for k, l in pres.iteritems():
             mx = len(l[0])
             if self.normalized:
-                p.line(range(0, mx), l[1] / self.nnodes, line_width=2, legend=self.srev[k], alpha=0.5, color=cols[i])
+                plt.plot(range(0, mx), l[1]/self.nnodes, lw=2, label=self.srev[k], alpha=0.5, color=cols[i])
+                plt.fill_between(range(0,  mx), l[0]/self.nnodes, l[2]/self.nnodes, alpha="0.2",
+                                 color=cols[i])
             else:
-                p.line(range(0, mx), l[1], line_width=2, legend=self.srev[k], alpha=0.5, color=cols[i])
+                plt.plot(range(0, mx), l[1], lw=2, label=self.srev[k], alpha=0.5, color=cols[i])
+                plt.fill_between(range(0, mx), l[0], l[2], alpha="0.2",
+                                 color=cols[i])
 
             i += 1
 
-        p.xaxis.axis_label = 'Iterations'
-        p.title.text = "%s - %s" % (self.model.get_name(), self.title)
-        p.yaxis.axis_label = self.ylabel
-        p.ygrid[0].grid_line_alpha = 0.5
-        p.xgrid[0].grid_line_alpha = 0.5
-        p.add_layout(Title(text=descr, align="center"), "below")
-        p.legend.orientation = "horizontal"
+        plt.grid(axis="y")
+        plt.title(descr)
+        plt.xlabel("Iterations", fontsize=24)
+        plt.ylabel(self.ylabel, fontsize=24)
+        plt.legend(loc="best", fontsize=18)
+        plt.xlim((0, mx))
 
-
-        return p
+        plt.tight_layout()
+        if filename is not None:
+            plt.savefig(filename)
+            plt.clf()
+        else:
+            plt.show()

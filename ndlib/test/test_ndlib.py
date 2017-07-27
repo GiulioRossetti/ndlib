@@ -1,21 +1,27 @@
 from __future__ import absolute_import
-import future.utils
+
 import unittest
+
+import future.utils
 import networkx as nx
+
 import ndlib.models.ModelConfig as mc
-import ndlib.models.opinions.VoterModel as vm
-import ndlib.models.opinions.SznajdModel as sm
-import ndlib.models.opinions.MajorityRuleModel as mrm
-import ndlib.models.opinions.QVoterModel as qvm
-import ndlib.models.opinions.CognitiveOpDynModel as cm
-import ndlib.models.epidemics.SIModel as si
-import ndlib.models.epidemics.KerteszThresholdModel as ks
-import ndlib.models.epidemics.SIRModel as sir
-import ndlib.models.epidemics.SISModel as sis
 import ndlib.models.epidemics.IndependentCascadesModel as ids
-import ndlib.models.epidemics.ThresholdModel as th
+import ndlib.models.epidemics.KerteszThresholdModel as ks
 import ndlib.models.epidemics.ProfileModel as pr
 import ndlib.models.epidemics.ProfileThresholdModel as pt
+import ndlib.models.epidemics.SIModel as si
+import ndlib.models.epidemics.SIRModel as sir
+import ndlib.models.epidemics.SISModel as sis
+import ndlib.models.epidemics.SEIRModel as seir
+import ndlib.models.epidemics.SEISModel as seis
+import ndlib.models.epidemics.ThresholdModel as th
+import ndlib.models.opinions.CognitiveOpDynModel as cm
+import ndlib.models.opinions.MajorityRuleModel as mrm
+import ndlib.models.opinions.QVoterModel as qvm
+import ndlib.models.opinions.SznajdModel as sm
+import ndlib.models.opinions.VoterModel as vm
+import ndlib.utils as ut
 
 __author__ = 'Giulio Rossetti'
 __license__ = "GPL"
@@ -99,6 +105,30 @@ class NdlibTest(unittest.TestCase):
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
+    def test_seir_model(self):
+        g = nx.erdos_renyi_graph(1000, 0.1)
+        model = seir.SEIRModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('beta', 0.5)
+        config.add_model_parameter('gamma', 0.2)
+        config.add_model_parameter('alpha', 0.05)
+        config.add_model_parameter("percentage_infected", 0.1)
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+
+    def test_seis_model(self):
+        g = nx.erdos_renyi_graph(1000, 0.1)
+        model = seis.SEISModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('beta', 0.5)
+        config.add_model_parameter('lambda', 0.2)
+        config.add_model_parameter('alpha', 0.05)
+        config.add_model_parameter("percentage_infected", 0.1)
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+
     def test_sis_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
         model = sis.SISModel(g)
@@ -125,6 +155,16 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
+
+    def test_multiple_si_model(self):
+        g = nx.erdos_renyi_graph(1000, 0.1)
+        model = si.SIModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('beta', 0.01)
+        config.add_model_parameter("percentage_infected", 0.1)
+        model.set_initial_status(config)
+        executions = ut.multi_runs(model, execution_number=10, iteration_number=50)
+        self.assertEqual(len(executions), 10)
 
     def test_threshold_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
@@ -199,7 +239,7 @@ class NdlibTest(unittest.TestCase):
 
         model.set_initial_status(config)
         iteration = model.iteration()
-        blocked = [x for x, v in future.utils.iteritems(iteration[1]) if v == -1]
+        blocked = [x for x, v in future.utils.iteritems(iteration['status']) if v == -1]
         self.assertEqual(blocked, predefined_blocked)
 
     def test_initial_infected(self):
@@ -233,7 +273,7 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter('percentage_infected', 0.1)
         model.set_initial_status(config)
         iteration = model.iteration()
-        blocked = [x for x, v in future.utils.iteritems(iteration[1]) if v == -1]
+        blocked = [x for x, v in future.utils.iteritems(iteration["status"]) if v == -1]
         self.assertEqual(blocked, predefined_blocked)
 
         model = ids.IndependentCascadesModel(g)

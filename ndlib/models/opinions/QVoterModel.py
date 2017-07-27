@@ -38,7 +38,7 @@ class QVoterModel(DiffusionModel):
 
         self.name = "QVoter"
 
-    def iteration(self):
+    def iteration(self, node_status=True):
         """
         Execute a single model iteration
 
@@ -53,9 +53,15 @@ class QVoterModel(DiffusionModel):
 
         if self.actual_iteration == 0:
             self.actual_iteration += 1
-            return 0, self.status
+            delta, node_count, status_delta = self.status_delta(self.status)
+            if node_status:
+                return {"iteration": 0, "status": self.status.copy(),
+                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+            else:
+                return {"iteration": 0, "status": {},
+                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
-        # select a random listener
+                # select a random listener
         listener = self.graph.nodes()[np.random.randint(0, self.graph.number_of_nodes())]
 
         # select all of the listener's neighbours
@@ -71,11 +77,26 @@ class QVoterModel(DiffusionModel):
 
         delta = {}
         # if all neighbours agree (either on 0 or on 1)
+        status_delta = {st: 0 for st in self.available_statuses.values()}
+
         if sum(influence_group_state) == 0 or sum(influence_group_state) == len(influence_group_state):
             # update status of listener to either on of the neighbours selected
             delta[listener] = influence_group_state[0]
             self.status[listener] = influence_group_state[0]
+            status_delta[self.status[listener]] += 1
+            for x in self.available_statuses.values():
+                if x != self.status[listener]:
+                    status_delta[x] -= 1
+        # fix
+        node_count = {st: len([n for n in self.status if self.status[n] == st])
+                      for st in self.available_statuses.values()}
 
         self.actual_iteration += 1
 
-        return self.actual_iteration - 1, delta
+        if node_status:
+            return {"iteration": self.actual_iteration - 1, "status": delta.copy(),
+                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+        else:
+            return {"iteration": self.actual_iteration - 1, "status": {},
+                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+

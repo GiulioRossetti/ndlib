@@ -8,6 +8,13 @@ It supports both Python 2.7 and 3.x.
 
 The project documentation can be found on [ReadTheDocs](http://ndlib.readthedocs.io).
 
+If you use ``NDlib`` as support to your research consider citing:
+
+> G. Rossetti, L. Milli, S. Rinzivillo, A. Sirbu, D. Pedreschi, F. Giannotti.
+> "**NDlib: Studying Network Diffusion Dynamics**", 
+> IEEE International Conference on Data Science and Advanced Analytics, DSAA 2017.
+> Accepted, to appear.
+
 ## Rationale behind NDlib
 
 - A __simulation__ is univocally identified by a __graph__ and a (__configured__) __model__;
@@ -26,26 +33,29 @@ So far NDlib makes available the following diffusion models:
 >   - W. O. Kermack and Ag McKendrick. A Contribution to the Mathematical Theory of Epidemics. Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, 1927.
 > 3. **SIS** *(SISModel)*
 >   - W. O. Kermack and Ag McKendrick. A Contribution to the Mathematical Theory of Epidemics. Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, 1927.
-> 4. **Threshold** *(ThresholdModel)*
+> 4. **SEIS** *(SEISModel)*
+> 5. **SEIR** *(SEIRModel)*
+>   - J.L. Aron and I.B. Schwartz. Seasonality and period-doubling bifurcations in an epidemic model. Journal Theoretical Biology, 110:665-679, 1984
+> 6. **Threshold** *(ThresholdModel)*
 >   - M. Granovetter. Threshold models of collective behavior. American Journal of Sociology, 1978  
-> 5. **Kertesz Threshold** *(KerteszThresholdModel)*
+> 7. **Kertesz Threshold** *(KerteszThresholdModel)*
 >   - Karsai M., Iniguez G., Kaski K., and Kertesz J., Complex contagion process in spreading of online innovation. Journal of the Royal Society, 11(101), 2014
-> 6. **Independent Cascades** *(IndependentCascadeModel)*
+> 8. **Independent Cascades** *(IndependentCascadeModel)*
 >   - D. Kempe, J. Kleinberg, and E. Tardos. Maximizing the Spread of Influence through a Social Network. In KDD, 2003.
-> 7. **Profile** *(ProfileModel)*
-> 8. **Profile Threshold** *(ProfileThresholdModel)*
+> 9. **Profile** *(ProfileModel)*
+> 10. **Profile Threshold** *(ProfileThresholdModel)*
  
 **Opinion Dynamics**
 
-> 9. **Voter** *(VoterModel)*
+> 11. **Voter** *(VoterModel)*
 >    - Peter Clifford and Aidan Sudbury. A model for spatial conflict. Biometrika, 60(3), 1973. 
-> 10. **Q-Voter** *(QVoterModel)*
+> 12. **Q-Voter** *(QVoterModel)*
 >    - Claudio Castellano, Miguel A Munoz, and Romualdo Pastor-Satorras. Nonlinear q-voter model. Physical Review E, 80(4), 2009.  
-> 11. **Majority Rule** *(MajorityRuleModel)*
+> 13. **Majority Rule** *(MajorityRuleModel)*
 >    - S Galam. Real space renormalization group and totalitarian paradox of majority rule voting. Physica A, 285, 2000.  
-> 12. **Snajzd** *(SznajdModel)*
+> 14. **Snajzd** *(SznajdModel)*
 >    - Katarzyna Sznajd-Weron and Jozef Sznajd. Opinion evolution in closed community. International Journal of Modern Physics C, 11(06), 2000. 
-> 13. **Cognitive Opinion Dynamics** *(CognitiveOpDynModel)*
+> 15. **Cognitive Opinion Dynamics** *(CognitiveOpDynModel)*
 >    - Francesca Giardini, Daniele Vilone, and Rosaria Conte. Consensus emerging from the bottom-up: the role of cognitive variables in opinion dynamics. Frontiers in Physics, 2015  
 
 ## Installation
@@ -122,6 +132,8 @@ Every model needs parameters to be executed, in particular:
  **SI**  |  model:beta  | Infection rate 
  **SIR** | model:beta <br/> model:gamma | Infection rate <br/> Recovery rate 
  **SIS** | model:beta <br/>  model:lambda | Infection rate <br/> Recovery rate 
+ **SEIS** | model:beta <br/>  model:lambda <br/> model:alpha| Infection rate <br/> Recovery rate <br/> Incubation period
+ **SEIR** | model:beta <br/>  model:gamma <br/> model:alpha | Infection rate <br/> Recovery rate <br/> Incubation period
  **Threshold** | nodes:threshold | Node threshold (*)  
  **Kertesz Threshold** | nodes:threshold <br/> model:adopter_rate <br/> model:blocked  | Node threshold (*) <br/> Exogenous adoption rate <br/> Percentage of blocked nodes 
  **Independent Cascades** | edges:threshold | Edge threshold (*)
@@ -217,30 +229,74 @@ class MyModel(DiffusionModel):
 			"Susceptible": 0, 
 			"Infected": 1
 		}
-		self.parameters = {"model:param1": "descr", "node:param2": "descr", "edge:param3": "descr"}
+		self.parameters = {
+			"model": {
+				"param1": {
+					"descr": "descr1",
+					"range": [0, 1],
+					"optional": False},
+				"param2": {
+					"descr": "descr2",
+					"range": [0, 1],
+					"optional": True}
+				},
+			"nodes": {
+				"param3": {
+					"descr": "descr3",
+					"range": [0, 1],
+					"optional": True},
+				"param4": {
+					"descr": "descr4",
+					"range": [0, 1],
+					"optional": True}
+				},
+			"edges": {
+				"param5": {
+					"descr": "descr5",
+					"range": [0, 1],
+					"optional": False},
+				"param6": {
+					"descr": "descr6",
+					"range": [0, 1],
+					"optional": True}
+				},
+			}
 		self.name = "MyModel"
 	
-	def iteration(self):
+	
+	def iteration(self, node_status=True):
 	
 		self.clean_initial_status(self.available_statuses.values())
-
 		# if first iteration return the initial node status
 		if self.actual_iteration == 0:
 			self.actual_iteration += 1
-		return 0, self.status
-	
+			delta, node_count, status_delta = self.status_delta(actual_status)
+			if node_status:
+				return {"iteration": 0, "status": actual_status.copy(), 
+						"node_count": node_count.copy(), "status_delta": status_delta.copy()}
+			else:
+				return {"iteration": 0, "status": {}, 
+						"node_count": node_count.copy(), "status_delta": status_delta.copy()}
+		
 		actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
 		for u in self.graph.nodes():
 			# evluate possible status changes using the model parameters (accessible via self.params)
 			# e.g. self.params['beta'], self.param['nodes']['threshold'][u], self.params['edges'][(id_node0, idnode1)]
 		
 		# identify the changes w.r.t. previous iteration
-		delta = self.status_delta(actual_status)
+		delta, node_count, status_delta = self.status_delta(actual_status)
+		
 		# update the actual status and iterative step
 		self.status = actual_status
 		self.actual_iteration += 1
 		
 		# return the actual configuration (only nodes with status updates)
-		return self.actual_iteration - 1, delta
+		if node_status:
+			return {"iteration": self.actual_iteration - 1, "status": delta.copy(),
+					"node_count": node_count.copy(), "status_delta": status_delta.copy()}
+		else:
+			return {"iteration": self.actual_iteration - 1, "status": {},
+			"node_count": node_count.copy(), "status_delta": status_delta.copy()}
+
 ```
 If you like to include your model in NDlib (as well as in [NDlib-REST](https://github.com/GiulioRossetti/ndlib-rest)) feel free to fork the project, open an issue and contact us.

@@ -24,7 +24,8 @@ class VizTest(unittest.TestCase):
         config.add_model_parameter("percentage_infected", 0.05)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(200)
-        viz = DiffusionTrend(model, iterations)
+        trends = model.build_trends(iterations)
+        viz = DiffusionTrend(model, trends)
         p = viz.plot()
         self.assertIsInstance(p, Figure)
 
@@ -37,7 +38,8 @@ class VizTest(unittest.TestCase):
         config.add_model_parameter("percentage_infected", 0.05)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(200)
-        viz = DiffusionPrevalence(model, iterations)
+        trends = model.build_trends(iterations)
+        viz = DiffusionPrevalence(model, trends)
         p = viz.plot()
         self.assertIsInstance(p, Figure)
 
@@ -53,7 +55,8 @@ class VizTest(unittest.TestCase):
         config.add_model_parameter("percentage_infected", 0.05)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(200)
-        viz = DiffusionTrend(model, iterations)
+        trends = model.build_trends(iterations)
+        viz = DiffusionTrend(model, trends)
         p = viz.plot()
 
         vm.add_plot(p)
@@ -66,7 +69,8 @@ class VizTest(unittest.TestCase):
         config.add_model_parameter("percentage_infected", 0.05)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(200)
-        viz = DiffusionPrevalence(model, iterations)
+        trends = model.build_trends(iterations)
+        viz = DiffusionPrevalence(model, trends)
         p1 = viz.plot()
 
         vm.add_plot(p1)

@@ -1,6 +1,5 @@
 from DiffusionViz import DiffusionPlot
-import future.utils
-import past.builtins
+import numpy as np
 
 __author__ = 'rossetti'
 __license__ = "GPL"
@@ -9,41 +8,31 @@ __email__ = "giulio.rossetti@gmail.com"
 
 class DiffusionPrevalence(DiffusionPlot):
 
-    def __init__(self, model, iterations):
+    def __init__(self, model, trends):
         """
         :param model: The model object
         :param iterations: The computed simulation iterations
         """
-        super(self.__class__, self).__init__(model, iterations)
+        super(self.__class__, self).__init__(model, trends)
         self.ylabel = "#Delta Nodes"
         self.title = "Prevalence"
+        self.normalized = False
 
-    def iteration_series(self):
+    def iteration_series(self, percentile):
 
-        initial_status = self.iterations[0]['status']
-        presences = {k: [0] for k in self.srev.keys()}
+        series = {k: [] for k in self.srev.keys()}
 
-        for nid in initial_status:
-            presences[initial_status[nid]][0] += 1
+        presences = {k: [] for k in self.srev.keys()}
+        for t in self.trends:
 
-        delta = {k: [] for k in self.srev.keys()}
+            for st in t:
+                for k in t[st]['status_delta']:
+                    presences[k].append(np.array(t[st]['status_delta'][k]))
 
-        c = 1
-        for i in self.iterations[1:]:
-            for p in presences:
-                presences[p].append(presences[p][c - 1])
+        for st in presences:
+            tp = np.percentile(np.array(presences[st]), percentile, axis=0)
+            bp = np.percentile(np.array(presences[st]), 100 - percentile, axis=0)
+            av = np.average(np.array(presences[st]), axis=0)
+            series[st] = (tp, av, bp)
 
-            actual_status = i['status']
-
-            for nid, v in future.utils.iteritems(actual_status):
-                st = initial_status[nid]
-                presences[st][c] -= 1
-                presences[v][c] += 1
-                initial_status[nid] = v
-            c += 1
-
-        for k, ls in future.utils.iteritems(presences):
-            for x in past.builtins.xrange(1, len(ls)):
-                delta[k].append(ls[x] - ls[x-1])
-
-        return delta
+        return series

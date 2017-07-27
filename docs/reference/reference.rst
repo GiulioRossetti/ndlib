@@ -34,6 +34,8 @@ In ``NDlib`` are implemented the following **Epidemic** models:
    models/epidemics/SIm.rst
    models/epidemics/SIS.rst
    models/epidemics/SIR.rst
+   models/epidemics/SEIR.rst
+   models/epidemics/SEIS.rst
    models/epidemics/Threshold.rst
    models/epidemics/KThreshold.rst
    models/epidemics/IndependentCascades.rst
@@ -88,6 +90,17 @@ It employs a centralyzed system that take care of:
    
    mconf/Mconf.rst
 
+===========
+NDlib Utils
+===========
+
+The ``ndlib.utils`` module contains facilities that extend the simulation framework (i.e., automated multiple executions).
+
+.. toctree::
+   :maxdepth: 2
+
+   utils/multiple_run.rst
+
 =============
 Visualization
 =============
@@ -96,15 +109,46 @@ In order to provide an easy proxy to study diffusion phenomena and compare diffe
 
 In particular, the following plots are made available:
 
+----------
+Pyplot Viz
+----------
+
+**Classic Visualizations**
+
+.. toctree::
+   :maxdepth: 2
+
+   viz/mpl/DiffusionTrend.rst
+   viz/mpl/DiffusionPrevalence.rst
+
+
+**Model Comparison Visualizations**
+
+.. toctree::
+   :maxdepth: 2
+
+   viz/mpl/TrendComparison.rst
+   viz/mpl/PrevalenceComparison.rst
+
+
 ---------
 Bokeh Viz
 ---------
+
+**Classic Visualizations**
 
 .. toctree::
    :maxdepth: 2
 
    viz/bokeh/DiffusionTrend.rst
    viz/bokeh/DiffusionPrevalence.rst
+
+
+**Model Comparison Visualizations**
+
+.. toctree::
+   :maxdepth: 2
+
    viz/bokeh/Multiplot.rst
    
 

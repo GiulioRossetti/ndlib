@@ -1,31 +1,33 @@
 from DiffusionViz import DiffusionPlot
 import numpy as np
 
-__author__ = 'Giulio Rossetti'
+__author__ = 'rossetti'
 __license__ = "GPL"
 __email__ = "giulio.rossetti@gmail.com"
 
 
-class DiffusionTrend(DiffusionPlot):
+class DiffusionPrevalence(DiffusionPlot):
 
     def __init__(self, model, trends):
         """
         :param model: The model object
-        :param iterations: The computed simulation iterations
+        :param trends: The computed simulation iterations
         """
         super(self.__class__, self).__init__(model, trends)
-        self.ylabel = "#Nodes"
-        self.title = "Diffusion Trend"
+        self.ylabel = "#Delta Nodes"
+        self.title = "Prevalence"
+        self.normalized = False
 
     def iteration_series(self, percentile):
+
         series = {k: [] for k in self.srev.keys()}
 
         presences = {k: [] for k in self.srev.keys()}
         for t in self.trends:
 
             for st in t:
-                for k in t[st]['node_count']:
-                    presences[k].append(np.array(t[st]['node_count'][k]))
+                for k in t[st]['status_delta']:
+                    presences[k].append(np.array(t[st]['status_delta'][k]))
 
         for st in presences:
             tp = np.percentile(np.array(presences[st]), percentile, axis=0)
