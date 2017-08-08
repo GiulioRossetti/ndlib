@@ -1,4 +1,4 @@
-from ComparisonViz import ComparisonPlot
+from ndlib.viz.mpl.ComparisonViz import ComparisonPlot
 import numpy as np
 
 __author__ = 'Giulio Rossetti'

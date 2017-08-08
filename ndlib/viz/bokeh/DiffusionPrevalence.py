@@ -1,4 +1,4 @@
-from DiffusionViz import DiffusionPlot
+from ndlib.viz.bokeh.DiffusionViz import DiffusionPlot
 import numpy as np
 
 __author__ = 'rossetti'

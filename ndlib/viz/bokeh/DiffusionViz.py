@@ -8,6 +8,7 @@ __author__ = 'Giulio Rossetti'
 __license__ = "GPL"
 __email__ = "giulio.rossetti@gmail.com"
 
+
 class DiffusionPlot(object):
     __metaclass__ = abc.ABCMeta
 
