@@ -74,7 +74,7 @@ class ComparisonPlot(object):
 
         mx = 0
         i, h = 0, 0
-        for k, l in pres.iteritems():
+        for k, l in future.utils.iteritems(pres):
             j = 0
             for st in l:
                 mx = len(l[st][0])

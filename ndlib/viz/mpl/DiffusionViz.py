@@ -49,7 +49,7 @@ class DiffusionPlot(object):
 
         mx = 0
         i = 0
-        for k, l in pres.iteritems():
+        for k, l in future.utils.iteritems(pres):
             mx = len(l[0])
             if self.normalized:
                 plt.plot(range(0, mx), l[1]/self.nnodes, lw=2, label=self.srev[k], alpha=0.5, color=cols[i])
