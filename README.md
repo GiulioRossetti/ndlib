@@ -3,6 +3,7 @@
 ![NDlib logo](https://github.com/GiulioRossetti/ndlib/blob/master/docs/ndlogo2.png)
 
 [![Build Status](https://travis-ci.org/GiulioRossetti/ndlib.svg?branch=master)](https://travis-ci.org/GiulioRossetti/ndlib)
+[![Coverage Status](https://coveralls.io/repos/github/GiulioRossetti/ndlib/badge.svg?branch=master)](https://coveralls.io/github/GiulioRossetti/ndlib?branch=master)
 
 NDlib provides implementations of several spreading and opinion dynamics models.
 
