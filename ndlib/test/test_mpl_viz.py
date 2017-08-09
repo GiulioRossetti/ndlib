@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import unittest
-import os
 
 import networkx as nx
 from ndlib.viz.mpl.DiffusionPrevalence import DiffusionPrevalence
@@ -12,8 +11,8 @@ import ndlib.models.ModelConfig as mc
 import ndlib.models.epidemics.SIRModel as sir
 import ndlib.models.epidemics.SIModel as si
 from ndlib.viz.mpl.DiffusionTrend import DiffusionTrend
-import matplotlib
-matplotlib.use('Agg')
+
+import os
 
 
 class VizTest(unittest.TestCase):
