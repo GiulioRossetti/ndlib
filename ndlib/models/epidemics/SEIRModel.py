@@ -72,7 +72,7 @@ class SEIRModel(DiffusionModel):
 
             elif u_status == 2:
                 if self.progress[u] < 1:
-                    self.progress[u] -= self.params['model']['alpha']
+                    self.progress[u] += self.params['model']['alpha']
                 else:
                     actual_status[u] = 1  # Infected
                     del self.progress[u]
