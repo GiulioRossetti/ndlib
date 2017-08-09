@@ -51,6 +51,17 @@ class NdlibTest(unittest.TestCase):
         iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
+        g = nx.complete_graph(100)
+        g = g.to_directed()
+        model = sm.SznajdModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter("percentage_infected", 0.2)
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+        iterations = model.iteration_bunch(10, node_status=False)
+        self.assertEqual(len(iterations), 10)
+
     def test_majorityrule_model(self):
         g = nx.complete_graph(100)
         model = mrm.MajorityRuleModel(g)
@@ -278,7 +289,7 @@ class NdlibTest(unittest.TestCase):
         config = mc.Configuration()
         config.add_model_parameter('percentage_infected', 0.1)
         config.add_model_parameter("blocked", 0.1)
-        config.add_model_parameter("adopeter_rate", 0.001)
+        config.add_model_parameter("adopter_rate", 0.001)
 
         profile = 0.1
         for i in g.nodes():
@@ -415,3 +426,30 @@ class NdlibTest(unittest.TestCase):
         config.add_node_set_configuration("partial", {n: 1 for n in g.nodes()})
         config.add_edge_set_configuration("partial", {e: 1 for e in g.edges()})
         model.set_initial_status(config)
+
+        g = nx.complete_graph(100)
+        model = mrm.MajorityRuleModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter("percentage_infected", 0.2)
+        try:
+            model.set_initial_status(config)
+        except:
+            pass
+
+        g = nx.erdos_renyi_graph(1000, 0.1)
+        model = ids.IndependentCascadesModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
+        try:
+            model.set_initial_status(config)
+        except:
+            pass
+
+        g = nx.erdos_renyi_graph(1000, 0.1)
+        model = th.ThresholdModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
+        try:
+            model.set_initial_status(config)
+        except:
+            pass
