@@ -39,6 +39,8 @@ class SEIRModel(DiffusionModel):
             "edges": {},
         }
 
+        self.progress = {}
+
     def iteration(self, node_status=True):
         self.clean_initial_status(self.available_statuses.values())
 
@@ -66,8 +68,15 @@ class SEIRModel(DiffusionModel):
                 infected_neighbors = len([v for v in neighbors if self.status[v] == 2 or self.status[v] == 1])
                 if eventp < self.params['model']['beta'] * infected_neighbors:
                     actual_status[u] = 2  # Exposed
-            elif 1 < u_status <= 2:
-                actual_status[u] -= self.params['model']['alpha']
+                    self.progress[u] = 0
+
+            elif u_status == 2:
+                if self.progress[u] < 1:
+                    self.progress[u] -= self.params['model']['alpha']
+                else:
+                    actual_status[u] = 1  # Infected
+                    del self.progress[u]
+
             elif u_status == 1:
                 if eventp < self.params['model']['gamma']:
                     actual_status[u] = 3  # Removed
