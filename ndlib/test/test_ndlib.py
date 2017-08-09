@@ -37,6 +37,8 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
+        iterations = model.iteration_bunch(10, node_status=True)
+        self.assertEqual(len(iterations), 10)
 
     def test_sznajd_model(self):
         g = nx.complete_graph(100)
@@ -45,6 +47,8 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter("percentage_infected", 0.2)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+        iterations = model.iteration_bunch(10, node_status=True)
         self.assertEqual(len(iterations), 10)
 
     def test_majorityrule_model(self):
@@ -56,6 +60,8 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
+        iterations = model.iteration_bunch(10, node_status=True)
+        self.assertEqual(len(iterations), 10)
 
     def test_qvoter_model(self):
         g = nx.complete_graph(100)
@@ -65,6 +71,8 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter("percentage_infected", 0.6)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+        iterations = model.iteration_bunch(10, node_status=True)
         self.assertEqual(len(iterations), 10)
 
     def test_cognitive_model(self):
@@ -83,6 +91,8 @@ class NdlibTest(unittest.TestCase):
 
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
+        iterations = model.iteration_bunch(10, node_status=True)
+        self.assertEqual(len(iterations), 10)
 
     def test_si_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
@@ -92,6 +102,8 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter("percentage_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+        iterations = model.iteration_bunch(10, node_status=True)
         self.assertEqual(len(iterations), 10)
 
     def test_sir_model(self):
@@ -103,6 +115,8 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter("percentage_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+        iterations = model.iteration_bunch(10, node_status=True)
         self.assertEqual(len(iterations), 10)
 
     def test_seir_model(self):
@@ -117,6 +131,17 @@ class NdlibTest(unittest.TestCase):
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
+        g = g.to_directed()
+        model = seir.SEIRModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('beta', 0.5)
+        config.add_model_parameter('gamma', 0.8)
+        config.add_model_parameter('alpha', 0.5)
+        config.add_model_parameter("percentage_infected", 0.1)
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10, node_status=True)
+        self.assertEqual(len(iterations), 10)
+
     def test_seis_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
         model = seis.SEISModel(g)
@@ -129,6 +154,17 @@ class NdlibTest(unittest.TestCase):
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
+        g = g.to_directed()
+        model = seis.SEISModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('beta', 0.5)
+        config.add_model_parameter('lambda', 0.8)
+        config.add_model_parameter('alpha', 0.5)
+        config.add_model_parameter("percentage_infected", 0.1)
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10, node_status=True)
+        self.assertEqual(len(iterations), 10)
+
     def test_sis_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
         model = sis.SISModel(g)
@@ -138,6 +174,8 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter("percentage_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+        iterations = model.iteration_bunch(10, node_status=True)
         self.assertEqual(len(iterations), 10)
 
     def test_kertesz_model(self):
@@ -155,6 +193,8 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
+        iterations = model.iteration_bunch(10, node_status=True)
+        self.assertEqual(len(iterations), 10)
 
     def test_multiple_si_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
@@ -165,6 +205,8 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         executions = ut.multi_runs(model, execution_number=10, iteration_number=50)
         self.assertEqual(len(executions), 10)
+        iterations = model.iteration_bunch(10, node_status=True)
+        self.assertEqual(len(iterations), 10)
 
     def test_threshold_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
@@ -178,6 +220,8 @@ class NdlibTest(unittest.TestCase):
 
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+        iterations = model.iteration_bunch(10, node_status=True)
         self.assertEqual(len(iterations), 10)
 
     def test_profile_threshold_model(self):
@@ -197,6 +241,25 @@ class NdlibTest(unittest.TestCase):
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
+        model = pt.ProfileThresholdModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter("blocked", 0.1)
+        config.add_model_parameter("adopter_rate", 0.001)
+
+        threshold = 0.2
+        profile = 0.1
+        for i in g.nodes():
+            config.add_node_configuration("threshold", i, threshold)
+            config.add_node_configuration("profile", i, profile)
+
+        model.set_initial_status(config)
+
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+        iterations = model.iteration_bunch(10, node_status=True)
+        self.assertEqual(len(iterations), 10)
+
     def test_profile_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
         model = pr.ProfileModel(g)
@@ -211,6 +274,20 @@ class NdlibTest(unittest.TestCase):
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
+        model = pr.ProfileModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter("blocked", 0.1)
+        config.add_model_parameter("adopeter_rate", 0.001)
+
+        profile = 0.1
+        for i in g.nodes():
+            config.add_node_configuration("profile", i, profile)
+
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10, node_status=True)
+        self.assertEqual(len(iterations), 10)
+
     def test_independent_cascade_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
         model = ids.IndependentCascadesModel(g)
@@ -222,6 +299,8 @@ class NdlibTest(unittest.TestCase):
 
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+        iterations = model.iteration_bunch(10, node_status=True)
         self.assertEqual(len(iterations), 10)
 
     def test_kertesz_model_predefined_blocked(self):
