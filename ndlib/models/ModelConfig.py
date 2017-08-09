@@ -113,4 +113,4 @@ class Configuration(object):
         :param edge_to_value: dictionary mapping each edge a parameter value
         """
         for edge, val in future.utils.iteritems(edge_to_value):
-            self.add_node_configuration(param_name, edge, val)
+            self.add_edge_configuration(param_name, edge, val)

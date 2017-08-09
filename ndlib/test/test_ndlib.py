@@ -37,7 +37,7 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
-        iterations = model.iteration_bunch(10, node_status=True)
+        iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
     def test_sznajd_model(self):
@@ -48,7 +48,7 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
-        iterations = model.iteration_bunch(10, node_status=True)
+        iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
     def test_majorityrule_model(self):
@@ -60,7 +60,7 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
-        iterations = model.iteration_bunch(10, node_status=True)
+        iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
     def test_qvoter_model(self):
@@ -72,7 +72,7 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
-        iterations = model.iteration_bunch(10, node_status=True)
+        iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
     def test_cognitive_model(self):
@@ -91,7 +91,7 @@ class NdlibTest(unittest.TestCase):
 
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
-        iterations = model.iteration_bunch(10, node_status=True)
+        iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
     def test_si_model(self):
@@ -103,7 +103,7 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
-        iterations = model.iteration_bunch(10, node_status=True)
+        iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
     def test_sir_model(self):
@@ -116,7 +116,7 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
-        iterations = model.iteration_bunch(10, node_status=True)
+        iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
     def test_seir_model(self):
@@ -139,7 +139,7 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter('alpha', 0.5)
         config.add_model_parameter("percentage_infected", 0.1)
         model.set_initial_status(config)
-        iterations = model.iteration_bunch(10, node_status=True)
+        iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
     def test_seis_model(self):
@@ -162,7 +162,7 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter('alpha', 0.5)
         config.add_model_parameter("percentage_infected", 0.1)
         model.set_initial_status(config)
-        iterations = model.iteration_bunch(10, node_status=True)
+        iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
     def test_sis_model(self):
@@ -175,7 +175,7 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
-        iterations = model.iteration_bunch(10, node_status=True)
+        iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
     def test_kertesz_model(self):
@@ -193,7 +193,7 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
-        iterations = model.iteration_bunch(10, node_status=True)
+        iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
     def test_multiple_si_model(self):
@@ -205,7 +205,7 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         executions = ut.multi_runs(model, execution_number=10, iteration_number=50)
         self.assertEqual(len(executions), 10)
-        iterations = model.iteration_bunch(10, node_status=True)
+        iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
     def test_threshold_model(self):
@@ -221,7 +221,7 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
-        iterations = model.iteration_bunch(10, node_status=True)
+        iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
     def test_profile_threshold_model(self):
@@ -257,7 +257,7 @@ class NdlibTest(unittest.TestCase):
 
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
-        iterations = model.iteration_bunch(10, node_status=True)
+        iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
     def test_profile_model(self):
@@ -285,7 +285,7 @@ class NdlibTest(unittest.TestCase):
             config.add_node_configuration("profile", i, profile)
 
         model.set_initial_status(config)
-        iterations = model.iteration_bunch(10, node_status=True)
+        iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
     def test_independent_cascade_model(self):
@@ -300,7 +300,7 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
-        iterations = model.iteration_bunch(10, node_status=True)
+        iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
     def test_kertesz_model_predefined_blocked(self):
@@ -342,6 +342,9 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter('percentage_infected', 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
+        config.add_node_set_configuration("test", {n: 1 for n in g.nodes()})
+        config.add_edge_set_configuration("etest", {e: 1 for e in g.edges()})
+
         self.assertEqual(len(iterations), 10)
 
         model = ks.KerteszThresholdModel(g)
@@ -391,3 +394,24 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
+
+    def test_config(self):
+        g = nx.erdos_renyi_graph(99, 0.1)
+        model = th.ThresholdModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_initial_configuration("Infected", [1, 2, 3])
+        config.add_node_set_configuration("partial", {1:1, 2:2})
+        try:
+            model.set_initial_status(config)
+        except:
+            pass
+
+        config.add_edge_set_configuration("partial", {e: 1 for e in g.edges()[:10]})
+        try:
+            model.set_initial_status(config)
+        except:
+            pass
+        config.add_node_set_configuration("partial", {n: 1 for n in g.nodes()})
+        config.add_edge_set_configuration("partial", {e: 1 for e in g.edges()})
+        model.set_initial_status(config)

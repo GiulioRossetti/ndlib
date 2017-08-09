@@ -66,9 +66,9 @@ class SEIRModel(DiffusionModel):
                 infected_neighbors = len([v for v in neighbors if self.status[v] == 2 or self.status[v] == 1])
                 if eventp < self.params['model']['beta'] * infected_neighbors:
                     actual_status[u] = 2  # Exposed
-            elif 1 <= u_status <= 1.9:
+            elif 2 <= u_status < 1:
                 if u_status < self.params['model']['alpha']:
-                    actual_status[u] += 0.01
+                    actual_status[u] -= 0.01
                 else:
                     actual_status[u] = 1  # Infected
             elif u_status == 1:
