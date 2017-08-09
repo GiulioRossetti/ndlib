@@ -12,6 +12,8 @@ import ndlib.models.ModelConfig as mc
 import ndlib.models.epidemics.SIRModel as sir
 import ndlib.models.epidemics.SIModel as si
 from ndlib.viz.mpl.DiffusionTrend import DiffusionTrend
+import matplotlib
+matplotlib.use('Agg')
 
 
 class VizTest(unittest.TestCase):
