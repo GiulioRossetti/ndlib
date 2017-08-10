@@ -6,7 +6,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/GiulioRossetti/ndlib/badge.svg?branch=master)](https://coveralls.io/github/GiulioRossetti/ndlib?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/ndlib/badge/?version=latest)](http://ndlib.readthedocs.io/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/ndlib.svg)](https://badge.fury.io/py/ndlib)
-[![Code Health](https://landscape.io/github/GiulioRossetti/ndlib/master/landscape.svg?style=flat)](https://landscape.io/github/GiulioRossetti/ndlib/master)
+[![BCH compliance](https://bettercodehub.com/edge/badge/GiulioRossetti/ndlib?branch=master)](https://bettercodehub.com/)
 
 NDlib provides implementations of several spreading and opinion dynamics models.
 
