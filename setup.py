@@ -43,6 +43,6 @@ setup(name='ndlib',
           'Programming Language :: Python :: 3'
       ],
       keywords='epidemics opinion-dynamics simulator complex-networks',
-      install_requires=['numpy', 'networkx', 'scipy', 'bokeh', 'future', ''],
+      install_requires=['numpy', 'networkx', 'dynetx', 'scipy', 'bokeh', 'future', ''],
       packages=find_packages(exclude=["*.test", "*.test.*", "test.*", "test", "ndlib.test", "ndlib.test.*"]),
       )
