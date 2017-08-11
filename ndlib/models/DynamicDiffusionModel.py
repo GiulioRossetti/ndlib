@@ -59,6 +59,7 @@ class DynamicDiffusionModel(object):
         snapshot_ids = self.dyngraph.temporal_snapshots_ids()
         self.min_snapshot_id = min(snapshot_ids)
         self.max_smapshot_id = max(snapshot_ids)
+        self.stream_execution = False
 
 
     def __validate_configuration(self, configuration):
@@ -213,8 +214,8 @@ class DynamicDiffusionModel(object):
                 for n in self.status:
                     self.status[n] = 0
 
-                number_of_initial_infected = len(self.graph.nodes()) * float(
-                    self.params['model']['percentage_infected'])
+                number_of_initial_infected = len(self.graph.nodes()) * \
+                                             float( self.params['model']['percentage_infected'])
                 available_nodes = [n for n in self.status if self.status[n] == 0]
                 sampled_nodes = np.random.choice(available_nodes, int(number_of_initial_infected), replace=False)
 
@@ -312,7 +313,8 @@ class DynamicDiffusionModel(object):
 
         return [{"trends": {"node_count": node_count, "status_delta": status_delta}}]
 
-    def execute_snapshot(self, node_status=True):
+    def execute_snapshots(self, node_status=True):
+        self.stream_execution = False
         system_status = []
         for t in past.builtins.xrange(self.min_snapshot_id, self.max_smapshot_id+1):
             self.graph = self.dyngraph.time_slice(t_from=t)
@@ -321,6 +323,7 @@ class DynamicDiffusionModel(object):
         return system_status
 
     def execute_iterations(self, node_status=True):
+        self.stream_execution = True
         system_status = []
         for e in self.dyngraph.stream_interactions():
             if e[2] == '+':

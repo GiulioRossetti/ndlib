@@ -55,8 +55,45 @@ class DynSISModel(DynamicDiffusionModel):
 
         actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
 
-        if self.graph.number_of_edges() == 1:
-            pass  # @todo: implement streaming version
+        # streaming
+        if self.stream_execution:
+            u, v = self.graph.edges()[0]
+            u_status = self.status[u]
+            v_status = self.status[v]
+
+            # infection test
+            if u_status == 1 and v_status == 0:
+                p = np.random.random_sample()
+                if p < self.params['model']['beta']:
+                    actual_status[v] = 1
+
+            if v_status == 1 and u_status == 0:
+                p = np.random.random_sample()
+                if p < self.params['model']['beta']:
+                    actual_status[u] = 1
+
+            # removal test
+            if v_status == 1:
+                g = np.random.random_sample()
+                if g < self.params['model']['lambda']:
+                    actual_status[v] = 0
+
+            if u_status == 1:
+                g = np.random.random_sample()
+                if g < self.params['model']['lambda']:
+                    actual_status[u] = 0
+
+            delta, node_count, status_delta = self.status_delta(actual_status)
+            self.status = actual_status
+            self.actual_iteration += 1
+
+            if node_status:
+                return {"iteration": self.actual_iteration - 1, "status": delta.copy(),
+                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+            else:
+                return {"iteration": self.actual_iteration - 1, "status": {},
+                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+        # snapshot
         else:
 
             if self.actual_iteration == 0:

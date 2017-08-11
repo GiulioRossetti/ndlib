@@ -25,14 +25,19 @@ class DynTest(unittest.TestCase):
         config.add_model_parameter('beta', 0.1)
         config.add_model_parameter("percentage_infected", 0.1)
         model.set_initial_status(config)
-        iterations = model.execute_snapshot()
+        iterations = model.execute_snapshots()
         self.assertEqual(len(iterations), 3)
+
+        iterations = model.execute_iterations()
+        trends = model.build_trends(iterations)
+        self.assertEqual(len(trends[0]['trends']['status_delta'][1]),
+                         len([x for x in dg.stream_interactions() if x[2] == "+"]))
 
     def test_DynSIS(self):
         dg = dn.DynGraph()
 
         for t in past.builtins.xrange(0, 3):
-            g = nx.erdos_renyi_graph(2000, 0.05)
+            g = nx.erdos_renyi_graph(200, 0.05)
             dg.add_interactions_from(g.edges(), t)
 
         model = sis.DynSISModel(dg)
@@ -41,8 +46,13 @@ class DynTest(unittest.TestCase):
         config.add_model_parameter('lambda', 0.1)
         config.add_model_parameter("percentage_infected", 0.1)
         model.set_initial_status(config)
-        iterations = model.execute_snapshot()
+        iterations = model.execute_snapshots()
         self.assertEqual(len(iterations), 3)
+
+        iterations = model.execute_iterations()
+        trends = model.build_trends(iterations)
+        self.assertEqual(len(trends[0]['trends']['status_delta'][1]),
+                         len([x for x in dg.stream_interactions() if x[2] == "+"]))
 
     def test_DynSIR(self):
         dg = dn.DynGraph()
@@ -57,5 +67,10 @@ class DynTest(unittest.TestCase):
         config.add_model_parameter('gamma', 0.1)
         config.add_model_parameter("percentage_infected", 0.1)
         model.set_initial_status(config)
-        iterations = model.execute_snapshot()
+        iterations = model.execute_snapshots()
         self.assertEqual(len(iterations), 3)
+
+        iterations = model.execute_iterations()
+        trends = model.build_trends(iterations)
+        self.assertEqual(len(trends[0]['trends']['status_delta'][1]),
+                         len([x for x in dg.stream_interactions() if x[2] == "+"]))
