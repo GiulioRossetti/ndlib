@@ -16,7 +16,7 @@ class DynTest(unittest.TestCase):
     def test_DynSI(self):
         dg = dn.DynGraph()
 
-        for t in past.builtins.xrange(0, 10):
+        for t in past.builtins.xrange(0, 3):
             g = nx.erdos_renyi_graph(200, 0.05)
             dg.add_interactions_from(g.edges(), t)
 
@@ -26,12 +26,12 @@ class DynTest(unittest.TestCase):
         config.add_model_parameter("percentage_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.execute_snapshot()
-        self.assertEqual(len(iterations), 10)
+        self.assertEqual(len(iterations), 3)
 
     def test_DynSIS(self):
         dg = dn.DynGraph()
 
-        for t in past.builtins.xrange(0, 10):
+        for t in past.builtins.xrange(0, 3):
             g = nx.erdos_renyi_graph(2000, 0.05)
             dg.add_interactions_from(g.edges(), t)
 
@@ -42,12 +42,12 @@ class DynTest(unittest.TestCase):
         config.add_model_parameter("percentage_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.execute_snapshot()
-        self.assertEqual(len(iterations), 10)
+        self.assertEqual(len(iterations), 3)
 
     def test_DynSIR(self):
         dg = dn.DynGraph()
 
-        for t in past.builtins.xrange(0, 10):
+        for t in past.builtins.xrange(0, 3):
             g = nx.erdos_renyi_graph(200, 0.05)
             dg.add_interactions_from(g.edges(), t)
 
@@ -58,8 +58,4 @@ class DynTest(unittest.TestCase):
         config.add_model_parameter("percentage_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.execute_snapshot()
-        self.assertEqual(len(iterations), 10)
-        print dn.number_of_interactions(dg)
-
-        iterations = model.execute_iterations()
-        print len(iterations)
+        self.assertEqual(len(iterations), 3)
