@@ -6,6 +6,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/GiulioRossetti/ndlib/badge.svg?branch=master)](https://coveralls.io/github/GiulioRossetti/ndlib?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/ndlib/badge/?version=latest)](http://ndlib.readthedocs.io/en/latest/?badge=latest)
 [![pyversions](https://img.shields.io/pypi/pyversions/ndlib.svg)](https://badge.fury.io/py/ndlib)
+[![Updates](https://pyup.io/repos/github/GiulioRossetti/ndlib/shield.svg)](https://pyup.io/repos/github/GiulioRossetti/ndlib/)
 [![PyPI version](https://badge.fury.io/py/ndlib.svg)](https://badge.fury.io/py/ndlib)
 [![BCH compliance](https://bettercodehub.com/edge/badge/GiulioRossetti/ndlib?branch=master)](https://bettercodehub.com/)
 
