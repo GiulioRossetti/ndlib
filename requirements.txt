@@ -3,5 +3,5 @@ sphinx_rtd_theme==0.2.4
 numpy==1.13.1
 future==0.16.0
 networkx==1.11
-bokeh
+bokeh==0.12.6
 matplotlib
