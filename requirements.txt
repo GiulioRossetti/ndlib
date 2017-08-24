@@ -1,4 +1,4 @@
-mock
+mock==2.0.0
 sphinx_rtd_theme
 numpy
 future
