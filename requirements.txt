@@ -1,5 +1,5 @@
 mock==2.0.0
-sphinx_rtd_theme
+sphinx_rtd_theme==0.2.4
 numpy
 future
 networkx==1.11
