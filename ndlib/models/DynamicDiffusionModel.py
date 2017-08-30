@@ -3,7 +3,6 @@ import warnings
 import numpy as np
 import past.builtins
 import future.utils
-import copy
 import networkx as nx
 
 __author__ = "Giulio Rossetti"
