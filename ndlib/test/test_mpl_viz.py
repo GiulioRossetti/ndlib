@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
 import unittest
-
+import past
 import networkx as nx
+import dynetx as dn
 from ndlib.viz.mpl.DiffusionPrevalence import DiffusionPrevalence
 from ndlib.viz.mpl.PrevalenceComparison import DiffusionPrevalenceComparison
 from ndlib.viz.mpl.TrendComparison import DiffusionTrendComparison
@@ -10,6 +11,7 @@ from ndlib.viz.mpl.TrendComparison import DiffusionTrendComparison
 import ndlib.models.ModelConfig as mc
 import ndlib.models.epidemics.SIRModel as sir
 import ndlib.models.epidemics.SIModel as si
+import ndlib.models.dynamic.DynSIModel as dsi
 from ndlib.viz.mpl.DiffusionTrend import DiffusionTrend
 
 import os
@@ -32,6 +34,26 @@ class VizTest(unittest.TestCase):
         viz = DiffusionTrend(model, trends)
         viz.plot("diffusion.pdf")
         os.remove("diffusion.pdf")
+
+    def test_visualize_dynamic(self):
+        dg = dn.DynGraph()
+
+        for t in past.builtins.xrange(0, 4):
+            g = nx.erdos_renyi_graph(200, 0.05)
+            dg.add_interactions_from(g.edges(), t)
+
+        model = dsi.DynSIModel(dg)
+        config = mc.Configuration()
+        config.add_model_parameter('beta', 0.1)
+        config.add_model_parameter("percentage_infected", 0.1)
+        model.set_initial_status(config)
+        iterations = model.execute_snapshots()
+        trends = model.build_trends(iterations)
+
+        # Visualization
+        viz = DiffusionPrevalence(model, trends)
+        viz.plot("prevd.pdf")
+        os.remove("prevd.pdf")
 
     def test_visualize_prevalence(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
