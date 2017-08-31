@@ -1,10 +1,8 @@
 import abc
 import warnings
-import numpy as np
 import past.builtins
-import future.utils
 import networkx as nx
-from DiffusionModel import DiffusionModel
+from ndlib.models.DiffusionModel import DiffusionModel
 
 __author__ = "Giulio Rossetti"
 __email__ = "giulio.rossetti@gmail.com"
@@ -105,10 +103,14 @@ class DynamicDiffusionModel(DiffusionModel):
             warnings.warn('Initial infection missing: a random sample of 5% of graph nodes will be set as infected')
             self.params['model']["percentage_infected"] = 0.05
 
-    def execute_snapshots(self, node_status=True):
+    def execute_snapshots(self, bunch_size=None, node_status=True):
         self.stream_execution = False
+        if bunch_size is None:
+            bunch_size = self.max_snapshot_id+1
+        if bunch_size > self.max_snapshot_id+1:
+            raise ValueError("Number of iterations required greater than snapshot number.")
         system_status = []
-        for t in past.builtins.xrange(self.min_snapshot_id, self.max_snapshot_id+1):
+        for t in past.builtins.xrange(self.min_snapshot_id, bunch_size):
             self.graph = self.dyngraph.time_slice(t_from=t)
             its = self.iteration(node_status)
             system_status.append(its)
@@ -124,3 +126,5 @@ class DynamicDiffusionModel(DiffusionModel):
                 its = self.iteration(node_status)
                 system_status.append(its)
         return system_status
+
+    iteration_bunch = execute_snapshots
