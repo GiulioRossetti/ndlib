@@ -1,5 +1,4 @@
 import abc
-import warnings
 import past.builtins
 import networkx as nx
 from ndlib.models.DiffusionModel import DiffusionModel
