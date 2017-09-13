@@ -75,6 +75,23 @@ In ``NDlib`` are implemented the following **Opinion Dynamics** models:
    models/opinion/Snajzd.rst
    models/opinion/COD.rst
 
+----------------------
+Dynamic Network Models
+----------------------
+
+Network topology may evolve as time goes by.
+
+In order to automatically leverage network dynamics ``NDlib`` enables the definition of diffusion models that work on *Snapshot Graphs* as well as on *Interaction Networks*.
+
+In particular ``NDlib`` implements dynamic network versions of the following models:
+
+.. toctree::
+   :maxdepth: 2
+
+   models/dynamics/dSI.rst
+   models/dynamics/dSIS.rst
+   models/dynamics/dSIR.rst
+
 ===================
 Model Configuration
 ===================
