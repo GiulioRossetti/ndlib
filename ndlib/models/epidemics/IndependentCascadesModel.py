@@ -65,7 +65,7 @@ class IndependentCascadesModel(DiffusionModel):
             if actual_status[u] != 1:
                 continue
 
-            neighbors = self.graph.neighbors(u)  # neighbors and successors (in DiGraph) produce the same result
+            neighbors = list(self.graph.neighbors(u))  # neighbors and successors (in DiGraph) produce the same result
 
             # Standard threshold
             if len(neighbors) > 0:

@@ -57,7 +57,7 @@ class DynSISModel(DynamicDiffusionModel):
 
         # streaming
         if self.stream_execution:
-            u, v = self.graph.edges()[0]
+            u, v = list(self.graph.edges)[0]
             u_status = self.status[u]
             v_status = self.status[v]
 
