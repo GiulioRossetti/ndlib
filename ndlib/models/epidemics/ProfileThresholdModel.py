@@ -96,9 +96,9 @@ class ProfileThresholdModel(DiffusionModel):
                     actual_status[u] = 1
                     continue
 
-            neighbors = self.graph.neighbors(u)
+            neighbors = list(self.graph.neighbors(u))
             if isinstance(self.graph, nx.DiGraph):
-                neighbors = self.graph.predecessors(u)
+                neighbors = list(self.graph.predecessors(u))
 
             infected = 0
             for v in neighbors:

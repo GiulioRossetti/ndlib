@@ -52,24 +52,24 @@ class SznajdModel(DiffusionModel):
         status_delta = {st: 0 for st in self.available_statuses.values()}
 
         # select a random node
-        speaker1 = self.graph.nodes()[np.random.randint(0, self.graph.number_of_nodes())]
+        speaker1 = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]
 
         # select a random neighbour
-        neighbours = self.graph.neighbors(speaker1)
+        neighbours = list(self.graph.neighbors(speaker1))
         if isinstance(self.graph, nx.DiGraph):
             # add also the predecessors
-            neighbours += self.graph.predecessors(speaker1)
+            neighbours += list(self.graph.predecessors(speaker1))
 
         speaker2 = neighbours[np.random.randint(0, len(neighbours))]
 
         if self.status[speaker1] == self.status[speaker2]:
             # select listeners (all neighbours of two speakers)
-            neighbours = self.graph.neighbors(speaker1) + self.graph.neighbors(speaker2)
+            neighbours = list(self.graph.neighbors(speaker1)) + list(self.graph.neighbors(speaker2))
 
             if isinstance(self.graph, nx.DiGraph):
                 # assumed if a->b then b can be influenced by a
                 # but not the other way around - the link between the speakers doesn't matter
-                neighbours = self.graph.successors(speaker1) + self.graph.successors(speaker2)
+                neighbours = list(self.graph.successors(speaker1)) + list(self.graph.successors(speaker2))
 
             # update status of listeners
             for listener in neighbours:

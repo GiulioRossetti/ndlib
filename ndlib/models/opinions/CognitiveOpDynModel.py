@@ -176,10 +176,10 @@ class CognitiveOpDynModel(DiffusionModel):
         # then interact with peers
         for i in range(0, self.graph.number_of_nodes()):
             # select a random node
-            n1 = self.graph.nodes()[np.random.randint(0, self.graph.number_of_nodes())]
+            n1 = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]
 
             # select all of the nodes neighbours (no digraph possible)
-            neighbours = self.graph.neighbors(n1)
+            neighbours = list(self.graph.neighbors(n1))
             if len(neighbours) == 0:
                 continue
 
