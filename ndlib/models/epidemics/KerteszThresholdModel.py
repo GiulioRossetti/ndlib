@@ -76,7 +76,7 @@ class KerteszThresholdModel(DiffusionModel):
                 i = 0
                 while i < number_node_blocked:
                     # select a random node
-                    node = self.graph.nodes()[np.random.randint(0, self.graph.number_of_nodes())]
+                    node = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]
 
                     # node not infected
                     if actual_status[node] == 0:
@@ -107,7 +107,7 @@ class KerteszThresholdModel(DiffusionModel):
                         actual_status[node] = 1
                         continue
 
-                neighbors = self.graph.neighbors(node)
+                neighbors = list(self.graph.neighbors(node))
                 if len(neighbors) == 0:
                     continue
 

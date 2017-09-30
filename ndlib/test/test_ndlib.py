@@ -412,19 +412,19 @@ class NdlibTest(unittest.TestCase):
         config = mc.Configuration()
         config.add_model_parameter('percentage_infected', 0.1)
         config.add_model_initial_configuration("Infected", [1, 2, 3])
-        config.add_node_set_configuration("partial", {1:1, 2:2})
+        config.add_node_set_configuration("partial", {1: 1, 2: 2})
         try:
             model.set_initial_status(config)
         except:
             pass
 
-        config.add_edge_set_configuration("partial", {e: 1 for e in g.edges()[:10]})
+        config.add_edge_set_configuration("partial", {e: 1 for e in list(g.edges)[:10]})
         try:
             model.set_initial_status(config)
         except:
             pass
-        config.add_node_set_configuration("partial", {n: 1 for n in g.nodes()})
-        config.add_edge_set_configuration("partial", {e: 1 for e in g.edges()})
+        config.add_node_set_configuration("partial", {n: 1 for n in g.nodes})
+        config.add_edge_set_configuration("partial", {e: 1 for e in g.edges})
         model.set_initial_status(config)
 
         g = nx.complete_graph(100)

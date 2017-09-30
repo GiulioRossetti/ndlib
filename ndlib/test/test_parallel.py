@@ -45,5 +45,6 @@ class ParallelTest(unittest.TestCase):
                             nprocesses=4)
         self.assertIsNotNone(trends)
 
+
 if __name__ == '__main__':
     unittest.main()

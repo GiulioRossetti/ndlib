@@ -62,14 +62,14 @@ class QVoterModel(DiffusionModel):
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
                 # select a random listener
-        listener = self.graph.nodes()[np.random.randint(0, self.graph.number_of_nodes())]
+        listener = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]
 
         # select all of the listener's neighbours
-        neighbours = self.graph.neighbors(listener)
+        neighbours = list(self.graph.neighbors(listener))
         if isinstance(self.graph, nx.DiGraph):
             # consider only the predecessors
             # assumed if a->b then b can be influenced by a
-            neighbours = self.graph.predecessors(listener)
+            neighbours = list(self.graph.predecessors(listener))
 
         # select q random neighbours (with repetitions)
         influence_group_state = [self.status[neighbours[i]]
