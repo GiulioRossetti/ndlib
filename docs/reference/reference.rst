@@ -36,7 +36,9 @@ In ``NDlib`` are implemented the following **Epidemic** models:
    models/epidemics/SIR.rst
    models/epidemics/SEIR.rst
    models/epidemics/SEIS.rst
+   models/epidemics/SWIS.rst
    models/epidemics/Threshold.rst
+   models/epidemics/GeneralisedThreshold.rst
    models/epidemics/KThreshold.rst
    models/epidemics/IndependentCascades.rst
    models/epidemics/Profile.rst
