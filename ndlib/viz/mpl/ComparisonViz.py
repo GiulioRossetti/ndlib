@@ -8,6 +8,7 @@ if os.environ.get('DISPLAY','') == '':
 import matplotlib.pyplot as plt
 import future.utils
 import past
+import six
 
 __author__ = 'Giulio Rossetti'
 __license__ = "GPL"
@@ -18,8 +19,9 @@ class InitializationException(Exception):
     """Initialization Exception"""
 
 
+@six.add_metaclass(abc.ABCMeta)
 class ComparisonPlot(object):
-    __metaclass__ = abc.ABCMeta
+    # __metaclass__ = abc.ABCMeta
 
     def __init__(self, models, trends, statuses=["Infected"]):
         self.models = models
