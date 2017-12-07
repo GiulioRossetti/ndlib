@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 import past.builtins
 import future.utils
+import six
 
 __author__ = "Giulio Rossetti"
 __email__ = "giulio.rossetti@gmail.com"
@@ -12,11 +13,12 @@ class ConfigurationException(Exception):
     """Configuration Exception"""
 
 
+@six.add_metaclass(abc.ABCMeta)
 class DiffusionModel(object):
     """
         Partial Abstract Class that defines Diffusion Models
     """
-    __metaclass__ = abc.ABCMeta
+    # __metaclass__ = abc.ABCMeta
 
     def __init__(self, graph):
         """
