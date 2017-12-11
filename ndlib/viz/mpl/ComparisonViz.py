@@ -68,7 +68,7 @@ class ComparisonPlot(object):
         """
         pass
 
-    def plot(self, filename, percentile=90):
+    def plot(self, filename=None, percentile=90):
         """
         Plot the comparison on file.
 
