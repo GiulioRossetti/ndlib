@@ -109,5 +109,9 @@ class ComparisonPlot(object):
             plt.ylim((0, 1))
 
         plt.tight_layout()
-        plt.savefig(filename)
-        plt.clf()
+        
+        if filename is not None:
+            plt.savefig(filename)
+            plt.clf()
+        else:
+            plt.show()
