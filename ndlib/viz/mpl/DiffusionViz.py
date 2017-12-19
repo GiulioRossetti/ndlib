@@ -7,14 +7,16 @@ if os.environ.get('DISPLAY','') == '':
     mpl.use('Agg')
 import matplotlib.pyplot as plt
 import future.utils
+import six
 
 __author__ = 'Giulio Rossetti'
 __license__ = "GPL"
 __email__ = "giulio.rossetti@gmail.com"
 
 
+@six.add_metaclass(abc.ABCMeta)
 class DiffusionPlot(object):
-    __metaclass__ = abc.ABCMeta
+   # __metaclass__ = abc.ABCMeta
 
     def __init__(self, model, trends):
         self.model = model

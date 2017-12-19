@@ -8,6 +8,7 @@ if os.environ.get('DISPLAY','') == '':
 import matplotlib.pyplot as plt
 import future.utils
 import past
+import six
 
 __author__ = 'Giulio Rossetti'
 __license__ = "GPL"
@@ -18,8 +19,9 @@ class InitializationException(Exception):
     """Initialization Exception"""
 
 
+@six.add_metaclass(abc.ABCMeta)
 class ComparisonPlot(object):
-    __metaclass__ = abc.ABCMeta
+    # __metaclass__ = abc.ABCMeta
 
     def __init__(self, models, trends, statuses=["Infected"]):
         self.models = models
@@ -66,7 +68,7 @@ class ComparisonPlot(object):
         """
         pass
 
-    def plot(self, filename, percentile=90):
+    def plot(self, filename=None, percentile=90):
         """
         Plot the comparison on file.
 
@@ -107,5 +109,9 @@ class ComparisonPlot(object):
             plt.ylim((0, 1))
 
         plt.tight_layout()
-        plt.savefig(filename)
-        plt.clf()
+        
+        if filename is not None:
+            plt.savefig(filename)
+            plt.clf()
+        else:
+            plt.show()

@@ -15,7 +15,9 @@ import ndlib.models.epidemics.SIRModel as sir
 import ndlib.models.epidemics.SISModel as sis
 import ndlib.models.epidemics.SEIRModel as seir
 import ndlib.models.epidemics.SEISModel as seis
+import ndlib.models.epidemics.SWIRModel as swir
 import ndlib.models.epidemics.ThresholdModel as th
+import ndlib.models.epidemics.GeneralisedThresholdModel as gth
 import ndlib.models.opinions.CognitiveOpDynModel as cm
 import ndlib.models.opinions.MajorityRuleModel as mrm
 import ndlib.models.opinions.QVoterModel as qvm
@@ -153,6 +155,18 @@ class NdlibTest(unittest.TestCase):
         iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
 
+    def test_swir_model(self):
+        g = nx.erdos_renyi_graph(1000, 0.1)
+        model = swir.SWIRModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('kappa', 0.5)
+        config.add_model_parameter('mu', 0.2)
+        config.add_model_parameter('nu', 0.05)
+        config.add_model_parameter("percentage_infected", 0.1)
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+
     def test_seis_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
         model = seis.SEISModel(g)
@@ -234,6 +248,24 @@ class NdlibTest(unittest.TestCase):
         self.assertEqual(len(iterations), 10)
         iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
+
+    def test_generalisedthreshold_model(self):
+        g = nx.erdos_renyi_graph(1000, 0.1)
+        model = gth.GeneralisedThresholdModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('tau', 5)
+        config.add_model_parameter('mu', 5)
+
+        threshold = 0.2
+        for i in g.nodes():
+            config.add_node_configuration("threshold", i, threshold)
+        model.set_initial_status(config)
+
+        iterations = model.iteration_bunch(50)
+        self.assertEqual(len(iterations), 50)
+        iterations = model.iteration_bunch(50, node_status=False)
+        self.assertEqual(len(iterations), 50)
 
     def test_profile_threshold_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
