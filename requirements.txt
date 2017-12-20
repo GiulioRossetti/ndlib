@@ -5,4 +5,4 @@ future==0.16.0
 networkx==2.0
 dynetx==0.2.0
 bokeh
-matplotlib==2.1.0
+matplotlib==2.1.1
