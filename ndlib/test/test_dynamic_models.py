@@ -13,7 +13,6 @@ import ndlib.models.dynamic.DynProfileModel as pro
 import ndlib.models.dynamic.DynProfileThresholdModel as prTr
 import ndlib.models.dynamic.DynKerteszThresholdModel as keTr
 
-
 class DynTest(unittest.TestCase):
 
     def test_DynSI(self):
