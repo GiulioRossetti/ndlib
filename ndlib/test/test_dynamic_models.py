@@ -11,6 +11,7 @@ import ndlib.models.dynamic.DynSIRModel as sir
 import ndlib.models.dynamic.DynSISModel as sis
 import ndlib.models.dynamic.DynProfileModel as pro
 import ndlib.models.dynamic.DynProfileThresholdModel as prTr
+import ndlib.models.dynamic.DynKerteszThresholdModel as keTr
 
 
 class DynTest(unittest.TestCase):
@@ -117,6 +118,28 @@ class DynTest(unittest.TestCase):
         for i in g.nodes():
             config.add_node_configuration("threshold", i, threshold)
             config.add_node_configuration("profile", i, profile)
+
+        model.set_initial_status(config)
+        model.set_initial_status(config)
+        iterations = model.execute_snapshots()
+        self.assertEqual(len(iterations), 3)
+
+    def test_DynKerteszThreshold(self):
+        dg = dn.DynGraph()
+
+        for t in past.builtins.xrange(0, 3):
+            g = nx.erdos_renyi_graph(200, 0.05)
+            dg.add_interactions_from(g.edges(), t)
+
+        model = keTr.DynKerteszThresholdModel(dg)
+        config = mc.Configuration()
+        config.add_model_parameter("percentage_infected", 0.1)
+        config.add_model_parameter("percentage_blocked", 0.1)
+        config.add_model_parameter("adopter_rate", 0.001)
+
+        threshold = 0.2
+        for i in g.nodes():
+            config.add_node_configuration("threshold", i, threshold)
 
         model.set_initial_status(config)
         model.set_initial_status(config)
