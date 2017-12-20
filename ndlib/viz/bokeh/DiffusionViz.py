@@ -3,14 +3,16 @@ from bokeh.plotting import figure
 from bokeh.models import Title
 from bokeh.palettes import Category20_9 as cols
 import future.utils
+import six
 
 __author__ = 'Giulio Rossetti'
 __license__ = "GPL"
 __email__ = "giulio.rossetti@gmail.com"
 
 
+@six.add_metaclass(abc.ABCMeta)
 class DiffusionPlot(object):
-    __metaclass__ = abc.ABCMeta
+    # __metaclass__ = abc.ABCMeta
 
     def __init__(self, model, trends):
         self.model = model
