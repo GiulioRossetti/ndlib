@@ -16,9 +16,13 @@ The project documentation can be found on [ReadTheDocs](http://ndlib.readthedocs
 If you use ``NDlib`` as support to your research consider citing:
 
 > G. Rossetti, L. Milli, S. Rinzivillo, A. Sirbu, D. Pedreschi, F. Giannotti.
+> **NDlib: a Python Library to Model and Analyze Diffusion Processes Over Complex Networks.**
+> Journal of Data Science and Analytics. 2017. DOI:0.1007/s41060-017-0086-6
+
+> G. Rossetti, L. Milli, S. Rinzivillo, A. Sirbu, D. Pedreschi, F. Giannotti.
 > "**NDlib: Studying Network Diffusion Dynamics**", 
-> IEEE International Conference on Data Science and Advanced Analytics, DSAA 2017.
-> Accepted, to appear.
+> IEEE International Conference on Data Science and Advanced Analytics, DSAA. 2017.
+
 
 ## Rationale behind NDlib
 
