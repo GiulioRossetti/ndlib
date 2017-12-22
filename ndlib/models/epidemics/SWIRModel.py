@@ -70,6 +70,7 @@ class SWIRModel(DiffusionModel):
                         if eventp < self.params['model']['kappa']:
                             actual_status[neighbor] = 1  # Infected
                         else:
+                            eventp = np.random.random_sample()
                             if eventp < self.params['model']['mu']:
                                 actual_status[neighbor] = 2  # Weakened
                     elif self.status[neighbor] == 2:  # Weakened
