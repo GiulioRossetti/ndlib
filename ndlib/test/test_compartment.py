@@ -145,8 +145,8 @@ class NdlibCompartmentsTest(unittest.TestCase):
 
         # cascading composition
         c3 = ns.NodeStochastic(0.2)
-        c2 = ns.NodeStochastic(0.4)
-        c1 = ns.NodeStochastic(0.5, "Infected")
+        c2 = ns.NodeStochastic(0.4, composed=c3)
+        c1 = ns.NodeStochastic(0.5, "Infected", composed=c2)
 
         model.add_rule("Susceptible", "Infected", c1)
 
