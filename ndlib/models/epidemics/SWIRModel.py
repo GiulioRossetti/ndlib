@@ -69,8 +69,9 @@ class SWIRModel(DiffusionModel):
                     if self.status[neighbor] == 0:  # Susceptible
                         if eventp < self.params['model']['kappa']:
                             actual_status[neighbor] = 1  # Infected
-                        elif eventp < self.params['model']['mu']:
-                            actual_status[neighbor] = 2  # Weakened
+                        else:
+                            if eventp < self.params['model']['mu']:
+                                actual_status[neighbor] = 2  # Weakened
                     elif self.status[neighbor] == 2:  # Weakened
                         if eventp < self.params['model']['nu']:
                             actual_status[neighbor] = 1  # Infected
