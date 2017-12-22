@@ -2,8 +2,8 @@ from setuptools import setup, find_packages
 # from codecs import open
 # from os import path
 
-__author__ = 'rossetti'
-__license__ = "GPL"
+__author__ = 'Giulio Rossetti'
+__license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 # here = path.abspath(path.dirname(__file__))
@@ -13,8 +13,8 @@ __email__ = "giulio.rossetti@gmail.com"
 #    long_description = f.read()
 
 setup(name='ndlib',
-      version='3.1.0',
-      license='GNU General Public License v3 or later (GPLv3+)',
+      version='4.0.0',
+      license='BSD-Clause-2',
       description='Network Diffusion Library',
       url='https://github.com/GiulioRossetti/ndlib',
       author='Giulio Rossetti',
@@ -32,7 +32,7 @@ setup(name='ndlib',
           'Topic :: Software Development :: Build Tools',
 
           # Pick your license as you wish (should match "license" above)
-          'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+          'License :: OSI Approved :: BSD License',
 
           "Operating System :: OS Independent",
 

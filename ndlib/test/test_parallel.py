@@ -4,6 +4,10 @@ import ndlib.models.ModelConfig as mc
 import ndlib.models.epidemics.SIRModel as sir
 from ndlib.utils import multi_runs
 
+__author__ = 'Giulio Rossetti'
+__license__ = "BSD-2-Clause"
+__email__ = "giulio.rossetti@gmail.com"
+
 
 class ParallelTest(unittest.TestCase):
 

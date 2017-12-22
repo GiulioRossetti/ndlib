@@ -7,6 +7,7 @@ from collections import defaultdict
 
 
 __author__ = "Letizia Milli"
+__license__ = "BSD-2-Clause"
 __email__ = "letizia.milli@isti.cnr.it"
 
 

@@ -12,6 +12,10 @@ import ndlib.models.ModelConfig as mc
 import ndlib.models.epidemics.SIRModel as sir
 from ndlib.viz.bokeh.DiffusionTrend import DiffusionTrend
 
+__author__ = 'Giulio Rossetti'
+__license__ = "BSD-2-Clause"
+__email__ = "giulio.rossetti@gmail.com"
+
 
 class VizTest(unittest.TestCase):
 

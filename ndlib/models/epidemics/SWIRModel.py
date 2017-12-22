@@ -2,7 +2,9 @@ from ..DiffusionModel import DiffusionModel
 import networkx as nx
 import numpy as np
 import future
-__author__ = ["Letizia Milli"]
+
+__author__ = "Letizia Milli"
+__license__ = "BSD-2-Clause"
 
 
 class SWIRModel(DiffusionModel):

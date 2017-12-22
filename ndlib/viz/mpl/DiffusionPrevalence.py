@@ -1,8 +1,8 @@
 from ndlib.viz.mpl.DiffusionViz import DiffusionPlot
 import numpy as np
 
-__author__ = 'rossetti'
-__license__ = "GPL"
+__author__ = 'Giulio Rossetti'
+__license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 

@@ -13,11 +13,14 @@ import ndlib.models.epidemics.SIRModel as sir
 import ndlib.models.epidemics.SIModel as si
 import ndlib.models.dynamic.DynSIModel as dsi
 from ndlib.viz.mpl.DiffusionTrend import DiffusionTrend
-
 import os
 
+__author__ = 'Giulio Rossetti'
+__license__ = "BSD-2-Clause"
+__email__ = "giulio.rossetti@gmail.com"
 
-class VizTest(unittest.TestCase):
+
+class MplVizTest(unittest.TestCase):
 
     def test_visualize(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
