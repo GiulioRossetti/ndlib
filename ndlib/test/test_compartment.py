@@ -7,7 +7,9 @@ import ndlib.models.ModelConfig as mc
 import ndlib.models.CompositeModel as gc
 import ndlib.models.compartments.NodeStochastic as ns
 import ndlib.models.compartments.NodeThreshold as nt
+import ndlib.models.compartments.NodeAttribute as na
 import ndlib.models.compartments.EdgeStochastic as es
+import ndlib.models.compartments.EdgeAttribute as ea
 import ndlib.models.compartments.ConditionalComposition as cif
 
 __author__ = 'Giulio Rossetti'
@@ -180,3 +182,43 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(100)
         self.assertEqual(len(iterations), 100)
+
+    def test_node_attribute(self):
+
+        g = nx.karate_club_graph()
+        attr = {n: {"even": int(n % 2)} for n in g.nodes()}
+        nx.set_node_attributes(g, attr)
+
+        model = gc.CompositeModel(g)
+        model.add_status("Susceptible")
+        model.add_status("Infected")
+
+        c = na.NodeAttribute("even", 0, probability=0.6)
+        model.add_rule("Susceptible", "Infected", c)
+
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
+
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+
+    def test_edge_attribute(self):
+
+        g = nx.karate_club_graph()
+        attr = {(u, v): {"even": int((u+v) % 2)} for (u, v) in g.edges()}
+        nx.set_edge_attributes(g, attr)
+
+        model = gc.CompositeModel(g)
+        model.add_status("Susceptible")
+        model.add_status("Infected")
+
+        c = ea.EdgeAttribute("even", 0, probability=0.6)
+        model.add_rule("Susceptible", "Infected", c)
+
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
+
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
