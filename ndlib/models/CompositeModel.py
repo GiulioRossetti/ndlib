@@ -20,8 +20,9 @@ class CompositeModel(DiffusionModel):
         self.status_progressive = 0
 
     def add_status(self, status_name):
-        self.available_statuses[status_name] = self.status_progressive
-        self.status_progressive += 1
+        if status_name not in self.available_statuses:
+            self.available_statuses[status_name] = self.status_progressive
+            self.status_progressive += 1
 
     def add_rule(self, status_from, status_to, rule):
         self.compartment[self.compartment_progressive] = (status_from, status_to, rule)
