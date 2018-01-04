@@ -18,17 +18,17 @@ class ExperimentParser(object):
         self.imports = "import networkx as nx\n" \
                       "import numpy as np\n" \
                       "import json\n" \
-                      "import ndlib.models.ModelConfig as ModelConfig\n" \
-                      "import ndlib.models.CompositeModel as CompositeModel\n" \
-                      "import ndlib.models.compartments.NodeStochastic as NodeStochastic\n" \
-                      "import ndlib.models.compartments.NodeThreshold as NodeThreshold\n" \
-                      "import ndlib.models.compartments.NodeAttribute as NodeAttribute\n" \
-                      "import ndlib.models.compartments.EdgeStochastic as EdgeStochastic\n" \
-                      "import ndlib.models.compartments.EdgeAttribute as EdgeAttribute\n" \
-                      "import ndlib.models.compartments.ConditionalComposition as ConditionalComposition\n"
+                      "from ndlib.models.ModelConfig import Configuration\n" \
+                      "from ndlib.models.CompositeModel import CompositeModel\n" \
+                      "from ndlib.models.compartments.NodeStochastic import NodeStochastic\n" \
+                      "from ndlib.models.compartments.NodeThreshold import NodeThreshold\n" \
+                      "from ndlib.models.compartments.NodeAttribute import NodeAttribute\n" \
+                      "from ndlib.models.compartments.EdgeStochastic import EdgeStochastic\n" \
+                      "from ndlib.models.compartments.EdgeAttribute import EdgeAttribute\n" \
+                      "from ndlib.models.compartments.ConditionalComposition import ConditionalComposition\n"
 
         self.script = ""
-        self.starting = ('STATUS', 'MCREATE', 'CDEF', 'RDEF', 'IF', 'MCONF', 'MLOAD', 'NDEFINE', 'NLOAD', 'EXECUTE')
+        self.starting = ('STATUS', 'MODEL', 'COMPARTMENT', 'RULE', 'IF', 'INITIALIZE', 'MLOAD', 'CREATE_NETWORK', 'LOAD_NETWORK', 'EXECUTE')
         self.__model_name = None
         self.__net_name = None
         self.query = None
@@ -75,47 +75,39 @@ class ExperimentParser(object):
         for statement in cmd:
             key = statement[0].rstrip().split(" ")[0]
 
-            if key == "MCREATE":
-                mcreate = self.__model_creation(statement)
-                self.script += mcreate
+            if key == "MODEL":
+                code = self.__model_creation(statement)
 
             elif key == "STATUS":
-                status = self.__status_definition(statement)
-                self.script += status
+                code = self.__status_definition(statement)
 
-            elif key == "CDEF":
-                compdef = self.__compartment_definition(statement)
-                self.script += compdef
+            elif key == "COMPARTMENT":
+                code = self.__compartment_definition(statement)
 
-            elif key == "RDEF":
-                ruledef = self.__rule_definition(statement)
-                self.script += ruledef
+            elif key == "RULE":
+                code = self.__rule_definition(statement)
 
             elif key == "IF":
-                ruledef = self.__conditional_compartment_composition(statement)
-                self.script += ruledef
+                code = self.__conditional_compartment_composition(statement)
 
-            elif key == "MCONF":
-                conf = self.__model_configuration(statement)
-                self.script += conf
+            elif key == "INITIALIZE":
+                code = self.__model_configuration(statement)
 
-            elif key == "NDEFINE":
-                netdef = self.__network_generation(statement)
-                self.script += netdef
+            elif key == "CREATE_NETWORK":
+                code = self.__network_generation(statement)
 
-            elif key == "NLOAD":
-                netdef = self.__network_loading(statement)
-                self.script += netdef
+            elif key == "LOAD_NETWORK":
+                code = self.__network_loading(statement)
 
             elif key == "EXECUTE":
-                ex = self.__execution_statement(statement)
-                self.script += ex
+                code = self.__execution_statement(statement)
 
             else:
                 raise ValueError("The keyword '%s' is not defined: check your syntax" % key)
+            self.script = "%s\n%s" % (self.script, code)
 
         self.__clean_imports()
-        self.script = "%s%s" % (self.imports, self.script)
+        self.script = "%s\n%s" % (self.imports, self.script)
 
         # Query execution
         old_stdout = sys.stdout
@@ -170,13 +162,13 @@ class ExperimentParser(object):
         if self.__net_name != part[3]:
             raise ValueError("Execution Definition Error: graph '%s' not defined" % part[3])
 
-        return "iterations = %s.iteration_bunch(%s)\n" \
+        return "iterations = %s.iteration_bunch(%s, node_status=False)\n" \
                "res = json.dumps(iterations)\n" \
                "print(res)\n" % (self.__model_name, part[5])
 
     def __network_generation(self, desc):
 
-        components = {'NDEFINE': None, 'NETWORK_TYPE': None, 'PARAM': []}
+        components = {'CREATE_NETWORK': None, 'TYPE': None, 'PARAM': []}
 
         for part in desc:
             part = part.split(" ")
@@ -189,16 +181,16 @@ class ExperimentParser(object):
                     components['PARAM'].append((part[1], part[2]))
             else:
                 components[part[0]] = part[1]
-        self.__net_name = components['NDEFINE']
+        self.__net_name = components['CREATE_NETWORK']
         parameters = ""
         for pr in components['PARAM']:
             parameters += "%s=%s, " % (pr[0], pr[1])
 
-        return "%s = nx.%s(%s)\n" % (self.__net_name, components['NETWORK_TYPE'], parameters)
+        return "%s = nx.%s(%s)\n" % (self.__net_name, components['TYPE'], parameters)
 
     def __network_loading(self, desc):
 
-        compartments = ['NLOAD', 'FROM', 'AS']
+        compartments = ['LOAD_NETWORK', 'FROM', 'AS']
 
         if len(desc) > 1:
             raise ValueError("Unsupported description")
@@ -219,12 +211,12 @@ class ExperimentParser(object):
         if len(desc) > 1:
             raise ValueError("Unsupported description")
         self.__model_name = desc[0].split(" ")[1]
-        create = "%s = CompositeModel.CompositeModel(%s)\n" % (self.__model_name, self.__net_name)
+        create = "%s = CompositeModel(%s)\n" % (self.__model_name, self.__net_name)
         return create
 
     def __model_configuration(self, desc):
 
-        components = {'MCONF': None, 'SET': []}
+        components = {'INITIALIZE': None, 'SET': []}
 
         for part in desc:
             part = part.split(" ")
@@ -235,7 +227,7 @@ class ExperimentParser(object):
                     raise ValueError("Experiment description malformed: check your syntax")
                 else:
                     components['SET'].append((part[1], part[2]))
-        conf = "config = ModelConfig.Configuration()\n"
+        conf = "config = Configuration()\n"
         for cf in components['SET']:
             status = cf[0].lower()
             if status not in self.__statuses:
@@ -247,12 +239,12 @@ class ExperimentParser(object):
 
     def __rule_definition(self, desc):
 
-        components = {'RDEF': None, 'FROM': None, 'TO': None, 'COMPARTMENT': None}
+        components = {'RULE': None, 'FROM': None, 'TO': None, 'USING_COMPARTMENT': None}
         for part in desc:
             part = part.split(" ")
             if part[0] not in components:
                 raise ValueError("Unsupported description")
-            if part[0] != 'RDEF':
+            if part[0] != 'RULE':
                 if len(part) == 2:
                     components[part[0]] = part[1]
                 else:
@@ -261,17 +253,17 @@ class ExperimentParser(object):
         if components['FROM'].lower() not in self.__statuses or components['TO'].lower() not in self.__statuses:
             raise ValueError("Rule Definition Error: status not defined")
 
-        if components['COMPARTMENT'] not in self.__compartments:
+        if components['USING_COMPARTMENT'] not in self.__compartments:
             raise ValueError("Conditional Compartment Definition Error: compartment '%s' undefined"
-                             % components['COMPARTMENT'])
+                             % components['USING_COMPARTMENT'])
 
         apply = "%s.add_rule('%s', '%s', %s)\n" % (self.__model_name, components['FROM'],
-                                                   components['TO'], components['COMPARTMENT'])
+                                                   components['TO'], components['USING_COMPARTMENT'])
         return apply
 
     def __compartment_definition(self, desc):
 
-        components = {'CDEF': None, 'TYPE': None, 'TRIGGER': None, 'COMPOSE': None,
+        components = {'COMPARTMENT': None, 'TYPE': None, 'TRIGGER': None, 'COMPOSE': None,
                       'PARAM': {'probability': 1, 'threshold': None, 'rate': None, 'attribute': None,
                                 'attribute_value': None}}
         for part in desc:
@@ -288,11 +280,11 @@ class ExperimentParser(object):
         if components['TRIGGER'] is not None and components['TRIGGER'].lower() not in self.__statuses:
             raise ValueError("Rule Definition Error: status not defined")
 
-        self.__compartments[components['CDEF']] = components['TYPE']
+        self.__compartments[components['COMPARTMENT']] = components['TYPE']
 
-        rule = "%s = %s.%s(composed=%s, triggering_status='%s', " \
+        rule = "%s = %s(composed=%s, triggering_status='%s', " \
                "rate=%s, probability=%s, threshold=%s, attribute='%s', attribute_value=%s)\n" % \
-               (components['CDEF'], components['TYPE'], components['TYPE'],
+               (components['COMPARTMENT'], components['TYPE'],
                 components['COMPOSE'], components['TRIGGER'],
                 components['PARAM']['rate'], components['PARAM']['probability'], components['PARAM']['threshold'],
                 components['PARAM']['attribute'], components['PARAM']['attribute_value'])
@@ -323,7 +315,7 @@ class ExperimentParser(object):
                     raise ValueError("Conditional Compartment Definition Error: compartment undefined")
 
                 self.__compartments[part[-1]] = "ConditionalComposition"
-                return "%s = ConditionalComposition.ConditionalComposition(%s, %s, %s)\n" \
+                return "%s = ConditionalComposition(%s, %s, %s)\n" \
                        % (part[-1], part[1], part[3], part[5])
             else:
                 raise ValueError("Experiment description malformed: check your syntax")
@@ -332,16 +324,15 @@ class ExperimentParser(object):
     def __check_components(identified_directives):
 
         # Check model
-        if 'MLOAD' not in identified_directives:
-            if 'MCREATE' not in identified_directives:
-                raise ValueError("Experiment description malformed (Model not specified): check your syntax")
+        if 'MODEL' not in identified_directives:
+            raise ValueError("Experiment description malformed (Model not specified): check your syntax")
 
         # Check network
-        if 'NLOAD' not in identified_directives:
-            if 'NDEFINE' not in identified_directives:
+        if 'LOAD_NETWORK' not in identified_directives:
+            if 'CREATE_NETWORK' not in identified_directives:
                 raise ValueError("Experiment description malformed (Network not specified): check your syntax")
         else:
-            if 'NDEFINE' in identified_directives:
+            if 'CREATE_NETWORK' in identified_directives:
                 ValueError("Experiment description malformed (Network not specified): check your syntax")
 
         # Check execution
@@ -349,7 +340,7 @@ class ExperimentParser(object):
             raise ValueError("Experiment description malformed (Execution statement missing): check your syntax")
 
         # Initial status
-        if 'MCONF' not in identified_directives:
+        if 'INITIALIZE' not in identified_directives:
             raise ValueError("Experiment description malformed (Initial status missing): check your syntax")
 
     @staticmethod
