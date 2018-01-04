@@ -104,10 +104,10 @@ class ExperimentParser(object):
 
             else:
                 raise ValueError("The keyword '%s' is not defined: check your syntax" % key)
-            self.script = "%s\n%s" % (self.script, code)
+            self.script = "%s%s" % (self.script, code)
 
         self.__clean_imports()
-        self.script = "%s\n%s" % (self.imports, self.script)
+        self.script = "%s%s" % (self.imports, self.script)
 
         # Query execution
         old_stdout = sys.stdout
