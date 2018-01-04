@@ -243,7 +243,8 @@ class ExperimentParser(object):
             raise ValueError("Rule Definition Error: status not defined")
 
         if components['COMPARTMENT'] not in self.__compartments:
-            raise ValueError("Conditional Compartment Definition Error: compartment undefined")
+            raise ValueError("Conditional Compartment Definition Error: compartment '%s' undefined"
+                             % components['COMPARTMENT'])
 
         apply = "%s.add_rule('%s', '%s', %s)\n" % (self.__model_name, components['FROM'],
                                                    components['TO'], components['COMPARTMENT'])
@@ -294,6 +295,7 @@ class ExperimentParser(object):
                         or part[5] not in self.__compartments:
                     raise ValueError("Conditional Compartment Definition Error: compartment undefined")
 
+                self.__compartments[part[-1]] = None
                 return "%s = ConditionalComposition.ConditionalComposition(%s, %s, %s)\n" \
                        % (part[-1], part[1], part[3], part[5])
             else:
