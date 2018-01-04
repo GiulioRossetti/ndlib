@@ -15,7 +15,7 @@ __email__ = "giulio.rossetti@gmail.com"
 class ExperimentParser(object):
 
     def __init__(self):
-        self.script = "import networkx as nx\n" \
+        self.imports = "import networkx as nx\n" \
                       "import numpy as np\n" \
                       "import json\n" \
                       "import ndlib.models.ModelConfig as ModelConfig\n" \
@@ -25,8 +25,9 @@ class ExperimentParser(object):
                       "import ndlib.models.compartments.NodeAttribute as NodeAttribute\n" \
                       "import ndlib.models.compartments.EdgeStochastic as EdgeStochastic\n" \
                       "import ndlib.models.compartments.EdgeAttribute as EdgeAttribute\n" \
-                      "import ndlib.models.compartments.ConditionalComposition as ConditionalComposition\n" \
+                      "import ndlib.models.compartments.ConditionalComposition as ConditionalComposition\n"
 
+        self.script = ""
         self.starting = ('STATUS', 'MCREATE', 'CDEF', 'RDEF', 'IF', 'MCONF', 'MLOAD', 'NDEFINE', 'NLOAD', 'EXECUTE')
         self.__model_name = None
         self.__net_name = None
@@ -113,6 +114,9 @@ class ExperimentParser(object):
             else:
                 raise ValueError("The keyword '%s' is not defined: check your syntax" % key)
 
+        self.__clean_imports()
+        self.script = "%s%s" % (self.imports, self.script)
+
         # Query execution
         old_stdout = sys.stdout
         redirected_output = sys.stdout = StringIO()
@@ -125,6 +129,21 @@ class ExperimentParser(object):
         sys.stdout = old_stdout
         result = json.loads(redirected_output.getvalue())
         return result
+
+    def __clean_imports(self):
+
+        libs = self.imports.split("\n")
+        new_imports = "\n".join(libs[:5])
+        compartments = set(self.__compartments.values())
+        rs = ["\\b%s\\b " % x for x in compartments]
+        cps = r"|".join(rs)
+
+        for lib in libs[5:]:
+            r = re.compile(cps, flags=re.I | re.X)
+            match = r.findall(lib)
+            if match:
+                new_imports += "\n%s\n" % lib
+        self.imports = new_imports
 
     def __status_definition(self, desc):
         if len(desc) > 1:
@@ -269,7 +288,7 @@ class ExperimentParser(object):
         if components['TRIGGER'] is not None and components['TRIGGER'].lower() not in self.__statuses:
             raise ValueError("Rule Definition Error: status not defined")
 
-        self.__compartments[components['CDEF']] = None
+        self.__compartments[components['CDEF']] = components['TYPE']
 
         rule = "%s = %s.%s(composed=%s, triggering_status='%s', " \
                "rate=%s, probability=%s, threshold=%s, attribute='%s', attribute_value=%s)\n" % \
@@ -278,7 +297,15 @@ class ExperimentParser(object):
                 components['PARAM']['rate'], components['PARAM']['probability'], components['PARAM']['threshold'],
                 components['PARAM']['attribute'], components['PARAM']['attribute_value'])
 
-        return rule.replace("'None'", "None")
+        rule = rule.replace("'None'", "None")
+
+        # Code cleaning
+        rule = re.sub(', [a-zA-Z\\_]+=None', '', rule)
+        rule = rule.replace("  ", " ")
+        rule = re.sub('[a-zA-Z\\_]+=None,', '', rule)
+        rule = rule.replace("( ", "(")
+
+        return rule
 
     def __conditional_compartment_composition(self, desc):
 
@@ -295,7 +322,7 @@ class ExperimentParser(object):
                         or part[5] not in self.__compartments:
                     raise ValueError("Conditional Compartment Definition Error: compartment undefined")
 
-                self.__compartments[part[-1]] = None
+                self.__compartments[part[-1]] = "ConditionalComposition"
                 return "%s = ConditionalComposition.ConditionalComposition(%s, %s, %s)\n" \
                        % (part[-1], part[1], part[3], part[5])
             else:
