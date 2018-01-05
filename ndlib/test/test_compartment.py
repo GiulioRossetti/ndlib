@@ -13,6 +13,7 @@ import ndlib.models.compartments.EdgeStochastic as es
 import ndlib.models.compartments.EdgeCategoricalAttribute as ea
 import ndlib.models.compartments.EdgeNumericalAttribute as en
 import ndlib.models.compartments.ConditionalComposition as cif
+import ndlib.models.compartments.CountDown as cw
 
 __author__ = 'Giulio Rossetti'
 __license__ = "BSD-2-Clause"
@@ -224,6 +225,26 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
+
+    def test_countwodn(self):
+
+        g = nx.karate_club_graph()
+        attr = {(u, v): {"even": int((u+v) % 2)} for (u, v) in g.edges()}
+        nx.set_edge_attributes(g, attr)
+
+        model = gc.CompositeModel(g)
+        model.add_status("Susceptible")
+        model.add_status("Infected")
+
+        c = cw.CountDown(name="time", iterations=4)
+        model.add_rule("Susceptible", "Infected", c)
+
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0.1)
+
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(100)
+        self.assertEqual(len(iterations), 100)
 
     def test_node_num_attribute(self):
 

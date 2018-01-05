@@ -27,7 +27,8 @@ class ExperimentParser(object):
                        'from ndlib.models.compartments.EdgeStochastic import EdgeStochastic\n' \
                        'from ndlib.models.compartments.EdgeCategoricalAttribute import EdgeCategoricalAttribute\n' \
                        'from ndlib.models.compartments.EdgeNumericalAttribute import EdgeNumericalAttribute\n' \
-                       'from ndlib.models.compartments.ConditionalComposition import ConditionalComposition\n'
+                       'from ndlib.models.compartments.ConditionalComposition import ConditionalComposition\n' \
+                       'from ndlib.models.compartments.CountDown import CountDown\n'
 
         self.script = ""
         self.starting = ('STATUS', 'MODEL', 'COMPARTMENT', 'RULE', 'IF', 'INITIALIZE',
@@ -194,19 +195,19 @@ class ExperimentParser(object):
 
     def __network_loading(self, desc):
 
-        compartments = ['LOAD_NETWORK', 'FROM', 'AS']
+        compartments = ['LOAD_NETWORK', 'FROM']
 
         if len(desc) > 1:
             raise ValueError("Unsupported description")
         stm = desc[0].split(" ")
-        if len(stm) != 6 or stm[0] not in compartments or stm[2] not in compartments:
+        if len(stm) != 4 or stm[0] not in compartments or stm[2] not in compartments:
             raise ValueError("Experiment description malformed (wrong network loading statement): check your syntax")
 
-        self.__net_name = stm[5]
+        self.__net_name = stm[1]
         filename = stm[3]
 
         if os.path.isfile(filename):
-            return "%s = nx.read_edgelist(%s)\n" % (self.__net_name, filename)
+            return "%s = nx.read_edgelist('%s')\n" % (self.__net_name, filename)
         else:
             raise ValueError("Experiment description malformed (file not existing): check your syntax")
 
@@ -269,7 +270,7 @@ class ExperimentParser(object):
 
         components = {'COMPARTMENT': None, 'TYPE': None, 'TRIGGER': None, 'COMPOSE': None,
                       'PARAM': {'probability': 1, 'threshold': None, 'rate': None, 'attribute': None,
-                                'attribute_value': None}}
+                                'attribute_value': None, 'name': None, 'iterations': None}}
         for part in desc:
             part = part.split(" ")
             if part[0] not in components:
@@ -286,12 +287,13 @@ class ExperimentParser(object):
 
         self.__compartments[components['COMPARTMENT']] = components['TYPE']
 
-        rule = "%s = %s(composed=%s, triggering_status='%s', " \
-               "rate=%s, probability=%s, threshold=%s, attribute='%s', attribute_value=%s)\n" % \
+        rule = '%s = %s(composed=%s, triggering_status=\'%s\', ' \
+               'rate=%s, probability=%s, threshold=%s, attribute=\'%s\', attribute_value=%s, name="%s", iterations=%s)\n' % \
                (components['COMPARTMENT'], components['TYPE'],
                 components['COMPOSE'], components['TRIGGER'],
                 components['PARAM']['rate'], components['PARAM']['probability'], components['PARAM']['threshold'],
-                components['PARAM']['attribute'], components['PARAM']['attribute_value'])
+                components['PARAM']['attribute'], components['PARAM']['attribute_value'], components['PARAM']['name'],
+                components['PARAM']['iterations'])
 
         rule = rule.replace("'None'", "None")
 
@@ -350,4 +352,4 @@ class ExperimentParser(object):
     @staticmethod
     def __sanitize_string(text):
         text = text.replace("\t", " ").replace("eval", "").replace("exec", "").replace("__", "")
-        return re.sub('[-\\\/():=!@#$]', '', text)
+        return re.sub('[-\\\():=!@#$]', '', text)
