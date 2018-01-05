@@ -107,7 +107,7 @@ class ExperimentParser(object):
             self.script = "%s%s" % (self.script, code)
 
         self.__clean_imports()
-        self.script = "%s%s" % (self.imports, self.script)
+        self.script = "%s\n%s" % (self.imports, self.script)
 
         # Query execution
         old_stdout = sys.stdout
@@ -185,8 +185,9 @@ class ExperimentParser(object):
         parameters = ""
         for pr in components['PARAM']:
             parameters += "%s=%s, " % (pr[0], pr[1])
+        code = "%s = nx.%s(%s)\n" % (self.__net_name, components['TYPE'], parameters)
 
-        return "%s = nx.%s(%s)\n" % (self.__net_name, components['TYPE'], parameters)
+        return code.replace(", )", ")")
 
     def __network_loading(self, desc):
 
@@ -239,7 +240,7 @@ class ExperimentParser(object):
 
     def __rule_definition(self, desc):
 
-        components = {'RULE': None, 'FROM': None, 'TO': None, 'USING_COMPARTMENT': None}
+        components = {'RULE': None, 'FROM': None, 'TO': None, 'USING': None}
         for part in desc:
             part = part.split(" ")
             if part[0] not in components:
@@ -253,12 +254,12 @@ class ExperimentParser(object):
         if components['FROM'].lower() not in self.__statuses or components['TO'].lower() not in self.__statuses:
             raise ValueError("Rule Definition Error: status not defined")
 
-        if components['USING_COMPARTMENT'] not in self.__compartments:
+        if components['USING'] not in self.__compartments:
             raise ValueError("Conditional Compartment Definition Error: compartment '%s' undefined"
-                             % components['USING_COMPARTMENT'])
+                             % components['USING'])
 
         apply = "%s.add_rule('%s', '%s', %s)\n" % (self.__model_name, components['FROM'],
-                                                   components['TO'], components['USING_COMPARTMENT'])
+                                                   components['TO'], components['USING'])
         return apply
 
     def __compartment_definition(self, desc):

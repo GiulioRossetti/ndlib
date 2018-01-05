@@ -41,12 +41,12 @@ class NdlibParserTest(unittest.TestCase):
                 "RULE\n" \
                 "FROM Susceptible\n" \
                 "TO Infected\n" \
-                "USING_COMPARTMENT c2\n" \
+                "USING c2\n" \
                 "\n" \
                 "RULE\n" \
                 "FROM Infected\n" \
                 "TO Removed\n" \
-                "USING_COMPARTMENT c3\n" \
+                "USING c3\n" \
                 "\n" \
                 "INITIALIZE\n" \
                 "SET Infected 0.1\n" \
@@ -91,7 +91,7 @@ class NdlibParserTest(unittest.TestCase):
                 "RULE\n" \
                 "FROM Infected\n" \
                 "TO Removed\n" \
-                "USING_COMPARTMENT r1\n" \
+                "USING r1\n" \
                 "\n" \
                 "INITIALIZE\n" \
                 "SET Infected 0.1\n" \
