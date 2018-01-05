@@ -7,12 +7,16 @@ __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
-class NodeAttribute(Compartiment):
+class NodeCategoricalAttribute(Compartiment):
 
-    def __init__(self, attribute, attribute_value, probability=1, **kwargs):
+    def __init__(self, attribute, value, probability=1, **kwargs):
         super(self.__class__, self).__init__(kwargs)
+
+        if not isinstance(value, str):
+            raise ValueError("Categorical (string) value expected")
+
         self.attribute = attribute
-        self.attribute_value = attribute_value
+        self.attribute_value = value
         self.probability = probability
 
     def execute(self, node, graph, status, status_map, *args, **kwargs):
@@ -23,3 +27,5 @@ class NodeAttribute(Compartiment):
 
         if test:
             return self.compose(node, graph, status, status_map, kwargs)
+
+        return False

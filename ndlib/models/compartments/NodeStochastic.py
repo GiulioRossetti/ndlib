@@ -28,3 +28,5 @@ class NodeStochastic(Compartiment):
         test = p < self.rate * triggered
         if test:
             return self.compose(node, graph, status, status_map, kwargs)
+
+        return False

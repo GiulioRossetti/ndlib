@@ -7,12 +7,16 @@ __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
-class EdgeAttribute(Compartiment):
+class EdgeCategoricalAttribute(Compartiment):
 
-    def __init__(self, attribute, attribute_value, triggering_status=None, probability=1, **kwargs):
+    def __init__(self, attribute, value, triggering_status=None, probability=1, **kwargs):
         super(self.__class__, self).__init__(kwargs)
         self.attribute = attribute
-        self.attribute_value = attribute_value
+
+        if not isinstance(value, str):
+            raise ValueError("Categorical (string) value expected")
+
+        self.attribute_value = value
         self.trigger = triggering_status
         self.probability = probability
 

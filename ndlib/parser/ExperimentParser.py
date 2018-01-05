@@ -15,20 +15,23 @@ __email__ = "giulio.rossetti@gmail.com"
 class ExperimentParser(object):
 
     def __init__(self):
-        self.imports = "import networkx as nx\n" \
-                      "import numpy as np\n" \
-                      "import json\n" \
-                      "from ndlib.models.ModelConfig import Configuration\n" \
-                      "from ndlib.models.CompositeModel import CompositeModel\n" \
-                      "from ndlib.models.compartments.NodeStochastic import NodeStochastic\n" \
-                      "from ndlib.models.compartments.NodeThreshold import NodeThreshold\n" \
-                      "from ndlib.models.compartments.NodeAttribute import NodeAttribute\n" \
-                      "from ndlib.models.compartments.EdgeStochastic import EdgeStochastic\n" \
-                      "from ndlib.models.compartments.EdgeAttribute import EdgeAttribute\n" \
-                      "from ndlib.models.compartments.ConditionalComposition import ConditionalComposition\n"
+        self.imports = 'import networkx as nx\n' \
+                       'import numpy as np\n' \
+                       'import json\n' \
+                       'from ndlib.models.ModelConfig import Configuration\n' \
+                       'from ndlib.models.CompositeModel import CompositeModel\n' \
+                       'from ndlib.models.compartments.NodeStochastic import NodeStochastic\n' \
+                       'from ndlib.models.compartments.NodeThreshold import NodeThreshold\n' \
+                       'from ndlib.models.compartments.NodeCategoricalAttribute import NodeCategoricalAttribute\n' \
+                       'from ndlib.models.compartments.NodeNumericalAttribute import NodeNumericalAttribute\n' \
+                       'from ndlib.models.compartments.EdgeStochastic import EdgeStochastic\n' \
+                       'from ndlib.models.compartments.EdgeCategoricalAttribute import EdgeCategoricalAttribute\n' \
+                       'from ndlib.models.compartments.EdgeNumericalAttribute import EdgeNumericalAttribute\n' \
+                       'from ndlib.models.compartments.ConditionalComposition import ConditionalComposition\n'
 
         self.script = ""
-        self.starting = ('STATUS', 'MODEL', 'COMPARTMENT', 'RULE', 'IF', 'INITIALIZE', 'MLOAD', 'CREATE_NETWORK', 'LOAD_NETWORK', 'EXECUTE')
+        self.starting = ('STATUS', 'MODEL', 'COMPARTMENT', 'RULE', 'IF', 'INITIALIZE',
+                         'CREATE_NETWORK', 'LOAD_NETWORK', 'EXECUTE')
         self.__model_name = None
         self.__net_name = None
         self.query = None
