@@ -24,6 +24,9 @@ If you use ``NDlib`` as support to your research consider citing:
 > "**NDlib: Studying Network Diffusion Dynamics**", 
 > IEEE International Conference on Data Science and Advanced Analytics, DSAA. 2017.
 
+## Promo Video
+
+[![Promo](https://img.youtube.com/vi/tYHNOuKJwbE/0.jpg)](https://www.youtube.com/watch?v=tYHNOuKJwbEE)
 
 ## Rationale behind NDlib
 
