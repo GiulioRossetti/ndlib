@@ -2,7 +2,7 @@ mock==2.0.0
 sphinx_rtd_theme==0.2.4
 numpy==1.14.0
 future==0.16.0
-networkx==2.0
+networkx==2.1
 dynetx==0.2.0
 bokeh==0.12.13
 matplotlib==2.1.1
