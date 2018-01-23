@@ -13,7 +13,7 @@ __email__ = "giulio.rossetti@gmail.com"
 #    long_description = f.read()
 
 # Program scripts
-scripts = ['scripts/NDQL_translate', 'scripts/NDQL_execute']
+scripts = ['ndlib/scripts/NDQL_translate', 'ndlib/scripts/NDQL_execute']
 
 
 setup(name='ndlib',
