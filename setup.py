@@ -13,7 +13,7 @@ __email__ = "giulio.rossetti@gmail.com"
 #    long_description = f.read()
 
 # Program scripts
-scripts = ['ndlib/scripts/NDQL_translate', 'ndlib/scripts/NDQL_execute']
+#scripts = ['ndlib/scripts/NDQL_translate', 'ndlib/scripts/NDQL_execute']
 
 
 setup(name='ndlib',
@@ -24,7 +24,12 @@ setup(name='ndlib',
       author='Giulio Rossetti',
       author_email='giulio.rossetti@gmail.com',
       use_2to3=True,
-      scripts=scripts,
+      entry_points={
+          'console_scripts': [
+              'NDQL_translate = scripts.NDQL_translate',
+              'NDQL_execute = scripts.NDQL_execute'
+          ],
+      },
       classifiers=[
           # How mature is this project? Common values are
           #   3 - Alpha
