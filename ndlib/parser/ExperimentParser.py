@@ -122,7 +122,7 @@ class ExperimentParser(object):
         redirected_output = sys.stdout = StringIO()
 
         try:
-            exec(self.script)
+            exec(self.script, locals(), globals())
         except SyntaxError:
             raise ValueError("Experiment description malformed (Incorrect statement ordering): check your syntax")
 
