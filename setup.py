@@ -12,6 +12,10 @@ __email__ = "giulio.rossetti@gmail.com"
 # with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 #    long_description = f.read()
 
+# Program scripts
+scripts = ['scripts/NDQL_translate', 'scripts/NDQL_execute']
+
+
 setup(name='ndlib',
       version='4.0.0',
       license='BSD-Clause-2',
@@ -20,6 +24,7 @@ setup(name='ndlib',
       author='Giulio Rossetti',
       author_email='giulio.rossetti@gmail.com',
       use_2to3=True,
+      scripts=scripts,
       classifiers=[
           # How mature is this project? Common values are
           #   3 - Alpha
