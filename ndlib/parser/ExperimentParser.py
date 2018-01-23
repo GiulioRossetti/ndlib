@@ -6,6 +6,8 @@ import sys
 import json
 import os.path
 import re
+import networkx as nx
+from ndlib.models.CompositeModel import CompositeModel
 
 __author__ = 'Giulio Rossetti'
 __license__ = "BSD-2-Clause"
@@ -38,6 +40,7 @@ class ExperimentParser(object):
         self.query = None
         self.__statuses = {}
         self.__compartments = {}
+        self.model = CompositeModel(nx.Graph())
 
     def read_query_file(self, filename):
         with open(filename) as f:
@@ -113,6 +116,7 @@ class ExperimentParser(object):
         self.__clean_imports()
         self.script = "%s\n%s" % (self.imports, self.script)
 
+    def execute_query(self):
         # Query execution
         old_stdout = sys.stdout
         redirected_output = sys.stdout = StringIO()
@@ -124,7 +128,9 @@ class ExperimentParser(object):
 
         sys.stdout = old_stdout
         result = json.loads(redirected_output.getvalue())
-        return result
+        trends = self.model.build_trends(result)
+        trends[0]['Statuses'] = {str(v): k for k, v in self.model.available_statuses.items()}
+        return trends
 
     def __clean_imports(self):
 
@@ -149,6 +155,7 @@ class ExperimentParser(object):
             raise ValueError("Experiment description malformed (wrong status definition statement): check your syntax")
 
         self.__statuses[part[1].lower()] = None
+        self.model.add_status(part[1])
 
         return "%s.add_status('%s')\n" % (self.__model_name, part[1])
 

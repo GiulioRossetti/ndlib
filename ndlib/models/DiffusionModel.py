@@ -314,7 +314,11 @@ class DiffusionModel(object):
 
         for it in iterations:
             for st in self.available_statuses.values():
-                status_delta[st].append(it['status_delta'][st])
-                node_count[st].append(it['node_count'][st])
+                try:
+                    status_delta[st].append(it['status_delta'][st])
+                    node_count[st].append(it['node_count'][st])
+                except:
+                    status_delta[st].append(it['status_delta'][str(st)])
+                    node_count[st].append(it['node_count'][str(st)])
 
         return [{"trends": {"node_count": node_count, "status_delta": status_delta}}]

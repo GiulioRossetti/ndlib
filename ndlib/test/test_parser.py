@@ -57,8 +57,9 @@ class NdlibParserTest(unittest.TestCase):
 
         parser = ep.ExperimentParser()
         parser.set_query(query)
-        iterations = parser.parse()
-        self.assertEqual(len(iterations), 100)
+        parser.parse()
+        iterations = parser.execute_query()
+        self.assertIn('trends', iterations[0])
 
     def test_ifcompose(self):
         query = "CREATE_NETWORK g1\n" \
@@ -102,8 +103,9 @@ class NdlibParserTest(unittest.TestCase):
 
         parser = ep.ExperimentParser()
         parser.set_query(query)
-        iterations = parser.parse()
-        self.assertEqual(len(iterations), 100)
+        parser.parse()
+        iterations = parser.execute_query()
+        self.assertIn('trends', iterations[0])
 
     def test_net_load(self):
         base = os.path.dirname(os.path.abspath(__file__))
@@ -154,14 +156,15 @@ class NdlibParserTest(unittest.TestCase):
 
         parser = ep.ExperimentParser()
         parser.set_query(query)
-        iterations = parser.parse()
+        parser.parse()
+        iterations = parser.execute_query()
 
         try:
             os.remove("%s/edge.txt" % base)
         except OSError:
             pass
 
-        self.assertEqual(len(iterations), 10)
+        self.assertIn('trends', iterations[0])
 
     def test_node_countdown(self):
         query = "CREATE_NETWORK g1\n" \
@@ -205,5 +208,6 @@ class NdlibParserTest(unittest.TestCase):
 
         parser = ep.ExperimentParser()
         parser.set_query(query)
-        iterations = parser.parse()
-        self.assertEqual(len(iterations), 100)
+        parser.parse()
+        iterations = parser.execute_query()
+        self.assertIn('trends', iterations[0])
