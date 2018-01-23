@@ -4,10 +4,10 @@ __email__ = "giulio.rossetti@gmail.com"
 
 import ndlib.parser.ExperimentParser as ep
 import json
+import argparse
 
-if __name__ == "__main__":
-    import argparse
 
+def execute():
     print("------------------------------------")
     print("            NDQL Execute            ")
     print("------------------------------------")

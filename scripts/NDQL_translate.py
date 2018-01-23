@@ -3,9 +3,10 @@ __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 import ndlib.parser.ExperimentParser as ep
+import argparse
 
-if __name__ == "__main__":
-    import argparse
+
+def translate():
 
     print("------------------------------------")
     print("          NDQL Translate            ")

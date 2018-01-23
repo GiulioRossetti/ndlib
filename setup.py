@@ -26,8 +26,8 @@ setup(name='ndlib',
       use_2to3=True,
       entry_points={
           'console_scripts': [
-              'NDQL_translate = scripts.NDQL_translate',
-              'NDQL_execute = scripts.NDQL_execute'
+              'NDQL_translate = scripts.NDQL_translate:translate',
+              'NDQL_execute = scripts.NDQL_execute:execute'
           ],
       },
       classifiers=[
