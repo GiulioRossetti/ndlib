@@ -8,14 +8,6 @@ import argparse
 
 def translate():
 
-    print("------------------------------------")
-    print("          NDQL Translate            ")
-    print("------------------------------------")
-    print("Author:  ", __author__)
-    print("Email:   ", __email__)
-    print("License: ", __license__)
-    print("------------------------------------")
-
     parser = argparse.ArgumentParser()
 
     parser.add_argument('query_file', type=str, help='simulation query file')

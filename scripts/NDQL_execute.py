@@ -8,13 +8,6 @@ import argparse
 
 
 def execute():
-    print("------------------------------------")
-    print("            NDQL Execute            ")
-    print("------------------------------------")
-    print("Author:  ", __author__)
-    print("Email:   ", __email__)
-    print("License: ", __license__)
-    print("------------------------------------")
 
     parser = argparse.ArgumentParser()
 
