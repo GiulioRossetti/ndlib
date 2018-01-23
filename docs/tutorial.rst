@@ -1,6 +1,6 @@
-**************
-NDlib Tutorial
-**************
+********
+Tutorial
+********
 
 NDlib is built upon networkx and is designed to configure, simulate and visualize diffusion experiments.
 

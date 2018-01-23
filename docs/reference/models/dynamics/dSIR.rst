@@ -1,6 +1,6 @@
-********************
-Dynamic Networks SIR
-********************
+***
+SIR
+***
 
 The SIR model was introduced in 1927 by Kermack [#]_.
  

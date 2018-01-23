@@ -1,6 +1,6 @@
-*********
-Reference
-*********
+***********************************
+Network Diffusion Library Reference
+***********************************
 
 In this section are introduced the components that constitute ``NDlib``, namely
 
@@ -8,12 +8,16 @@ In this section are introduced the components that constitute ``NDlib``, namely
 - The methodology adopted to configure a general simulation
 - The visualization facilities embedded in the library to explore the results
 
-======
-Models
-======
+Advanced topics (Custom model definition, Network Diffusion Query language (NDQL), Experiment Server and Visual Framework) are reported in separate sections.
+
+================
+Diffusion Models
+================
 The analysis of diffusive phenomena that unfold on top of complex networks is a task able to attract growing interests from multiple fields of research. 
 
 In order to provide a succinct framing of such complex and extensively studied problem it is possible to split the related literature into two broad, related, sub-classes: **Epidemics** and **Opinion Dynamics**.
+
+Moreover, ``NDlib`` also supports the simulation of diffusive processes on top of evolving network topologies: the **Dynamic Network Models** section the ones ``NDlib`` implements.
 
 ---------
 Epidemics
@@ -93,6 +97,10 @@ In particular ``NDlib`` implements dynamic network versions of the following mod
    models/dynamics/dSI.rst
    models/dynamics/dSIS.rst
    models/dynamics/dSIR.rst
+   models/dynamics/dKThreshold.rst
+   models/dynamics/dProfile.rst
+   models/dynamics/dProfileThreshold.rst
+
 
 ===================
 Model Configuration

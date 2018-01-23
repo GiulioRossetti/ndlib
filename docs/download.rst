@@ -12,6 +12,8 @@ Github (latest development): https://github.com/GiulioRossetti/ndlib
 
 Github NDlib-REST: https://github.com/GiulioRossetti/ndlib-rest
 
+Github NDlib-Viz: https://github.com/rinziv/NDLib-Viz
+
 -------------
 Documentation
 -------------

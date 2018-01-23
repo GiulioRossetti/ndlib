@@ -1,6 +1,6 @@
-******************
-Dynamic Network SI
-******************
+**
+SI
+**
 
 The SI model was introduced in 1927 by Kermack [#]_.
  

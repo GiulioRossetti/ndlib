@@ -19,13 +19,15 @@ Infected     1
 Parameters
 ----------
 
-=========  =====  ===============  =======  =========  =======================
+=========  =====  ===============  =======  =========  ========================
 Name       Type   Value Type       Default  Mandatory  Description
-=========  =====  ===============  =======  =========  =======================
-threshold  Node   float in [0, 1]   0.1      False     Individual threshold
-tau		   Model  int                        True      Adoption threshold rate
-mu         Model  int                        True      Exogenous timescale
-=========  =====  ===============  =======  =========  =======================
+=========  =====  ===============  =======  =========  ========================
+threshold  Node   float in [0, 1]  0.1      False      Individual threshold
+tau        Model  int                       True       Adoption threshold rate
+mu         Model  int                       True       Exogenous timescale
+=========  =====  ===============  =======  =========  ========================
+
+
 
 The initial infection status can be defined via:
 
@@ -97,4 +99,5 @@ In the code below is shown an example of instantiation and execution of a Thresh
 
     # Simulation execution
     iterations = model.iteration_bunch(200)
+
 
