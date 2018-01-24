@@ -229,8 +229,6 @@ class NdlibCompartmentsTest(unittest.TestCase):
     def test_countwodn(self):
 
         g = nx.karate_club_graph()
-        attr = {(u, v): {"even": int((u+v) % 2)} for (u, v) in g.edges()}
-        nx.set_edge_attributes(g, attr)
 
         model = gc.CompositeModel(g)
         model.add_status("Susceptible")
