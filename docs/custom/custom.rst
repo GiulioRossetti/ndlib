@@ -26,8 +26,7 @@ The last step of such process can be easily decomposed into atomic operations th
     - ``CompositeModel`` describes diffusion models for static networks
     - ``DynamicCompositeModel`` describes diffusion models for dynamic networks
 
-
-Here we will discuss only the former class, the latter behaving alike.
+    To avoid redundant documentation, here we will discuss only the former class, the latter behaving alike.
 
 ============
 Compartments
