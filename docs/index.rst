@@ -60,13 +60,13 @@ If you use ``NDlib`` as support to your research consider citing:
 NDlib Dev Team
 ^^^^^^^^^^^^^^
 
-==================== ============================
-**Name**             **Contribution**
-`Giulio Rossetti`_   Library Design/Documentation
-Letizia Milli        Epidemic Models
-Alina Sirbu          Opinion Dynamics Model
-Salvatore Rinzivillo Visual Platform
-==================== ============================
+======================= ============================
+**Name**                **Contribution**
+`Giulio Rossetti`_      Library Design/Documentation
+`Letizia Milli`_        Epidemic Models
+`Alina Sirbu`_          Opinion Dynamics Model
+`Salvatore Rinzivillo`_ Visual Platform
+======================= ============================
 
 
 .. toctree::
@@ -87,5 +87,8 @@ Salvatore Rinzivillo Visual Platform
 
 
 .. _`Giulio Rossetti`: http://www.about.giuliorossetti.net
+.. _`Letizia Milli`: https://github.com/letiziam
+.. _`Alina Sirbu`: https://github.com/alinasirbu
+.. _`Salvatore Rinzivillo`: https://github.com/rinziv
 .. _`Source`: https://github.com/GiulioRossetti/ndlib
 .. _`Distribution`: https://pypi.python.org/pypi/ndlib
