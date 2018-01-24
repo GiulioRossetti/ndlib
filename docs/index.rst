@@ -3,6 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+.. |date| date::
+
 NDlib - Network Diffusion Library
 =================================
 .. image:: https://badge.fury.io/py/ndlib.svg
@@ -21,10 +23,28 @@ NDlib is a Python software package that allows to describe, simulate, and study 
 
 ================ =================== ==================  ==========  ===============
    **Date**      **Python Versions**   **Main Author**   **GitHub**      **pypl**
-January 23, 2018      2.7.x/3.x      `Giulio Rossetti`_  `Source`_   `Distribution`_
+|date|                2.7.x/3.x      `Giulio Rossetti`_  `Source`_   `Distribution`_
 ================ =================== ==================  ==========  ===============
 
-If you use our library in a research paper please cite the following works:
+.. raw:: html
+
+		<div style="text-align: center">
+        <object width="480" height="385" align="center"><param name="movie"
+        value="https://www.youtube.com/watch?v=tYHNOuKJwbE&t=172s"></param><param
+        name="allowFullScreen" value="true"></param><param
+        name="allowscriptaccess" value="always"></param><embed
+        src="https://www.youtube.com/watch?v=tYHNOuKJwbE&t=172s"
+        type="application/x-shockwave-flash" allowscriptaccess="always"
+        allowfullscreen="true" width="480"
+        height="385"></embed></object>
+        </div>
+        <br/><br/>
+
+
+
+If you use ``NDlib`` as support to your research consider citing:
+
+.. epigraph::
 
     G. Rossetti, L. Milli, S. Rinzivillo, A. Sirbu, D. Pedreschi, F. Giannotti.
     **"NDlib: a Python Library to Model and Analyze Diffusion Processes Over Complex Networks"**
@@ -35,24 +55,10 @@ If you use our library in a research paper please cite the following works:
     **"NDlib: Studying Network Diffusion Dynamics"**
     IEEE International Conference on Data Science and Advanced Analytics, DSAA. 2017.
 
------------
-NDlib Video
------------
 
-.. raw:: html
-
-        <object width="480" height="385" align="center"><param name="movie"
-        value="https://www.youtube.com/watch?v=tYHNOuKJwbE&t=172s"></param><param
-        name="allowFullScreen" value="true"></param><param
-        name="allowscriptaccess" value="always"></param><embed
-        src="https://www.youtube.com/watch?v=tYHNOuKJwbE&t=172s"
-        type="application/x-shockwave-flash" allowscriptaccess="always"
-        allowfullscreen="true" width="480"
-        height="385"></embed></object>
-
---------------
+^^^^^^^^^^^^^^
 NDlib Dev Team
---------------
+^^^^^^^^^^^^^^
 
 ==================== ============================
 **Name**             **Contribution**
@@ -62,12 +68,10 @@ Alina Sirbu          Opinion Dynamics Model
 Salvatore Rinzivillo Visual Platform
 ==================== ============================
 
---------
-Contents
---------
 
 .. toctree::
    :maxdepth: 1
+   :hidden:
 
    overview.rst
    download.rst
