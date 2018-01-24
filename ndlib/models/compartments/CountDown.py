@@ -1,6 +1,4 @@
 from ndlib.models.compartments.Compartment import Compartiment
-import numpy as np
-import networkx as nx
 
 __author__ = 'Giulio Rossetti'
 __license__ = "BSD-2-Clause"
