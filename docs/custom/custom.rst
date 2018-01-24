@@ -19,6 +19,16 @@ All models of ``NDlib`` assume an agent-based, discrete time, simulation engine.
 During each simulation iteration all the nodes in the network are asked to (i) evaluate their current status and to (ii) (eventually) apply a matching transition rule.
 The last step of such process can be easily decomposed into atomic operations that we will call *compartments*.
 
+.. note::
+
+    ``NDlib`` exposes two classes for defining custom diffusion models:
+
+    - ``CompositeModel`` describes diffusion models for static networks
+    - ``DynamicCompositeModel`` describes diffusion models for dynamic networks
+
+
+Here we will discuss only the former class, the latter behaving alike.
+
 ============
 Compartments
 ============
