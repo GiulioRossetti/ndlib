@@ -21,23 +21,23 @@ NDlib is a Python software package that allows to describe, simulate, and study 
 
 ================ =================== ==================  ==========  ===============
    **Date**      **Python Versions**   **Main Author**   **GitHub**      **pypl**
-January 22, 2018      2.7.x/3.x      `Giulio Rossetti`_  `Source`_   `Distribution`_
+January 23, 2018      2.7.x/3.x      `Giulio Rossetti`_  `Source`_   `Distribution`_
 ================ =================== ==================  ==========  ===============
 
 If you use our library in a research paper please cite the following works:
 
     G. Rossetti, L. Milli, S. Rinzivillo, A. Sirbu, D. Pedreschi, F. Giannotti.
-    *"NDlib: a Python Library to Model and Analyze Diffusion Processes Over Complex Networks"*
-    Journal of Data Science and Analytics. 2017. DOI:0.1007/s41060-017-0086-6
-    (pre-print available at: https://arxiv.org/abs/1801.05854)
+    **"NDlib: a Python Library to Model and Analyze Diffusion Processes Over Complex Networks"**
+    Journal of Data Science and Analytics. 2017. `DOI:0.1007/s41060-017-0086-6 <https://dx.doi.org/10.1007/s41060-017-0086-6>`_
+    (pre-print available on `arXiv <https://arxiv.org/abs/1801.05854>`_)
 
     G. Rossetti, L. Milli, S. Rinzivillo, A. Sirbu, D. Pedreschi, F. Giannotti.
-    *"NDlib: Studying Network Diffusion Dynamics"*
+    **"NDlib: Studying Network Diffusion Dynamics"**
     IEEE International Conference on Data Science and Advanced Analytics, DSAA. 2017.
 
------
-Promo
------
+-----------
+NDlib Video
+-----------
 
 .. raw:: html
 
@@ -50,12 +50,24 @@ Promo
         allowfullscreen="true" width="480"
         height="385"></embed></object>
 
+--------------
+NDlib Dev Team
+--------------
+
+==================== ============================
+**Name**             **Contribution**
+`Giulio Rossetti`_   Library Design/Documentation
+Letizia Milli        Epidemic Models
+Alina Sirbu          Opinion Dynamics Model
+Salvatore Rinzivillo Visual Platform
+==================== ============================
+
 --------
 Contents
 --------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    overview.rst
    download.rst
@@ -69,19 +81,6 @@ Contents
    developer/developer.rst
    bibliography.rst
 
-----------
-Developers
-----------
-**Models:** Letizia Milli, Alina Sirbu
-
-**Visual Platform:** Salvatore Rinzivillo
-
-------------
-Contributors
-------------
-Vincenzo Caproni, Beatrice Caputo, Ettore Puccetti (SEIS model)
-
-Elisa Salatti (SEIS, SEIR models)
 
 .. _`Giulio Rossetti`: http://www.about.giuliorossetti.net
 .. _`Source`: https://github.com/GiulioRossetti/ndlib

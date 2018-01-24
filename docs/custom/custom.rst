@@ -23,23 +23,12 @@ The last step of such process can be easily decomposed into atomic operations th
 Compartments
 ============
 
-We adopt the concept of ``compartment`` to identify all those atomic conditions (i.e. operations) that describe a (part of) transition rule.
+We adopt the concept of ``compartment`` to identify all those atomic conditions (i.e. operations) that describe (part of) a transition rule.
 The execution of a ``compartment`` can return either *True* (condition satisfied) or *False* (condition not satisfied).
-
-Consider the transition rule **Susceptible->Infected** that requires a probability *beta* to be satisfied.
-Such rule can be described by a simple compartment that models Node Stochastic thresholds. Let's call il *NS*.
-
-*NS* will take as input the *initial* node status (Susceptible), the *final* one (Infected) and a probability threshold (*beta*).
-
-During each iteration, for each node *n*
-
-- if the actual status of a given node equals the *NS* initial one
-	- a random value *b* in [0,1] will be generated
-	- if *b <= beta* then *NS* is considered *satisfied* and the status of *n* changes from *Susceptible* to *Infected*.
 
 Indeed, several compartments can be described, each one of them capturing an atomic operation.
 
-To cover the main scenarios we defined three families of compartments.
+To cover the main scenarios we defined three families of compartments as well as some operations to combine them.
 
 -----------------
 Node Compartments
@@ -49,7 +38,7 @@ In this class fall all those compartments that evaluate conditions tied to **nod
 They model stochastic events as well as deterministic ones.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    compartments/NodeStochastic.rst
    compartments/NodeCategoricalAttribute.rst
@@ -65,7 +54,7 @@ In this class fall all those compartments that evaluate conditions tied to **edg
 They model stochastic events as well as deterministic ones.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    compartments/EdgeStochastic.rst
    compartments/EdgeCategoricalAttribute.rst
@@ -80,14 +69,14 @@ In this class fall all those compartments that evaluate conditions tied to **tem
 They can be used to model, for instance, lagged events as well as triggered transitions.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    compartments/CountDown.rst
 
 
-=======================
-Compartment Composition
-=======================
+========================
+Compartments Composition
+========================
 
 Compartment can be chained in multiple ways so to describe complex transition rules.
 In particular, a transition rule can be seen as a tree whose nodes are compartments and edges connections among them.
@@ -99,11 +88,12 @@ In particular, a transition rule can be seen as a tree whose nodes are compartme
 Compartments can be combined following two criteria:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    compartments/CascadingComposition.rst
    compartments/ConditionalComposition.rst
 
+A rule can be defined by employing all possible combinations of cascading and conditional compartment composition.
 
 ========
 Examples
