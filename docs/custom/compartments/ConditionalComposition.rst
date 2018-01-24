@@ -44,6 +44,7 @@ Indeed, heterogeneous compartment types can be mixed to build more complex scena
 	import ndlib.models.ModelConfig as mc
 	import ndlib.models.CompositeModel as gc
 	import ndlib.models.compartments.NodeStochastic as ns
+	import ndlib.models.compartments.ConditionalComposition as cif
 
 	# Network generation
 	g = nx.erdos_renyi_graph(1000, 0.1)
@@ -64,7 +65,7 @@ Indeed, heterogeneous compartment types can be mixed to build more complex scena
 	cc = cif.ConditionalComposition(c1, c2, c3)
 
 	# Rule definition
-	model.add_rule("Susceptible", "Infected", c1)
+	model.add_rule("Susceptible", "Infected", cc)
 
 	# Model initial status configuration
 	config = mc.Configuration()
