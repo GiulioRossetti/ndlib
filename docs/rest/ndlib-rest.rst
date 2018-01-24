@@ -9,6 +9,13 @@ However, in some scenarios, e.g. due to limited computational resources or to th
 
 In order to satisfy such needs, we developed a RESTfull service, ``NDlib-REST``, that builds upon ``NDlib`` an experiment server queryable through API calls.
 
+.. figure:: rest.png
+   :scale: 60%
+   :align: center
+   :alt: REST interactive documentation page
+
+   REST interactive documentation page.
+
 **Project Website**: https://github.com/GiulioRossetti/ndlib-rest
 
 

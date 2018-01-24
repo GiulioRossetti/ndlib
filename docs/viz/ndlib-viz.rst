@@ -5,7 +5,15 @@ Visual Framework
 ``NDlib`` aims to an heterogeneous audience composed by technicians as well as analysts.
 In order to abstract from the its programming interface we built a simple visual framework that allows to simulate ``NDlib`` built-in models on synthetic graphs.
 
+.. figure:: viz.png
+   :scale: 50%
+   :align: center
+   :alt: Framework visual interface
+
+   Visual Framework.
+
 **Project Website**: https://github.com/rinziv/NDLib-Viz
+
 
 =========
 Rationale
