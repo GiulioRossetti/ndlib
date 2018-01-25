@@ -12,9 +12,6 @@ __email__ = "giulio.rossetti@gmail.com"
 # with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 #    long_description = f.read()
 
-# Program scripts
-#scripts = ['ndlib/scripts/NDQL_translate', 'ndlib/scripts/NDQL_execute']
-
 
 setup(name='ndlib',
       version='4.0.0',
