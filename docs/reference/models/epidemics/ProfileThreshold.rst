@@ -1,6 +1,7 @@
 *****************
 Profile Threshold
 *****************
+The Profile-Threshold model was introduced in 2017 by Milli et al. [#]_.
 
 The Profile-Threshold model assumes the existence of node profiles that act as preferential schemas for individual tastes but relax the constraints imposed by the Profile model by letting nodes influenceable via peer pressure mechanisms. 
 
@@ -109,3 +110,5 @@ In the code below is shown an example of instantiation and execution of a Profil
 
     # Simulation execution
     iterations = model.iteration_bunch(200)
+    
+.. [#] Letizia Milli, Giulio Rossetti, Dino Pedreschi, Fosca Giannotti, “Information Diffusion in Complex Networks: The Active/Passive Conundrum,” Proceedings of International Conference on Complex Networks and their Applications, (pp. 305-313). Springer, Cham. 2017

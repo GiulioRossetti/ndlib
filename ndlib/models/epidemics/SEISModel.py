@@ -4,6 +4,7 @@ import networkx as nx
 import future.utils
 
 __author__ = "Elisa Salatti"
+__license__ = "BSD-2-Clause"
 
 
 class SEISModel(DiffusionModel):

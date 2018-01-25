@@ -1,6 +1,6 @@
-**********
-NDlib-REST
-**********
+*****************
+Experiment Server
+*****************
 
 
 The simulation facilities offered by ``NDlib`` are specifically designed for those users that want to run experiments on their local machine.
@@ -8,6 +8,13 @@ The simulation facilities offered by ``NDlib`` are specifically designed for tho
 However, in some scenarios, e.g. due to limited computational resources or to the rising of other particular needs, it may be convenient to separate the machine on which the definition of the experiment is made from the one that actually executes the simulation.
 
 In order to satisfy such needs, we developed a RESTfull service, ``NDlib-REST``, that builds upon ``NDlib`` an experiment server queryable through API calls.
+
+.. figure:: rest.png
+   :scale: 60%
+   :align: center
+   :alt: REST interactive documentation page
+
+   REST interactive documentation page.
 
 **Project Website**: https://github.com/GiulioRossetti/ndlib-rest
 
@@ -142,13 +149,9 @@ To stop a container
     docker stop container_name
 
 
-==============================
-Configuration and Dependencies
-==============================
-
--------------
+=============
 Configuration
--------------
+=============
 
 In ndrest.py are specified limits for graph sizes.
 
@@ -164,20 +167,6 @@ In particular are set the minimum and maximum numbers of nodes (for both generat
 - The "complete graph generator" endpoint represents the only exception to the specified lower bound on number of nodes: such model lowers the minimum to 100 nodes. Indeed, the suggested limits can be increased to handle bigger graphs.
 - When loading external graphs nodes MUST be identified by integer ids.
 
-------------
-Dependencies
-------------
-
-``NDlib-REST`` is made available for Python 2.7 with the following dependencies:
-
-- flask==0.12
-- flask-cors==3.0.2
-- flask_restful==0.3.5
-- flask_apidoc==1.0.0
-- networkx==1.11
-- numpy==1.12.0
-- scipy==0.18.1
-- ndlib==1.0b
 
 .. _gunicorn: http://gunicorn.org/
 .. _Docker: https://www.docker.com/

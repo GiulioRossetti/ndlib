@@ -1,6 +1,6 @@
-********************
-Dynamic Networks SIS
-********************
+***
+SIS
+***
 
 The SIS model was introduced in 1927 by Kermack [#]_.
  

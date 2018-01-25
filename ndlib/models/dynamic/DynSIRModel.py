@@ -4,6 +4,7 @@ import networkx as nx
 import future.utils
 
 __author__ = "Giulio Rossetti"
+__license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
@@ -56,9 +57,9 @@ class DynSIRModel(DynamicDiffusionModel):
 
         actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
 
-        # streamong
+        # streaming
         if self.stream_execution:
-            u, v = list(self.graph.edges)[0]
+            u, v = list(self.graph.edges())[0]
             u_status = self.status[u]
             v_status = self.status[v]
 

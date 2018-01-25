@@ -2,8 +2,8 @@ from setuptools import setup, find_packages
 # from codecs import open
 # from os import path
 
-__author__ = 'rossetti'
-__license__ = "GPL"
+__author__ = 'Giulio Rossetti'
+__license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 # here = path.abspath(path.dirname(__file__))
@@ -12,14 +12,21 @@ __email__ = "giulio.rossetti@gmail.com"
 # with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 #    long_description = f.read()
 
+
 setup(name='ndlib',
-      version='3.1.0',
-      license='GNU General Public License v3 or later (GPLv3+)',
+      version='4.0.0',
+      license='BSD-Clause-2',
       description='Network Diffusion Library',
       url='https://github.com/GiulioRossetti/ndlib',
       author='Giulio Rossetti',
       author_email='giulio.rossetti@gmail.com',
       use_2to3=True,
+      entry_points={
+          'console_scripts': [
+              'NDQL_translate = scripts.NDQL_translate:translate',
+              'NDQL_execute = scripts.NDQL_execute:execute'
+          ],
+      },
       classifiers=[
           # How mature is this project? Common values are
           #   3 - Alpha
@@ -32,7 +39,7 @@ setup(name='ndlib',
           'Topic :: Software Development :: Build Tools',
 
           # Pick your license as you wish (should match "license" above)
-          'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+          'License :: OSI Approved :: BSD License',
 
           "Operating System :: OS Independent",
 

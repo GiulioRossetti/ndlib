@@ -1,6 +1,6 @@
-*********
-Reference
-*********
+***********************************
+Network Diffusion Library Reference
+***********************************
 
 In this section are introduced the components that constitute ``NDlib``, namely
 
@@ -8,12 +8,16 @@ In this section are introduced the components that constitute ``NDlib``, namely
 - The methodology adopted to configure a general simulation
 - The visualization facilities embedded in the library to explore the results
 
-======
-Models
-======
+Advanced topics (Custom model definition, Network Diffusion Query language (NDQL), Experiment Server and Visual Framework) are reported in separate sections.
+
+================
+Diffusion Models
+================
 The analysis of diffusive phenomena that unfold on top of complex networks is a task able to attract growing interests from multiple fields of research. 
 
 In order to provide a succinct framing of such complex and extensively studied problem it is possible to split the related literature into two broad, related, sub-classes: **Epidemics** and **Opinion Dynamics**.
+
+Moreover, ``NDlib`` also supports the simulation of diffusive processes on top of evolving network topologies: the **Dynamic Network Models** section the ones ``NDlib`` implements.
 
 ---------
 Epidemics
@@ -29,7 +33,7 @@ Indeed, the spreading process of a virus does not require an active participatio
 In ``NDlib`` are implemented the following **Epidemic** models:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    models/epidemics/SIm.rst
    models/epidemics/SIS.rst
@@ -69,7 +73,7 @@ Hence, it is clear that the two model categories have enough in common to be imp
 In ``NDlib`` are implemented the following **Opinion Dynamics** models:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    models/opinion/Voter.rst
    models/opinion/QVoter.rst
@@ -88,11 +92,15 @@ In order to automatically leverage network dynamics ``NDlib`` enables the defini
 In particular ``NDlib`` implements dynamic network versions of the following models:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    models/dynamics/dSI.rst
    models/dynamics/dSIS.rst
    models/dynamics/dSIR.rst
+   models/dynamics/dKThreshold.rst
+   models/dynamics/dProfile.rst
+   models/dynamics/dProfileThreshold.rst
+
 
 ===================
 Model Configuration
@@ -105,7 +113,7 @@ It employs a centralyzed system that take care of:
 2. Provide an interface to set the **initial conditions** of an experiment (nodes/edges properties, initial nodes statuses)
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    
    mconf/Mconf.rst
 
@@ -116,7 +124,7 @@ NDlib Utils
 The ``ndlib.utils`` module contains facilities that extend the simulation framework (i.e., automated multiple executions).
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    utils/multiple_run.rst
 
@@ -135,7 +143,7 @@ Pyplot Viz
 **Classic Visualizations**
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    viz/mpl/DiffusionTrend.rst
    viz/mpl/DiffusionPrevalence.rst
@@ -144,7 +152,7 @@ Pyplot Viz
 **Model Comparison Visualizations**
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    viz/mpl/TrendComparison.rst
    viz/mpl/PrevalenceComparison.rst
@@ -157,7 +165,7 @@ Bokeh Viz
 **Classic Visualizations**
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    viz/bokeh/DiffusionTrend.rst
    viz/bokeh/DiffusionPrevalence.rst
@@ -166,7 +174,7 @@ Bokeh Viz
 **Model Comparison Visualizations**
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    viz/bokeh/Multiplot.rst
    

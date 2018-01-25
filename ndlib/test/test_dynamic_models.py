@@ -13,6 +13,11 @@ import ndlib.models.dynamic.DynProfileModel as pro
 import ndlib.models.dynamic.DynProfileThresholdModel as prTr
 import ndlib.models.dynamic.DynKerteszThresholdModel as keTr
 
+__author__ = 'Giulio Rossetti'
+__license__ = "BSD-2-Clause"
+__email__ = "giulio.rossetti@gmail.com"
+
+
 class DynTest(unittest.TestCase):
 
     def test_DynSI(self):

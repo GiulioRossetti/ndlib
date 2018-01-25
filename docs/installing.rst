@@ -1,6 +1,6 @@
-**********
-Installing
-**********
+****************
+Installing NDlib
+****************
 
 Before installing ``NDlib``, you need to have setuptools installed.
 

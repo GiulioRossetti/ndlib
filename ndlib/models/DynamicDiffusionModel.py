@@ -5,6 +5,7 @@ from ndlib.models.DiffusionModel import DiffusionModel
 import six
 
 __author__ = "Giulio Rossetti"
+__license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 

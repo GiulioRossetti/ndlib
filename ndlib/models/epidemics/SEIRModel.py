@@ -2,7 +2,9 @@ from ..DiffusionModel import DiffusionModel
 import networkx as nx
 import numpy as np
 import future
+
 __author__ = ["Vincenzo Caproni", "Beatrice Caputo", "Ettore Puccetti", "Elisa Salatti"]
+__license__ = "BSD-2-Clause"
 
 
 class SEIRModel(DiffusionModel):

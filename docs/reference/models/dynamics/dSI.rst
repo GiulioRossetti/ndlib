@@ -1,6 +1,6 @@
-******************
-Dynamic Network SI
-******************
+**
+SI
+**
 
 The SI model was introduced in 1927 by Kermack [#]_.
  
@@ -10,7 +10,7 @@ The model is instantiated on a graph having a non-empty set of infected nodes.
 
 SI assumes that if, during a generic iteration, a susceptible node comes into contact with an infected one, it becomes infected with probability β: once a node becomes infected, it stays infected (the only transition allowed is S→I).
 
-The dSI implementation assumes that the process occurs on a directed/undirected dynamic network.
+The dSI implementation assumes that the process occurs on a directed/undirected dynamic network; this model was introduced by Milli et al. in 2018 [#]_.
 
 --------
 Statuses
@@ -106,5 +106,5 @@ In the code below is shown an example of instantiation and execution of an DynSI
     # Simulation interaction graph based execution
     iterations = model.execute_iterations()
 
-
 .. [#] W. O. Kermack and A. McKendrick, “A Contribution to the Mathematical Theory of Epidemics,” Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, vol. 115, no. 772, pp. 700–721, Aug. 1927.
+.. [#] Letizia Milli, Giulio Rossetti, Fosca Giannotti, Dino Pedreschi. “Diffusive Phenomena in Dynamic Networks: a data-driven study”. Accepted to International Conference on Complex Networks (CompleNet), 2018, Boston.

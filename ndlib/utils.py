@@ -4,7 +4,7 @@ import copy
 import past
 
 __author__ = 'Giulio Rossetti'
-__license__ = "GPL"
+__license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 

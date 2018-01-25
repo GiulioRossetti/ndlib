@@ -1,6 +1,8 @@
 *******
 Profile
 *******
+The Profile model was introduced in 2017 by Milli et al. [#]_.
+
 
 The Profile model assumes that the diffusion process is only apparent; each node decides to adopt or not a given behavior – once known its existence – only on the basis of its own interests. 
 
@@ -110,3 +112,5 @@ In the code below is shown an example of instantiation and execution of a Profil
 
     # Simulation execution
     iterations = model.iteration_bunch(200)
+    
+.. [#] Letizia Milli, Giulio Rossetti, Dino Pedreschi, Fosca Giannotti, “Information Diffusion in Complex Networks: The Active/Passive Conundrum,” Proceedings of International Conference on Complex Networks and their Applications, (pp. 305-313). Springer, Cham. 2017

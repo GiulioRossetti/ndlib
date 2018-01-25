@@ -6,6 +6,7 @@ import future.utils
 import six
 
 __author__ = "Giulio Rossetti"
+__license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
@@ -61,6 +62,8 @@ class DiffusionModel(object):
 
         :param configuration: a Configuration object instance
         """
+        if "Infected" not in self.available_statuses:
+            raise ConfigurationException("'Infected' status not defined.")
 
         # Checking mandatory parameters
         omp = set([k for k in self.parameters['model'].keys() if not self.parameters['model'][k]['optional']])
@@ -311,7 +314,11 @@ class DiffusionModel(object):
 
         for it in iterations:
             for st in self.available_statuses.values():
-                status_delta[st].append(it['status_delta'][st])
-                node_count[st].append(it['node_count'][st])
+                try:
+                    status_delta[st].append(it['status_delta'][st])
+                    node_count[st].append(it['node_count'][st])
+                except:
+                    status_delta[st].append(it['status_delta'][str(st)])
+                    node_count[st].append(it['node_count'][str(st)])
 
         return [{"trends": {"node_count": node_count, "status_delta": status_delta}}]

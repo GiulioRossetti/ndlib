@@ -5,6 +5,7 @@ from scipy import stats
 import future.utils
 
 __author__ = "Letizia Milli"
+__license__ = "BSD-2-Clause"
 __email__ = "letizia.milli@di.unipi.it"
 
 
