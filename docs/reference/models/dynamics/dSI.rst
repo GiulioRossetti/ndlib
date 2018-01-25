@@ -107,4 +107,4 @@ In the code below is shown an example of instantiation and execution of an DynSI
     iterations = model.execute_iterations()
 
 .. [#] W. O. Kermack and A. McKendrick, “A Contribution to the Mathematical Theory of Epidemics,” Proceedings of the Royal Society of London. Series A, Containing Papers of a Mathematical and Physical Character, vol. 115, no. 772, pp. 700–721, Aug. 1927.
-.. [#] Letizia Milli, Giulio Rossetti, Fosca Giannotti, Dino Pedreschi. “Diffusive Phenomena in Dynamic Networks: a data-driven study”. Acepted to International Conference on Complex Networks (CompleNet), 2018, Boston.
+.. [#] Letizia Milli, Giulio Rossetti, Fosca Giannotti, Dino Pedreschi. “Diffusive Phenomena in Dynamic Networks: a data-driven study”. Accepted to International Conference on Complex Networks (CompleNet), 2018, Boston.
