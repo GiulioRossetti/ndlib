@@ -1,6 +1,6 @@
 import abc
 import six
-from ndlib.models.compartments import Compartment
+from ndlib.models.compartments import Compartment as CPT
 
 __author__ = 'Giulio Rossetti'
 __license__ = "BSD-2-Clause"
@@ -19,7 +19,7 @@ class Action(object):
     def __init__(self, *args, **kwargs):
         self.composed = None
         if 'composed' in args[0]:
-            if isinstance(args[0]['composed'], Action) or isinstance(args[0]['composed', Compartment.Compartment]):
+            if isinstance(args[0]['composed'], Action) or isinstance(args[0]['composed', CPT.Compartment]):
                 self.composed = args[0]['composed']
 
     def execute(self, *args, **kwargs):
