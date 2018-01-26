@@ -156,7 +156,8 @@ class DiffusionModel(object):
         # Handle initial infection
         if 'Infected' not in self.params['status']:
             if 'percentage_infected' in self.params['model']:
-                number_of_initial_infected = len(self.graph.nodes()) * float(self.params['model']['percentage_infected'])
+                number_of_initial_infected = len(self.graph.nodes()) * \
+                                             float(self.params['model']['percentage_infected'])
                 if number_of_initial_infected < 1:
                     warnings.warn('Graph with less than 100 nodes: a single node will be set as infected')
                     number_of_initial_infected = 1
@@ -291,6 +292,11 @@ class DiffusionModel(object):
         old_status_count = {}
         delta = {}
         for n, v in future.utils.iteritems(self.status):
+
+            # network growth patch
+            if n not in actual_status:
+                actual_status[n] = self.status[n]
+
             if v != actual_status[n]:
                 delta[n] = actual_status[n]
 

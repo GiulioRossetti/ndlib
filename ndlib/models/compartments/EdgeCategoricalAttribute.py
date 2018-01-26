@@ -1,4 +1,4 @@
-from ndlib.models.compartments.Compartment import Compartiment
+from ndlib.models.compartments.Compartment import Compartment
 import networkx as nx
 import numpy as np
 
@@ -7,7 +7,7 @@ __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
-class EdgeCategoricalAttribute(Compartiment):
+class EdgeCategoricalAttribute(Compartment):
 
     def __init__(self, attribute, value, triggering_status=None, probability=1, **kwargs):
         super(self.__class__, self).__init__(kwargs)
@@ -37,6 +37,6 @@ class EdgeCategoricalAttribute(Compartiment):
             p = np.random.random_sample()
             test = p <= self.probability
             if test:
-                return self.compose(node, graph, status, status_map, kwargs)
+                return self.compose(node=node, graph=graph, status=status, status_map=status_map, **kwargs)
 
         return False

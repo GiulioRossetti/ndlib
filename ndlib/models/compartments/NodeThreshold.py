@@ -1,4 +1,4 @@
-from ndlib.models.compartments.Compartment import Compartiment, ConfigurationException
+from ndlib.models.compartments.Compartment import Compartment, ConfigurationException
 import networkx as nx
 
 __author__ = 'Giulio Rossetti'
@@ -6,7 +6,7 @@ __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
-class NodeThreshold(Compartiment):
+class NodeThreshold(Compartment):
 
     def __init__(self, threshold=None, triggering_status=None, **kwargs):
         super(self.__class__, self).__init__(kwargs)
@@ -34,6 +34,6 @@ class NodeThreshold(Compartiment):
                 else:
                     raise ConfigurationException("Threshold not specified")
         if test:
-            return self.compose(node, graph, status, status_map, params, kwargs)
+            return self.compose(node=node, graph=graph, status=status, status_map=status_map, params=params, **kwargs)
 
         return False

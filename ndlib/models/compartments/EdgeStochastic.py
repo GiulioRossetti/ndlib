@@ -1,4 +1,4 @@
-from ndlib.models.compartments.Compartment import Compartiment, ConfigurationException
+from ndlib.models.compartments.Compartment import Compartment, ConfigurationException
 import numpy as np
 import networkx as nx
 
@@ -7,7 +7,7 @@ __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
-class EdgeStochastic(Compartiment):
+class EdgeStochastic(Compartment):
 
     def __init__(self, threshold=None, triggering_status=None, **kwargs):
         super(self.__class__, self).__init__(kwargs)
@@ -38,7 +38,7 @@ class EdgeStochastic(Compartiment):
             test = flip <= threshold
 
             if test:
-                return self.compose(node, graph, status, status_map, params, kwargs)
+                return self.compose(graph=graph, node=node, status=status, status_map=status_map, params=params, **kwargs)
 
         return False
 

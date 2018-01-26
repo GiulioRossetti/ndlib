@@ -1,16 +1,16 @@
-from ndlib.models.compartments.Compartment import Compartiment, ConfigurationException
+from ndlib.models.compartments.Compartment import Compartment, ConfigurationException
 
 __author__ = 'Giulio Rossetti'
 __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
-class ConditionalComposition(Compartiment):
+class ConditionalComposition(Compartment):
 
     def __init__(self, condition, first_branch, second_branch, **kwargs):
         super(self.__class__, self).__init__(kwargs)
-        if not isinstance(condition, Compartiment) or not isinstance(first_branch, Compartiment) \
-                or not isinstance(second_branch, Compartiment):
+        if not isinstance(condition, Compartment) or not isinstance(first_branch, Compartment) \
+                or not isinstance(second_branch, Compartment):
             raise ConfigurationException("Condition and branches must be of type Compartment.")
 
         self.condition = condition
