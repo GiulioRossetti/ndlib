@@ -28,16 +28,9 @@ If you use ``NDlib`` as support to your research consider citing:
 
 [![Promo](https://img.youtube.com/vi/tYHNOuKJwbE/0.jpg)](https://www.youtube.com/watch?v=tYHNOuKJwbEE)
 
-## Rationale behind NDlib
-
-- A __simulation__ is univocally identified by a __graph__ and a (__configured__) __model__;
-- Each __model__ describes a peculiar kind of diffusion process as an agent-based __simulation__ occurring at discrete time;
-- A __configuration__ identifies the initial status of the diffusion and the parameters needed to instantiate the selected __model__;
-- Once a model has been __configured__, every __iteration__ of the __simulation__ returns only the nodes which changed their statuses.
-
 ## Installation
 
-In order to install the library just download (or clone) the current project and copy the ndlib folder in the root of your application.
+To install the library just download (or clone) the current project and copy the ndlib folder in the root of your application.
 
 Alternatively use pip:
 ```bash
@@ -46,7 +39,7 @@ sudo pip install ndlib
 
 ## Documentation
 
-For examples, tutorials and an complete reference visit the project documentation website on [ReadTheDocs](http://ndlib.readthedocs.io).
+For examples, tutorials and a complete reference visit the project documentation website on [ReadTheDocs](http://ndlib.readthedocs.io).
 
 ## Collaborate with us!
 
