@@ -23,6 +23,7 @@ import ndlib.models.opinions.MajorityRuleModel as mrm
 import ndlib.models.opinions.QVoterModel as qvm
 import ndlib.models.opinions.SznajdModel as sm
 import ndlib.models.opinions.VoterModel as vm
+import ndlib.models.opinions.AlgorithmicBiasModel as ab
 import ndlib.utils as ut
 
 __author__ = 'Giulio Rossetti'
@@ -31,6 +32,19 @@ __email__ = "giulio.rossetti@gmail.com"
 
 
 class NdlibTest(unittest.TestCase):
+    
+    def test_algorithmic_bias_model(self):
+        g = nx.complete_graph(100)
+        model = ab.AlgorithmicBiasModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter("epsilon", 0.32)
+        config.add_model_parameter("gamma", 1)
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
+        iterations = model.iteration_bunch(10, node_status=False)
+        self.assertEqual(len(iterations), 10)
+    
     def test_voter_model(self):
         g = nx.complete_graph(100)
         model = vm.VoterModel(g)
