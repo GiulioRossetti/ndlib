@@ -80,6 +80,7 @@ In ``NDlib`` are implemented the following **Opinion Dynamics** models:
    models/opinion/MajorityRule.rst
    models/opinion/Snajzd.rst
    models/opinion/COD.rst
+   models/opinion/AlgorithmicBias.rst
 
 ----------------------
 Dynamic Network Models

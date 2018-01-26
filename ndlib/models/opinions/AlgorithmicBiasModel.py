@@ -1,4 +1,3 @@
-#from ..DiffusionModel import DiffusionModel
 from ndlib.models.DiffusionModel import DiffusionModel
 import numpy as np
 import future.utils
@@ -36,7 +35,7 @@ class AlgorithmicBiasModel(DiffusionModel):
         self.parameters = {
             "model": {
                 "epsilon": {
-                    "descr": "Boundede confidence threshold",
+                    "descr": "Bounded confidence threshold",
                     "range": [0, 1],
                     "optional": False
                 },
