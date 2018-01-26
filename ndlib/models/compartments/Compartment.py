@@ -1,6 +1,6 @@
 import abc
 import six
-from ..actions import Action
+from ndlib.models.actions import Action
 
 __author__ = 'Giulio Rossetti'
 __license__ = "BSD-2-Clause"

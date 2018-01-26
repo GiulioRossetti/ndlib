@@ -1,6 +1,6 @@
 import abc
 import six
-from ..compartments import Compartment
+from ndlib.models.compartments import Compartment
 
 __author__ = 'Giulio Rossetti'
 __license__ = "BSD-2-Clause"
