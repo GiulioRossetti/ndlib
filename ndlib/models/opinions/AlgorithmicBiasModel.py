@@ -64,17 +64,16 @@ class AlgorithmicBiasModel(DiffusionModel):
             self.status[node] = np.random.random_sample()
         self.initial_status = self.status.copy()
 
-
     def clean_initial_status(self, valid_status=None):
         for n, s in future.utils.iteritems(self.status):
             if s > 1 or s < 0:
                 self.status[n] = 0
 
-    def prob(self,distance,gamma,min_dist):
-        if distance<min_dist:
-            distance=min_dist
-        return np.power(distance,-gamma)
-
+    @staticmethod
+    def prob(distance, gamma, min_dist):
+        if distance < min_dist:
+            distance = min_dist
+        return np.power(distance, -gamma)
 
     def iteration(self, node_status=True):
         """
@@ -85,7 +84,8 @@ class AlgorithmicBiasModel(DiffusionModel):
         # One iteration changes the opinion of N agent pairs using the following procedure:
         # - first one agent is selected
         # - then a second agent is selected based on a probability that decreases with the distance to the first agent
-        # - if the two agents have a distance smaller than epsilon, then they change their status to the average of their previous statuses
+        # - if the two agents have a distance smaller than epsilon, then they change their status to the average of
+        # their previous statuses
 
         self.clean_initial_status(None)
 
@@ -104,30 +104,31 @@ class AlgorithmicBiasModel(DiffusionModel):
         # interact with peers
         for i in range(0, self.graph.number_of_nodes()):
             # select a random node
-            n1 = list(self.graph.nodes())[np.random.randint(0, self.graph.number_of_nodes())]
+            n1 = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]
             # select all of the node's neighbours (no digraph possible)
             neighbours = list(self.graph.neighbors(n1))
             if len(neighbours) == 0:
                 continue
         
-            #compute probabilities to select a second node among the neighbours
-            selection_prob=np.array([self.prob(np.abs(actual_status[neighbours[i]]-actual_status[n1]),self.params['model']['gamma'],0.00001) for i in range(len(neighbours))])
-            selection_prob=selection_prob/np.sum(selection_prob)
-            cumulative_selection_probability=np.cumsum(selection_prob)
+            # compute probabilities to select a second node among the neighbours
+            selection_prob = np.array([self.prob(np.abs(actual_status[neighbours[i]]-actual_status[n1]),
+                                               self.params['model']['gamma'],0.00001) for i in range(len(neighbours))])
+            selection_prob = selection_prob/np.sum(selection_prob)
+            cumulative_selection_probability = np.cumsum(selection_prob)
 
             # select second nodebased on selection probabilities above
-            r=np.random.random_sample()
-            n2=0
-            while cumulative_selection_probability[n2]<r:
-                n2=n2+1
+            r = np.random.random_sample()
+            n2 = 0
+            while cumulative_selection_probability[n2] < r:
+                n2 = n2+1
 
             n2 = neighbours[n2]
             # update status of n1 and n2
-            diff=np.abs(actual_status[n1]-actual_status[n2])
-            if diff<self.params['model']['epsilon']:
-                avg=(actual_status[n1]+actual_status[n2])/2.0
-                actual_status[n1]=avg
-                actual_status[n2]=avg
+            diff = np.abs(actual_status[n1]-actual_status[n2])
+            if diff < self.params['model']['epsilon']:
+                avg = (actual_status[n1]+actual_status[n2])/2.0
+                actual_status[n1] = avg
+                actual_status[n2] = avg
             
         delta, node_count, status_delta = self.status_delta(actual_status)
         self.status = actual_status
