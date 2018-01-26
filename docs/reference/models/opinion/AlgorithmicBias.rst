@@ -4,6 +4,19 @@ Algorithmic Bias
 
 .. note:: The Algorithmic Bias model will be officially released in NDlib 4.0.1
 
+
+The Algorithmic Bias model considers a population of individuals, where each individual holds a continuous opinion  in the interval  [0,1].
+Individuals are connected by a social network, and interact pairwise at discrete time steps.
+The interacting pair is selected from the population at each time point in such a way that individuals that have close opinion values are selected more often, to simulate algorithmic bias.
+The parameter gamma controls how large this effect is.
+Specifically, the first individual in the interacting pair is selected randomly, while the second individual is selected based on a probability that decreases with the distance from the opinion of the first individual, i.e. directly proportional with the distance raised to the power -gamma.
+
+
+After interaction, the two opinions may change, depending on a so called bounded confidence parameter, epsilon.
+This can be seen as a measure of the open-mindedness of individuals in a population.
+It defines a threshold on the distance between the opinion of the two individuals, beyond which communication between individuals is not possible due to conflicting views.
+Thus, if the distance between the opinions of the selected individuals is lower than epsilon, the two individuals adopt their average opinion. Otherwise nothing happens.
+
 --------
 Statuses
 --------
