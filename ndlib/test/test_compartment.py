@@ -16,6 +16,7 @@ import ndlib.models.compartments.ConditionalComposition as cif
 import ndlib.models.compartments.CountDown as cw
 
 import ndlib.models.actions.AddNode as ad
+import ndlib.models.actions.RemoveNode as rn
 import ndlib.models.actions.SwapEdges as ew
 
 __author__ = 'Giulio Rossetti'
@@ -315,7 +316,7 @@ class NdlibCompartmentsTest(unittest.TestCase):
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
-    def test_compartment_actions(self):
+    def test_compartment_add_node(self):
 
         g = nx.karate_club_graph()
         attr = {n: {"even": int(n % 2)} for n in g.nodes()}
@@ -359,6 +360,25 @@ class NdlibCompartmentsTest(unittest.TestCase):
 
         model.set_initial_status(config)
         iterations = model.iteration_bunch(6)
-        # nodes = [sum(n['node_count'].values()) for n in iterations]
+        self.assertEqual(len(iterations), 6)
 
-        # self.assertEqual(nodes, [34, 67, 133, 265, 529, 1057])
+    def test_compartment_remove_node(self):
+
+        g = nx.karate_club_graph()
+
+        model = gc.CompositeModel(g)
+        model.add_status("Susceptible")
+        model.add_status("Infected")
+
+        c2 = rn.RemoveNode(probability=1)
+        c1 = ns.NodeStochastic(1, composed=c2)
+
+        model.add_rule("Susceptible", "Susceptible", c1)
+
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0)
+
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(6)
+        nodes = [sum(n['node_count'].values()) for n in iterations]
+        self.assertEqual(nodes, [34, 1, 1, 1, 1, 1])
