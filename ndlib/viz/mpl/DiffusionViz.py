@@ -16,7 +16,6 @@ __email__ = "giulio.rossetti@gmail.com"
 
 @six.add_metaclass(abc.ABCMeta)
 class DiffusionPlot(object):
-   # __metaclass__ = abc.ABCMeta
 
     def __init__(self, model, trends):
         self.model = model
