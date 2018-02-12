@@ -94,3 +94,73 @@ class NdlibActionDynamicTest(unittest.TestCase):
         iterations = model.iteration_bunch(6)
         nodes = [sum(n['node_count'].values()) for n in iterations]
         self.assertEqual(nodes, [33, 32, 31, 30, 29, 28])
+
+
+    def test_compartment_add_node_pa(self):
+
+        g = nx.karate_club_graph()
+        attr = {n: {"even": int(n % 2)} for n in g.nodes()}
+        nx.set_node_attributes(g, attr)
+
+        model = gc.CompositeModel(g)
+        model.add_status("Susceptible")
+        model.add_status("Infected")
+
+        a1 = ad.AddNode(probability=1, initial_status="Susceptible", copy_attributes=True,
+                        number_of_edges=4, model='PA')
+        c1 = ns.NodeStochastic(1)
+
+        model.add_rule("Susceptible", "Susceptible", c1)
+        model.add_action(a1)
+
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0)
+
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(6)
+        nodes = [sum(n['node_count'].values()) for n in iterations]
+        self.assertEqual(nodes, [35, 36, 37, 38, 39, 40])
+
+    def test_compartment_remove_node_top(self):
+
+        g = nx.karate_club_graph()
+
+        model = gc.CompositeModel(g)
+        model.add_status("Susceptible")
+        model.add_status("Infected")
+
+        a1 = rn.RemoveNode(probability=1, model="top")
+        c1 = ns.NodeStochastic(0.5)
+
+        model.add_rule("Susceptible", "Susceptible", c1)
+        model.add_action(a1)
+
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0)
+
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(6)
+        nodes = [sum(n['node_count'].values()) for n in iterations]
+        self.assertEqual(nodes, [33, 32, 31, 30, 29, 28])
+
+    def test_compartment_remove_node_bottom(self):
+
+        g = nx.karate_club_graph()
+
+        model = gc.CompositeModel(g)
+        model.add_status("Susceptible")
+        model.add_status("Infected")
+
+        a1 = rn.RemoveNode(probability=1, model="bottom")
+        c1 = ns.NodeStochastic(0.5)
+
+        model.add_rule("Susceptible", "Susceptible", c1)
+        model.add_action(a1)
+
+        config = mc.Configuration()
+        config.add_model_parameter('percentage_infected', 0)
+
+        model.set_initial_status(config)
+        iterations = model.iteration_bunch(6)
+        nodes = [sum(n['node_count'].values()) for n in iterations]
+        self.assertEqual(nodes, [33, 32, 31, 30, 29, 28])
