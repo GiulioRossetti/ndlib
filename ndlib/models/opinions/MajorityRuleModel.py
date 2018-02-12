@@ -61,7 +61,7 @@ class MajorityRuleModel(DiffusionModel):
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
         # select q random nodes
-        discussion_group = [list(self.graph.nodes)[i]
+        discussion_group = [list(self.graph.nodes())[i]
                             for i in np.random.randint(0, self.graph.number_of_nodes(), self.params['model']['q'])]
 
         # compute majority

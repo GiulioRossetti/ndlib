@@ -62,7 +62,7 @@ class QVoterModel(DiffusionModel):
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
                 # select a random listener
-        listener = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]
+        listener = list(self.graph.nodes())[np.random.randint(0, self.graph.number_of_nodes())]
 
         # select all of the listener's neighbours
         neighbours = list(self.graph.neighbors(listener))

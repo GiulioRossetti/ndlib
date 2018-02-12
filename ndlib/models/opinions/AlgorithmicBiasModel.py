@@ -103,7 +103,7 @@ class AlgorithmicBiasModel(DiffusionModel):
         # interact with peers
         for i in range(0, self.graph.number_of_nodes()):
             # select a random node
-            n1 = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]
+            n1 = list(self.graph.nodes())[np.random.randint(0, self.graph.number_of_nodes())]
             # select all of the node's neighbours (no digraph possible)
             neighbours = list(self.graph.neighbors(n1))
             if len(neighbours) == 0:
