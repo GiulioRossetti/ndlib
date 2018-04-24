@@ -4,5 +4,5 @@ numpy==1.14.2
 future==0.16.0
 networkx==2.1
 dynetx==0.2.0
-bokeh==0.12.14
+bokeh==0.12.15
 matplotlib==2.2.2
