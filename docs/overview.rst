@@ -2,7 +2,7 @@
 Overview
 ********
 
-``NDlib`` is a Python language software package for the describing, simulate, and study diffusion processes on complex netowrks.
+``NDlib`` is a Python language software package for the describing, simulate, and study diffusion processes on complex networks.
 
 ---------------
 Who uses NDlib?
