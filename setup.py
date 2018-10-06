@@ -14,7 +14,7 @@ __email__ = "giulio.rossetti@gmail.com"
 
 
 setup(name='ndlib',
-      version='4.0.1',
+      version='4.0.2',
       license='BSD-Clause-2',
       description='Network Diffusion Library',
       url='https://github.com/GiulioRossetti/ndlib',
