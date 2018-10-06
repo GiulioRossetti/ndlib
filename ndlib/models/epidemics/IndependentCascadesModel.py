@@ -1,6 +1,7 @@
 from ..DiffusionModel import DiffusionModel
 import numpy as np
 import future.utils
+import networkx as nx
 
 __author__ = 'Giulio Rossetti'
 __license__ = "BSD-2-Clause"
@@ -79,6 +80,8 @@ class IndependentCascadesModel(DiffusionModel):
                         if 'threshold' in self.params['edges']:
                             if key in self.params['edges']['threshold']:
                                 threshold = self.params['edges']['threshold'][key]
+                            elif (v, u) in self.params['edges']['threshold'] and not nx.is_directed(self.graph):
+                                threshold = self.params['edges']['threshold'][(v, u)]
 
                         flip = np.random.random_sample()
                         if flip <= threshold:
