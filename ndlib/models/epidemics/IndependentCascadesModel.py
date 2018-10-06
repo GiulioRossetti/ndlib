@@ -62,7 +62,7 @@ class IndependentCascadesModel(DiffusionModel):
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
         for u in self.graph.nodes():
-            if actual_status[u] != 1:
+            if self.status[u] != 1:
                 continue
 
             neighbors = list(self.graph.neighbors(u))  # neighbors and successors (in DiGraph) produce the same result
