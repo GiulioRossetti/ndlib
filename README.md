@@ -44,8 +44,10 @@ For examples, tutorials and a complete reference visit the project documentation
 ## Jupyter Notebook Tutorial
 
 Interested in an extensive tutorial on NDlib? Check out the official Jupyter Notebooks!
-  [NDlib Overview](https://colab.research.google.com/github/KDDComplexNetworkAnalysis/CNA_Tutorials/blob/master/NDlib.ipynb#scrollTo=d80DUNRkKIn4)
-  [NDlib-Rest](https://colab.research.google.com/github/KDDComplexNetworkAnalysis/CNA_Tutorials/blob/master/NDlib-REST.ipynb)
+
+[NDlib Overview](https://colab.research.google.com/github/KDDComplexNetworkAnalysis/CNA_Tutorials/blob/master/NDlib.ipynb#scrollTo=d80DUNRkKIn4)
+ 
+[NDlib-Rest](https://colab.research.google.com/github/KDDComplexNetworkAnalysis/CNA_Tutorials/blob/master/NDlib-REST.ipynb)
 
 ## Collaborate with us!
 
