@@ -4,6 +4,8 @@ Tutorial
 
 NDlib is built upon networkx and is designed to configure, simulate and visualize diffusion experiments.
 
+Here you can find a few examples to get started with ``ndlib``: for a more comprehensive tutorial check the official `Jupyter Notebook`_.
+
 ------------
 Installation
 ------------
@@ -168,3 +170,6 @@ Multiplots - implemented only for the ``bokeh`` provider - are also useful to co
 
 	m = vm.plot()
 	show(m)
+
+
+.. _`Jupyter Notebook`: https://colab.research.google.com/github/KDDComplexNetworkAnalysis/CNA_Tutorials/blob/master/NDlib.ipynb#scrollTo=d80DUNRkKIn4
