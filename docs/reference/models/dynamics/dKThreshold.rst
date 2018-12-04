@@ -116,9 +116,7 @@ In the code below is shown an example of instantiation and execution of a Kertes
 
     # Simulate snapshot based execution
     iterations = model.execute_snapshots()
-
-    # Simulation interaction graph based execution
-    iterations = model.execute_iterations()
+    
 
 .. [#] Z. Ruan, G. In ̃iguez, M. Karsai, and J. Kertész, “Kinetics of social contagion,” Phys. Rev. Lett., vol. 115, p. 218702, Nov 2015.
 .. [#] D. J. Watts, “A simple model of global cascades on random networks,” Proceedings of the National Academy of Sciences, vol. 99, no. 9, pp. 5766–5771, 2002.
