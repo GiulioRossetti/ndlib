@@ -75,7 +75,8 @@ Execute Simulation
 ^^^^^^^^^^^^^^^^^^
 .. automethod:: ndlib.models.dynamic.DynKerteszThresholdModel.DynKerteszThresholdModel.iteration(self)
 .. automethod:: ndlib.models.dynamic.DynKerteszThresholdModel.DynKerteszThresholdModel.execute_snapshots(bunch_size, node_status)
-.. automethod:: ndlib.models.dynamic.DynKerteszThresholdModel.DynKerteszThresholdModel.execute_iterations(node_status)
+
+*NB: the ``execute_iterations()`` method is unavailable for this model (along with other thresholded models).*
 
 -------
 Example
@@ -89,17 +90,18 @@ In the code below is shown an example of instantiation and execution of a Kertes
     import networkx as nx
     import dynetx as dn
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.dynamic.DynKerteszThresholdModel as ks
+    import ndlib.models.dynamic.DynKerteszThresholdModel as keTr
+    from past.builtins import xrange
 
     # Dynamic Network topology
     dg = dn.DynGraph()
 
-    for t in past.builtins.xrange(0, 3):
+    for t in xrange(0, 3):
         g = nx.erdos_renyi_graph(200, 0.05)
         dg.add_interactions_from(g.edges(), t)
 
     # Model selection
-    model = ks.DynKerteszThresholdModel(g)
+    model = keTr.DynKerteszThresholdModel(dg)
         
     # Model Configuration
     config = mc.Configuration()
@@ -114,11 +116,7 @@ In the code below is shown an example of instantiation and execution of a Kertes
 
     model.set_initial_status(config)
 
-    # Simulate snapshot based execution
     iterations = model.execute_snapshots()
-
-    # Simulation interaction graph based execution
-    iterations = model.execute_iterations()
 
 .. [#] Z. Ruan, G. In ̃iguez, M. Karsai, and J. Kertész, “Kinetics of social contagion,” Phys. Rev. Lett., vol. 115, p. 218702, Nov 2015.
 .. [#] D. J. Watts, “A simple model of global cascades on random networks,” Proceedings of the National Academy of Sciences, vol. 99, no. 9, pp. 5766–5771, 2002.
