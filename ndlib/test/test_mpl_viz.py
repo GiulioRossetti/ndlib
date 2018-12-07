@@ -36,7 +36,8 @@ class MplVizTest(unittest.TestCase):
 
         # Visualization
         viz = DiffusionTrend(model, trends)
-        viz.plot("diffusion.pdf")
+        mpl = viz.plot()
+        mpl.savefig("diffusion.pdf")
         os.remove("diffusion.pdf")
 
     def test_visualize_dynamic(self):
@@ -56,7 +57,8 @@ class MplVizTest(unittest.TestCase):
 
         # Visualization
         viz = DiffusionPrevalence(model, trends)
-        viz.plot("prevd.pdf")
+        mpl = viz.plot()
+        mpl.savefig("prevd.pdf")
         os.remove("prevd.pdf")
 
     def test_visualize_prevalence(self):
@@ -72,8 +74,9 @@ class MplVizTest(unittest.TestCase):
 
         # Visualization
         viz = DiffusionPrevalence(model, trends)
-        viz.plot("prev.pdf")
-        os.remove("prev.pdf")
+        mpl = viz.plot()
+        mpl.savefig("prevd2.pdf")
+        os.remove("prevd2.pdf")
 
     def test_prevalence_comparison(self):
 
@@ -103,7 +106,8 @@ class MplVizTest(unittest.TestCase):
         trends1 = model1.build_trends(iterations)
 
         viz = DiffusionPrevalenceComparison([model, model1], [trends, trends1])
-        viz.plot("prev_comparison.pdf")
+        plt = viz.plot()
+        plt.savefig("prev_comparison.pdf")
         os.remove("prev_comparison.pdf")
 
     def test_trend_comparison(self):
@@ -135,7 +139,8 @@ class MplVizTest(unittest.TestCase):
 
         viz = DiffusionTrendComparison([model, model1], [trends, trends1])
 
-        viz.plot("trend_comparison.pdf")
+        plt = viz.plot()
+        plt.savefig("trend_comparison.pdf")
         os.remove("trend_comparison.pdf")
 
 if __name__ == '__main__':

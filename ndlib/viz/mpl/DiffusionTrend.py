@@ -14,7 +14,7 @@ class DiffusionTrend(DiffusionPlot):
         :param trends: The computed simulation trends
         """
         super(self.__class__, self).__init__(model, trends)
-        self.ylabel = "#Nodes"
+        self.ylabel = "% Nodes"
         self.title = "Diffusion Trend"
 
     def iteration_series(self, percentile):
