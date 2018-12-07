@@ -41,6 +41,14 @@ sudo pip install ndlib
 
 For examples, tutorials and a complete reference visit the project documentation website on [ReadTheDocs](http://ndlib.readthedocs.io).
 
+## Jupyter Notebook Tutorial
+
+Interested in an extensive tutorial on NDlib? Check out the official Jupyter Notebooks!
+
+[NDlib Overview](https://colab.research.google.com/github/KDDComplexNetworkAnalysis/CNA_Tutorials/blob/master/NDlib.ipynb#scrollTo=d80DUNRkKIn4)
+ 
+[NDlib-Rest](https://colab.research.google.com/github/KDDComplexNetworkAnalysis/CNA_Tutorials/blob/master/NDlib-REST.ipynb)
+
 ## Collaborate with us!
 
 ``NDlib`` is an active project, any contribution is welcome!

@@ -30,10 +30,10 @@ NDlib - Network Diffusion Library
 
 		<div style="text-align: center">
         <object width="480" height="385" align="center"><param name="movie"
-        value="https://www.youtube.com/watch?v=tYHNOuKJwbE&t=172s"></param><param
+        value="https://www.youtube.com/watch?v=tYHNOuKJwbE&t=2s"></param><param
         name="allowFullScreen" value="true"></param><param
         name="allowscriptaccess" value="always"></param><embed
-        src="https://www.youtube.com/watch?v=tYHNOuKJwbE&t=172s"
+        src="https://www.youtube.com/watch?v=tYHNOuKJwbE&t=2s"
         type="application/x-shockwave-flash" allowscriptaccess="always"
         allowfullscreen="true" width="480"
         height="385"></embed></object>
