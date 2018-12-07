@@ -9,7 +9,7 @@ from ndlib.viz.bokeh.DiffusionPrevalence import DiffusionPrevalence
 from ndlib.viz.bokeh.MultiPlot import MultiPlot
 
 import ndlib.models.ModelConfig as mc
-import ndlib.models.epidemics.SIRModel as sir
+import ndlib.models.epidemics as epd
 from ndlib.viz.bokeh.DiffusionTrend import DiffusionTrend
 
 __author__ = 'Giulio Rossetti'
@@ -21,7 +21,7 @@ class VizTest(unittest.TestCase):
 
     def test_visualize(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = sir.SIRModel(g)
+        model = epd.SIRModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.001)
         config.add_model_parameter('gamma', 0.01)
@@ -35,7 +35,7 @@ class VizTest(unittest.TestCase):
 
     def test_visualize_prevalence(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = sir.SIRModel(g)
+        model = epd.SIRModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.001)
         config.add_model_parameter('gamma', 0.01)
@@ -52,7 +52,7 @@ class VizTest(unittest.TestCase):
         vm = MultiPlot()
 
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = sir.SIRModel(g)
+        model = epd.SIRModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.001)
         config.add_model_parameter('gamma', 0.01)
@@ -66,7 +66,7 @@ class VizTest(unittest.TestCase):
         vm.add_plot(p)
 
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = sir.SIRModel(g)
+        model = epd.SIRModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.001)
         config.add_model_parameter('gamma', 0.01)
