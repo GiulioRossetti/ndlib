@@ -12,7 +12,7 @@ In order to abstract from the its programming interface we built a simple visual
 
    Visual Framework.
 
-**Project Website**: https://github.com/rinziv/NDLib-Viz
+**Project Website**: https://github.com/GiulioRossetti/NDLib_viz
 
 
 =========

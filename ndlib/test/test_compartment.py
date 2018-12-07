@@ -5,19 +5,9 @@ import networkx as nx
 import numpy as np
 import ndlib.models.ModelConfig as mc
 import ndlib.models.CompositeModel as gc
-import ndlib.models.compartments.NodeStochastic as ns
-import ndlib.models.compartments.NodeThreshold as nt
-import ndlib.models.compartments.NodeCategoricalAttribute as na
-import ndlib.models.compartments.NodeNumericalAttribute as nm
-import ndlib.models.compartments.EdgeStochastic as es
-import ndlib.models.compartments.EdgeCategoricalAttribute as ea
-import ndlib.models.compartments.EdgeNumericalAttribute as en
-import ndlib.models.compartments.ConditionalComposition as cif
-import ndlib.models.compartments.CountDown as cw
+import ndlib.models.compartments as cpm
 
-import ndlib.models.actions.AddNode as ad
-import ndlib.models.actions.RemoveNode as rn
-import ndlib.models.actions.SwapEdges as ew
+import ndlib.models.actions as act
 
 __author__ = 'Giulio Rossetti'
 __license__ = "BSD-2-Clause"
@@ -34,9 +24,9 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Infected")
         model.add_status("Removed")
 
-        c1 = ns.NodeStochastic(0.02, "Infected")
-        c2 = ns.NodeStochastic(0.01)
-        c3 = ns.NodeStochastic(0.5)
+        c1 = cpm.NodeStochastic(0.02, "Infected")
+        c2 = cpm.NodeStochastic(0.01)
+        c3 = cpm.NodeStochastic(0.5)
 
         model.add_rule("Susceptible", "Infected", c1)
         model.add_rule("Infected", "Removed", c2)
@@ -58,7 +48,7 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c1 = nt.NodeThreshold(0.1, triggering_status="Infected")
+        c1 = cpm.NodeThreshold(0.1, triggering_status="Infected")
         model.add_rule("Susceptible", "Infected", c1)
 
         config = mc.Configuration()
@@ -74,7 +64,7 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c1 = nt.NodeThreshold(triggering_status="Infected")
+        c1 = cpm.NodeThreshold(triggering_status="Infected")
         model.add_rule("Susceptible", "Infected", c1)
 
         config = mc.Configuration()
@@ -97,7 +87,7 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c1 = es.EdgeStochastic(0.1, triggering_status="Infected")
+        c1 = cpm.EdgeStochastic(0.1, triggering_status="Infected")
         model.add_rule("Susceptible", "Infected", c1)
 
         config = mc.Configuration()
@@ -113,7 +103,7 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c1 = es.EdgeStochastic(triggering_status="Infected")
+        c1 = cpm.EdgeStochastic(triggering_status="Infected")
         model.add_rule("Susceptible", "Infected", c1)
 
         config = mc.Configuration()
@@ -134,7 +124,7 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c1 = es.EdgeStochastic(triggering_status="Infected")
+        c1 = cpm.EdgeStochastic(triggering_status="Infected")
         model.add_rule("Susceptible", "Infected", c1)
 
         config = mc.Configuration()
@@ -153,9 +143,9 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Removed")
 
         # cascading composition
-        c3 = ns.NodeStochastic(0.2)
-        c2 = ns.NodeStochastic(0.4, composed=c3)
-        c1 = ns.NodeStochastic(0.5, "Infected", composed=c2)
+        c3 = cpm.NodeStochastic(0.2)
+        c2 = cpm.NodeStochastic(0.4, composed=c3)
+        c1 = cpm.NodeStochastic(0.5, "Infected", composed=c2)
 
         model.add_rule("Susceptible", "Infected", c1)
 
@@ -175,11 +165,11 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Removed")
 
         # conditional composition
-        c1 = ns.NodeStochastic(0.5)
-        c2 = ns.NodeStochastic(0.2)
-        c3 = ns.NodeStochastic(0.1)
+        c1 = cpm.NodeStochastic(0.5)
+        c2 = cpm.NodeStochastic(0.2)
+        c3 = cpm.NodeStochastic(0.1)
 
-        cc = cif.ConditionalComposition(c1, c2, c3)
+        cc = cpm.ConditionalComposition(c1, c2, c3)
 
         model.add_rule("Susceptible", "Infected", cc)
 
@@ -200,7 +190,7 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c = na.NodeCategoricalAttribute("even", "0", probability=0.6)
+        c = cpm.NodeCategoricalAttribute("even", "0", probability=0.6)
         model.add_rule("Susceptible", "Infected", c)
 
         config = mc.Configuration()
@@ -220,7 +210,7 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c = ea.EdgeCategoricalAttribute("even", "0", probability=0.6)
+        c = cpm.EdgeCategoricalAttribute("even", "0", probability=0.6)
         model.add_rule("Susceptible", "Infected", c)
 
         config = mc.Configuration()
@@ -238,7 +228,7 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c = cw.CountDown(name="time", iterations=4)
+        c = cpm.CountDown(name="time", iterations=4)
         model.add_rule("Susceptible", "Infected", c)
 
         config = mc.Configuration()
@@ -258,7 +248,7 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c = nm.NodeNumericalAttribute("even", value=0, op="==", probability=1)
+        c = cpm.NodeNumericalAttribute("even", value=0, op="==", probability=1)
         model.add_rule("Susceptible", "Infected", c)
 
         config = mc.Configuration()
@@ -272,7 +262,7 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c = nm.NodeNumericalAttribute("even", value=[3, 5], op="IN", probability=1)
+        c = cpm.NodeNumericalAttribute("even", value=[3, 5], op="IN", probability=1)
         model.add_rule("Susceptible", "Infected", c)
 
         config = mc.Configuration()
@@ -292,7 +282,7 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c = en.EdgeNumericalAttribute("even", value=0, op="==", probability=1)
+        c = cpm.EdgeNumericalAttribute("even", value=0, op="==", probability=1)
         model.add_rule("Susceptible", "Infected", c)
 
         config = mc.Configuration()
@@ -306,7 +296,7 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c = en.EdgeNumericalAttribute("even", value=[3, 10], op="IN", probability=1)
+        c = cpm.EdgeNumericalAttribute("even", value=[3, 10], op="IN", probability=1)
         model.add_rule("Susceptible", "Infected", c)
 
         config = mc.Configuration()
@@ -326,8 +316,8 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c2 = ad.AddNode(probability=1, initial_status="Susceptible", copy_attributes=True)
-        c1 = ns.NodeStochastic(1, composed=c2)
+        c2 = act.AddNode(probability=1, initial_status="Susceptible", copy_attributes=True)
+        c1 = cpm.NodeStochastic(1, composed=c2)
 
         model.add_rule("Susceptible", "Susceptible", c1)
 
@@ -350,8 +340,8 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c2 = ew.SwapEdges(probability=1, number_of_swaps=1, copy_attributes=True, initial_status="Susceptible")
-        c1 = ns.NodeStochastic(1, composed=c2)
+        c2 = act.SwapEdges(probability=1, number_of_swaps=1, copy_attributes=True, initial_status="Susceptible")
+        c1 = cpm.NodeStochastic(1, composed=c2)
 
         model.add_rule("Susceptible", "Susceptible", c1)
 
@@ -370,8 +360,8 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c2 = rn.RemoveNode(probability=1)
-        c1 = ns.NodeStochastic(1, composed=c2)
+        c2 = act.RemoveNode(probability=1)
+        c1 = cpm.NodeStochastic(1, composed=c2)
 
         model.add_rule("Susceptible", "Susceptible", c1)
 

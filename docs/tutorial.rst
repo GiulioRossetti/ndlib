@@ -4,6 +4,8 @@ Tutorial
 
 NDlib is built upon networkx and is designed to configure, simulate and visualize diffusion experiments.
 
+Here you can find a few examples to get started with ``ndlib``: for a more comprehensive tutorial check the official `Jupyter Notebook`_.
+
 ------------
 Installation
 ------------
@@ -129,7 +131,7 @@ Multiplots - implemented only for the ``bokeh`` provider - are also useful to co
 	config.add_model_parameter("percentage_infected", 0.05)
 	sis_model.set_initial_status(config)
 	iterations = sis_model.iteration_bunch(200)
-	trends = model.build_trends(iterations)
+	trends = sis_model.build_trends(iterations)
 
 	viz = DiffusionTrend(sis_model, trends)
 	p3 = viz.plot(width=400, height=400)
@@ -142,7 +144,7 @@ Multiplots - implemented only for the ``bokeh`` provider - are also useful to co
 	config.add_model_parameter("percentage_infected", 0.05)
 	si_model.set_initial_status(config)
 	iterations = si_model.iteration_bunch(200)
-	trends = model.build_trends(iterations)
+	trends = si_model.build_trends(iterations)
 
 	viz = DiffusionTrend(si_model, trends)
 	p4 = viz.plot(width=400, height=400)
@@ -160,7 +162,7 @@ Multiplots - implemented only for the ``bokeh`` provider - are also useful to co
 	config.add_model_parameter("percentage_infected", 0.30)
 	th_model.set_initial_status(config)
 	iterations = th_model.iteration_bunch(60)
-	trends = model.build_trends(iterations)
+	trends = th_model.build_trends(iterations)
 
 	viz = DiffusionTrend(th_model, trends)
 	p5 = viz.plot(width=400, height=400)
@@ -168,3 +170,6 @@ Multiplots - implemented only for the ``bokeh`` provider - are also useful to co
 
 	m = vm.plot()
 	show(m)
+
+
+.. _`Jupyter Notebook`: https://colab.research.google.com/github/KDDComplexNetworkAnalysis/CNA_Tutorials/blob/master/NDlib.ipynb#scrollTo=d80DUNRkKIn4

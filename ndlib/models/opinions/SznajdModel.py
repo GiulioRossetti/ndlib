@@ -52,7 +52,7 @@ class SznajdModel(DiffusionModel):
         status_delta = {st: 0 for st in self.available_statuses.values()}
 
         # select a random node
-        speaker1 = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]
+        speaker1 = list(self.graph.nodes())[np.random.randint(0, self.graph.number_of_nodes())]
 
         # select a random neighbour
         neighbours = list(self.graph.neighbors(speaker1))

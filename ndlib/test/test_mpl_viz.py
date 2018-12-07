@@ -4,6 +4,7 @@ import unittest
 import past
 import networkx as nx
 import dynetx as dn
+
 from ndlib.viz.mpl.DiffusionPrevalence import DiffusionPrevalence
 from ndlib.viz.mpl.PrevalenceComparison import DiffusionPrevalenceComparison
 from ndlib.viz.mpl.TrendComparison import DiffusionTrendComparison
@@ -15,6 +16,11 @@ import ndlib.models.epidemics.SIModel as si
 
 import ndlib.models.dynamic.DynSIModel as dsi
 from ndlib.viz.mpl.DiffusionTrend import DiffusionTrend
+
+import ndlib.models.ModelConfig as mc
+import ndlib.models.epidemics as epd
+import ndlib.models.dynamic as dyn
+
 from ndlib.viz.mpl.PhasePlane import PhasePlane
 import os
 
@@ -69,7 +75,7 @@ class MplVizTest(unittest.TestCase):
 
     def test_visualize(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = sir.SIRModel(g)
+        model = epd.SIRModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.001)
         config.add_model_parameter('gamma', 0.01)
@@ -90,7 +96,7 @@ class MplVizTest(unittest.TestCase):
             g = nx.erdos_renyi_graph(200, 0.05)
             dg.add_interactions_from(g.edges(), t)
 
-        model = dsi.DynSIModel(dg)
+        model = dyn.DynSIModel(dg)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.1)
         config.add_model_parameter("percentage_infected", 0.1)
@@ -105,7 +111,7 @@ class MplVizTest(unittest.TestCase):
 
     def test_visualize_prevalence(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = sir.SIRModel(g)
+        model = epd.SIRModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.001)
         config.add_model_parameter('gamma', 0.01)
@@ -125,7 +131,7 @@ class MplVizTest(unittest.TestCase):
         g = nx.erdos_renyi_graph(1000, 0.1)
 
         # Model selection
-        model = sir.SIRModel(g)
+        model = epd.SIRModel(g)
 
         # Model Configuration
         cfg = mc.Configuration()
@@ -137,7 +143,7 @@ class MplVizTest(unittest.TestCase):
         iterations = model.iteration_bunch(200)
         trends = model.build_trends(iterations)
 
-        model1 = si.SIModel(g)
+        model1 = epd.SIModel(g)
         cfg = mc.Configuration()
         cfg.add_model_parameter('beta', 0.001)
         cfg.add_model_parameter("percentage_infected", 0.01)
@@ -156,7 +162,7 @@ class MplVizTest(unittest.TestCase):
         g = nx.erdos_renyi_graph(1000, 0.1)
 
         # Model selection
-        model = sir.SIRModel(g)
+        model = epd.SIRModel(g)
 
         # Model Configuration
         cfg = mc.Configuration()
@@ -168,7 +174,7 @@ class MplVizTest(unittest.TestCase):
         iterations = model.iteration_bunch(200)
         trends = model.build_trends(iterations)
 
-        model1 = si.SIModel(g)
+        model1 = epd.SIModel(g)
         cfg = mc.Configuration()
         cfg.add_model_parameter('beta', 0.001)
         cfg.add_model_parameter("percentage_infected", 0.01)

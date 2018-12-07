@@ -34,7 +34,7 @@ Parameters
 Name       Type   Value Type       Default  Mandatory  Description
 =========  =====  ===============  =======  =========  =======================
 threshold  Node   float in [0, 1]   0.1      False     Individual threshold
-tau		   Model  int                        True      Adoption threshold rate
+tau        Model  int                        True      Adoption threshold rate
 mu         Model  int                        True      Exogenous timescale
 =========  =====  ===============  =======  =========  =======================
 
@@ -108,6 +108,7 @@ In the code below is shown an example of instantiation and execution of a Thresh
 
     # Simulation execution
     iterations = model.iteration_bunch(200)
+
 
 .. [#] János Török and János Kertész “Cascading collapse of online social networks” Scientific reports, vol. 7 no. 1, 2017 
 

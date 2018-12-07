@@ -2,7 +2,7 @@
 Threshold
 *********
 
-The Profile-Threshold model assumes the existence of node profiles that act as preferential schemas for individual tastes but relax the constraints imposed by the Profile model by letting nodes influenceable via peer pressure mechanisms. 
+The Profile-Threshold model, introduced by Milli et al. in [#]_, assumes the existence of node profiles that act as preferential schemas for individual tastes but relax the constraints imposed by the Profile model by letting nodes influenceable via peer pressure mechanisms.
 
 The peer pressure is modeled with a threshold. 
 
@@ -74,8 +74,8 @@ Execute Simulation
 ^^^^^^^^^^^^^^^^^^
 .. automethod:: ndlib.models.dynamic.DynProfileThresholdModel.DynProfileThresholdModel.iteration(self)
 .. automethod:: ndlib.models.dynamic.DynProfileThresholdModel.DynProfileThresholdModel.execute_snapshots(bunch_size, node_status)
-.. automethod:: ndlib.models.dynamic.DynProfileThresholdModel.DynProfileThresholdModel.execute_iterations(node_status)
 
+*NB: the ``execute_iterations()`` method is unavailable for this model (along with other thresholded models).*
 
 -------
 Example
@@ -88,17 +88,18 @@ In the code below is shown an example of instantiation and execution of a Profil
     import networkx as nx
     import dynetx as dn
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.dynamic.DynProfileThresholdModel as ks
+    import ndlib.models.dynamic.DynProfileThresholdModel as prTr
+    from past.builtins import xrange
 
     # Dynamic Network topology
     dg = dn.DynGraph()
 
-    for t in past.builtins.xrange(0, 3):
+    for t in xrange(0, 3):
         g = nx.erdos_renyi_graph(200, 0.05)
         dg.add_interactions_from(g.edges(), t)
 
     # Model selection
-    model = pt.DynProfileThresholdModel(g)
+    model = prTr.DynProfileThresholdModel(dg)
     config = mc.Configuration()
     config.add_model_parameter('blocked', 0)
     config.add_model_parameter('adopter_rate', 0)
@@ -117,5 +118,4 @@ In the code below is shown an example of instantiation and execution of a Profil
     # Simulate snapshot based execution
     iterations = model.execute_snapshots()
 
-    # Simulation interaction graph based execution
-    iterations = model.execute_iterations()
+.. [#] Milli, L., Rossetti, G., Pedreschi, D., & Giannotti, F. (2018). Active and passive diffusion processes in complex networks. Applied network science, 3(1), 42.

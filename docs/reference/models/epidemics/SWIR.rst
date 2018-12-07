@@ -68,7 +68,7 @@ Describe
 ^^^^^^^^^^^^^^^^^^
 Execute Simulation
 ^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.epidemics.SWIRModel.SEIRModel.iteration(self)
+.. automethod:: ndlib.models.epidemics.SWIRModel.SWIRModel.iteration(self)
 .. automethod:: ndlib.models.epidemics.SWIRModel.SWIRModel.iteration_bunch(self, bunch_size)
 
 
