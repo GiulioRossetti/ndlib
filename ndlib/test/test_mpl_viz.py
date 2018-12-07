@@ -10,11 +10,6 @@ from ndlib.viz.mpl.PrevalenceComparison import DiffusionPrevalenceComparison
 from ndlib.viz.mpl.TrendComparison import DiffusionTrendComparison
 from ndlib.viz.mpl.PhasePlaneComparison import PhasePlaneComparison
 
-import ndlib.models.ModelConfig as mc
-import ndlib.models.epidemics.SIRModel as sir
-import ndlib.models.epidemics.SIModel as si
-
-import ndlib.models.dynamic.DynSIModel as dsi
 from ndlib.viz.mpl.DiffusionTrend import DiffusionTrend
 
 import ndlib.models.ModelConfig as mc
@@ -33,7 +28,7 @@ class MplVizTest(unittest.TestCase):
 
     def test_phaseplane(self):
         g = nx.barabasi_albert_graph(1000, 3)
-        model = sir.SIRModel(g)
+        model = epd.SIRModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.05)
         config.add_model_parameter('gamma', 0.09)
@@ -50,7 +45,7 @@ class MplVizTest(unittest.TestCase):
     def test_comp_phaseplane(self):
         g = nx.barabasi_albert_graph(1000, 3)
 
-        model = sir.SIRModel(g)
+        model = epd.SIRModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.05)
         config.add_model_parameter('gamma', 0.09)
@@ -59,7 +54,7 @@ class MplVizTest(unittest.TestCase):
         iterations = model.iteration_bunch(1000)
         trends = model.build_trends(iterations)
 
-        model1 = sir.SIRModel(g)
+        model1 = epd.SIRModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.02)
         config.add_model_parameter('gamma', 0.01)
@@ -187,6 +182,7 @@ class MplVizTest(unittest.TestCase):
 
         viz.plot("trend_comparison.pdf")
         os.remove("trend_comparison.pdf")
+
 
 if __name__ == '__main__':
     unittest.main()
