@@ -43,21 +43,21 @@ In oder to effectively describe the model the ``__init__`` function of ``ndlib.m
 			self.parameters = {
 				"model":
 	  				"parameter_name": {
-	     					"descr": "Description 1"
+	     					"descr": "Description 1",
 	     					"range": [0,1],
 	     					"optional": False
 	   					},
 					},
 				"nodes":
 					"node_parameter_name": {
-	     					"descr": "Description 2"
+	     					"descr": "Description 2",
 	     					"range": [0,1],
 	     					"optional": True
 	   					},
 					},
 				"edges":
 					"edge_parameter_name": {
-							"descr": "Description 3"
+							"descr": "Description 3",
 							"range": [0,1],
 							"optional": False
 						},
