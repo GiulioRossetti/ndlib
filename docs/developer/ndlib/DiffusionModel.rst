@@ -22,6 +22,9 @@ In oder to effectively describe the model the ``__init__`` function of ``ndlib.m
 
 .. code-block:: python
 
+	import future.utils
+	import numpy as np
+	import networkx as nx
 	from ndlib.models.DiffusionModel import DiffusionModel
 
 	class MyModel(DiffusionModel):
