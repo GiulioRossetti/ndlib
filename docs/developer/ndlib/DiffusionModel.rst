@@ -90,7 +90,8 @@ To do so, the ``iteration()`` method of the base class has to be overridden in `
 	def iteration(self, node_status=True):
 
 		self.clean_initial_status(self.available_statuses.values())
-
+		actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
+		
 		# if first iteration return the initial node status
 		if self.actual_iteration == 0:
 			self.actual_iteration += 1
@@ -102,7 +103,6 @@ To do so, the ``iteration()`` method of the base class has to be overridden in `
 				return {"iteration": 0, "status": {},
 						"node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
-		actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
 
 		# iteration inner loop
 		for u in self.graph.nodes():
