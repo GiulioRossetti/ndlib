@@ -57,7 +57,7 @@ If you like to include your model in NDlib (as well as in [NDlib-REST](https://g
 
 ### How to contribute to this project?
 
-- Contributing is good, doing it correctly is better! Check out our [rules](https://github.com/GiulioRossetti/ndlib/blob/master/CONTRIBUTING.md), issue a proper [pull request](https://github.com/GiulioRossetti/ndlib/blob/master/PULL_REQUEST_TEMPLATE.md) /[bug report](https://github.com/GiulioRossetti/ndlib/blob/master/.github/ISSUE_TEMPLATE/bug_report.md) / [feature request](https://github.com/GiulioRossetti/ndlib/blob/master/.github/ISSUE_TEMPLATE/feature_request.md).
+- Contributing is good, doing it correctly is better! Check out our [rules](https://github.com/GiulioRossetti/ndlib/blob/master/.github/CONTRIBUTING.md), issue a proper [pull request](https://github.com/GiulioRossetti/ndlib/blob/master/.github/PULL_REQUEST_TEMPLATE.md) /[bug report](https://github.com/GiulioRossetti/ndlib/blob/master/.github/ISSUE_TEMPLATE/bug_report.md) / [feature request](https://github.com/GiulioRossetti/ndlib/blob/master/.github/ISSUE_TEMPLATE/feature_request.md).
 - Do you want to be part of the NDlib community to discuss enhancements, desiderata, bug fix? Join us on [Slack](https://ndlib.slack.com/messages/CET3Y19F0/)!
 
-We are a welcoming community... just follow the [Code of Conduct](https://github.com/GiulioRossetti/ndlib/blob/master/CODE_OF_CONDUCT.md).
+We are a welcoming community... just follow the [Code of Conduct](https://github.com/GiulioRossetti/ndlib/blob/master/.github/CODE_OF_CONDUCT.md).
