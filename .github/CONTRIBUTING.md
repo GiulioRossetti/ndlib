@@ -47,7 +47,7 @@ Fill out [the required template](ISSUE_TEMPLATE/bug_report.md), the information 
 #### How Do I Submit A (Good) Bug Report?
 
 Bugs are tracked as [GitHub issues](https://guides.github.com/features/issues/). 
-After identfied a bug, create an issue and provide the following information by filling in [the template](ISSUE_TEMPLATE.md).
+After identfied a bug, create an issue and provide the following information by filling in [the template](ISSUE_TEMPLATE/bug_report.md).
 
 Explain the problem and include additional details to help maintainers reproduce the problem:
 
