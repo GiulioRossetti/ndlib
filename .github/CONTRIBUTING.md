@@ -28,7 +28,7 @@ By participating, you are expected to uphold this code. Please report unacceptab
 
 We have an official Slack channel where the community chimes in with helpful advice if you have questions.
 
-* [Join the NDlib](https://ndlib.slack.com/messages)
+* [Join the NDlib Community](https://ndlib.slack.com/messages)
     * Even though Slack is a chat service, sometimes it takes several hours for community members to respond &mdash; please be patient!
     * Use the `#general` channel for general questions or discussion about NDlib
     * Use the `#ndlib` channel for NDlib issue/feature request
@@ -40,7 +40,7 @@ We have an official Slack channel where the community chimes in with helpful adv
 
 This section guides you through submitting a bug report for NDlib. Following these guidelines helps maintainers and the community understand your report :pencil:, reproduce the behavior :computer: :computer:, and find related reports :mag_right:.
 
-Fill out [the required template](ISSUE_TEMPLATE.md), the information it asks for helps us resolve issues faster.
+Fill out [the required template](ISSUE_TEMPLATE/bug_report.md), the information it asks for helps us resolve issues faster.
 
 > **Note:** If you find a **Closed** issue that seems like it is the same thing that you're experiencing, open a new issue and include a link to the original issue in the body of your new one.
 
@@ -71,7 +71,7 @@ Following these guidelines helps maintainers and the community understand your s
 #### How Do I Submit A (Good) Enhancement Suggestion?
 
 Enhancement suggestions are tracked as [GitHub issues](https://guides.github.com/features/issues/). 
-After matured the enhancement suggestion, create an issue and provide the following information:
+After matured the enhancement suggestion, create an issue (following the [template](ISSUE_TEMPLATE/feature_request.md)) and provide the following information:
 
 * **Use a clear and descriptive title** for the issue to identify the suggestion.
 * **Provide a step-by-step description of the suggested enhancement** in as many details as possible.
