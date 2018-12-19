@@ -6,6 +6,7 @@
 [![pyversions](https://img.shields.io/pypi/pyversions/ndlib.svg)](https://badge.fury.io/py/ndlib)
 [![Updates](https://pyup.io/repos/github/GiulioRossetti/ndlib/shield.svg)](https://pyup.io/repos/github/GiulioRossetti/ndlib/)
 [![PyPI version](https://badge.fury.io/py/ndlib.svg)](https://badge.fury.io/py/ndlib)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/GiulioRossetti/ndlib.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/GiulioRossetti/ndlib/context:python)
 
 ![NDlib logo](https://github.com/GiulioRossetti/ndlib/blob/master/docs/ndlogo2.png)
 
