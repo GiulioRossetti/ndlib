@@ -4,6 +4,6 @@ numpy==1.15.4
 future==0.17.1
 networkx==2.2
 dynetx==0.2.1
-bokeh==1.0.3
+bokeh==1.0.4
 matplotlib==3.0.2
 pytest==4.1.0
