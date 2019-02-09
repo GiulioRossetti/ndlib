@@ -1,4 +1,4 @@
-.. NDlib documentation master file, created by
+\.. NDlib documentation master file, created by
    sphinx-quickstart on Wed May 24 10:59:33 2017.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
@@ -7,7 +7,7 @@
 
 NDlib - Network Diffusion Library
 =================================
-.. image:: https://badge.fury.io/py/ndlib.svg
+.. image:: https://badge.fury.io/py/ndlib.svgz
     :target: https://badge.fury.io/py/ndlib.svg
 
 .. image:: https://img.shields.io/pypi/pyversions/ndlib.svg
