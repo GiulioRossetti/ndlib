@@ -42,7 +42,7 @@ class IFModel(DiffusionModel):
                     "range": "[-1,1]",
                     "optional": False},
                 "T2": {
-                    "descr": "Temperature node 2",
+                    "descr": "Temperature node 2, must be grater than T1",
                     "range": "[-1,1]",
                     "optional": False}
             },
@@ -52,7 +52,7 @@ class IFModel(DiffusionModel):
 
         self.name = "IF"
 
-    def __change_status(self, u, actual_status):
+    def __change_status(self, u):
 
         neighbors = self.graph.neighbors(u)
         if isinstance(self.graph, nx.DiGraph):
@@ -61,9 +61,10 @@ class IFModel(DiffusionModel):
         s_u = 0
         s_u_inv = 0
         for n in neighbors:
-            s_u += actual_status[u] * actual_status[n]
-            s_u_inv += (-1 * actual_status[u]) * actual_status[n]
+            s_u += self.status[u] * self.status[n]
+            s_u_inv += (-1 * self.status[u]) * self.status[n]
 
+        # regular node scenario
         if u != self.params['model']['N1'] and u != self.params['model']['N2']:
             if s_u == s_u_inv:
                 flip = random.randint(0, 1)
@@ -71,11 +72,12 @@ class IFModel(DiffusionModel):
                     return True
                 return False
 
+        # Fixed temperature scenario
         dif = s_u_inv - s_u
         if u == self.params['model']['N1']:
             dif /= self.params['model']['T1']
         else:
-            dif /=  self.params['model']['T2']
+            dif /= self.params['model']['T2']
 
         if s_u_inv < s_u:
             return True
@@ -105,11 +107,13 @@ class IFModel(DiffusionModel):
                 return {"iteration": 0, "status": {},
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
-        for u in self.graph.nodes():
-            change = self.__change_status(u, actual_status)
-            if change:
-                actual_status[u] = -1*actual_status[u]
+        # random node selection
+        u = random.sample(list(self.graph.nodes()), 1)[0]
 
+        # spin change evaluation
+        change = self.__change_status(u)
+        if change:
+            actual_status[u] = -1*self.status[u]
 
         delta, node_count, status_delta = self.status_delta(actual_status)
         self.status = actual_status

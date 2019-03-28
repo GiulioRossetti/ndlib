@@ -494,17 +494,17 @@ class NdlibTest(unittest.TestCase):
         config = mc.Configuration()
         config.add_model_parameter('N1', 1)
         config.add_model_parameter('N2', 100)
-        config.add_model_parameter('T1', 1)
-        config.add_model_parameter('T2', -1)
+        config.add_model_parameter('T1', -1)
+        config.add_model_parameter('T2', 1)
 
         population = set(g.nodes()) - {n1, n2}
 
         negative_spin = random.sample(population, int(len(population)/2))
         positive_spin = list(population - set(negative_spin))
-        positive_spin.append(n1)
+        positive_spin.append(n2)
 
         negative_spin = list(negative_spin)
-        negative_spin.append(n2)
+        negative_spin.append(n1)
 
         config.add_model_initial_configuration("-1", negative_spin)
         config.add_model_initial_configuration("1", positive_spin)
