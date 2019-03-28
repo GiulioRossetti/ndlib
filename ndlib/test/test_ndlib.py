@@ -4,6 +4,7 @@ import unittest
 
 import future.utils
 import networkx as nx
+import random
 
 import ndlib.models.ModelConfig as mc
 import ndlib.models.epidemics as epd
@@ -483,3 +484,33 @@ class NdlibTest(unittest.TestCase):
             model.set_initial_status(config)
         except:
             pass
+
+    def test_ising_model(self):
+        g = nx.erdos_renyi_graph(1000, 0.1)
+
+        n1 = 1
+        n2 = 100
+        model = epd.IFModel(g)
+        config = mc.Configuration()
+        config.add_model_parameter('N1', 1)
+        config.add_model_parameter('N2', 100)
+        config.add_model_parameter('T1', 1)
+        config.add_model_parameter('T2', -1)
+
+        population = set(g.nodes()) - {n1, n2}
+
+        negative_spin = random.sample(population, int(len(population)/2))
+        positive_spin = list(population - set(negative_spin))
+        positive_spin.append(n1)
+
+        negative_spin = list(negative_spin)
+        negative_spin.append(n2)
+
+        config.add_model_initial_configuration("-1", negative_spin)
+        config.add_model_initial_configuration("1", positive_spin)
+        config.add_model_initial_configuration("Infected", [])  # @ToDo: rimuovere dipendenza da classe Infected
+
+        model.set_initial_status(config)
+
+        iterations = model.iteration_bunch(10)
+        self.assertEqual(len(iterations), 10)
