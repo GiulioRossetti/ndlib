@@ -62,7 +62,9 @@ class IFModel(DiffusionModel):
         s_u_inv = 0
         for n in neighbors:
             s_u += self.status[u] * self.status[n]
-            s_u_inv += (-1 * self.status[u]) * self.status[n]
+            s_u_inv += self.status[u] * self.status[n]
+
+        s_u *= -1
 
         # regular node scenario
         if u != self.params['model']['N1'] and u != self.params['model']['N2']:
