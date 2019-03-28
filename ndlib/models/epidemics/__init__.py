@@ -29,4 +29,5 @@ __all__ = [
     'SISModel',
     'SWIRModel',
     'ThresholdModel',
+    'IFModel',
 ]
