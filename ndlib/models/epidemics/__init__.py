@@ -14,6 +14,7 @@ from .SIRModel import SIRModel
 from .SISModel import SISModel
 from .SWIRModel import SWIRModel
 from .ThresholdModel import ThresholdModel
+from .IsingFluctuationModel import IFModel
 
 __all__ = [
     'GeneralisedThresholdModel',
@@ -28,4 +29,5 @@ __all__ = [
     'SISModel',
     'SWIRModel',
     'ThresholdModel',
+    'IFModel',
 ]

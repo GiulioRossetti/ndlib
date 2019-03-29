@@ -22,6 +22,9 @@ In oder to effectively describe the model the ``__init__`` function of ``ndlib.m
 
 .. code-block:: python
 
+	import future.utils
+	import numpy as np
+	import networkx as nx
 	from ndlib.models.DiffusionModel import DiffusionModel
 
 	class MyModel(DiffusionModel):
@@ -43,21 +46,21 @@ In oder to effectively describe the model the ``__init__`` function of ``ndlib.m
 			self.parameters = {
 				"model":
 	  				"parameter_name": {
-	     					"descr": "Description 1"
+	     					"descr": "Description 1",
 	     					"range": [0,1],
 	     					"optional": False
 	   					},
 					},
 				"nodes":
 					"node_parameter_name": {
-	     					"descr": "Description 2"
+	     					"descr": "Description 2",
 	     					"range": [0,1],
 	     					"optional": True
 	   					},
 					},
 				"edges":
 					"edge_parameter_name": {
-							"descr": "Description 3"
+							"descr": "Description 3",
 							"range": [0,1],
 							"optional": False
 						},
@@ -87,7 +90,8 @@ To do so, the ``iteration()`` method of the base class has to be overridden in `
 	def iteration(self, node_status=True):
 
 		self.clean_initial_status(self.available_statuses.values())
-
+		actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
+		
 		# if first iteration return the initial node status
 		if self.actual_iteration == 0:
 			self.actual_iteration += 1
@@ -99,7 +103,6 @@ To do so, the ``iteration()`` method of the base class has to be overridden in `
 				return {"iteration": 0, "status": {},
 						"node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
-		actual_status = {node: nstatus for node, nstatus in self.status.iteritems()}
 
 		# iteration inner loop
 		for u in self.graph.nodes():
