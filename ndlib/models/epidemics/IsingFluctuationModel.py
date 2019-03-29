@@ -52,15 +52,16 @@ class IFModel(DiffusionModel):
 
         self.name = "IF"
 
+        self.ds_bath = []
+
     def __change_status(self, u):
 
-        neighbors = self.graph.neighbors(u)
-        if isinstance(self.graph, nx.DiGraph):
-            neighbors = self.graph.predecessors(u)
+        # neighbors = self.graph.neighbors(u)
+        nn = len(list(self.graph.neighbors(u)))
 
         s_u = 0
         s_u_inv = 0
-        for n in neighbors:
+        for n in self.graph.neighbors(u):
             s_u += self.status[u] * self.status[n]
             s_u_inv += self.status[u] * self.status[n]
 
@@ -76,10 +77,16 @@ class IFModel(DiffusionModel):
 
         # Fixed temperature scenario
         dif = s_u_inv - s_u
+
+        ds_bath = dif * nn
         if u == self.params['model']['N1']:
             dif /= self.params['model']['T1']
+            ds_bath /= self.params['model']['T1']
         else:
             dif /= self.params['model']['T2']
+            ds_bath /= self.params['model']['T2']
+
+        self.ds_bath.append((self.actual_iteration+1, ds_bath))
 
         if s_u_inv < s_u:
             return True

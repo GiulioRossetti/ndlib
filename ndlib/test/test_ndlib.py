@@ -486,7 +486,7 @@ class NdlibTest(unittest.TestCase):
             pass
 
     def test_ising_model(self):
-        g = nx.erdos_renyi_graph(1000, 0.1)
+        g = nx.watts_strogatz_graph(100, 6, 0.05)
 
         n1 = 1
         n2 = 100
@@ -512,5 +512,6 @@ class NdlibTest(unittest.TestCase):
 
         model.set_initial_status(config)
 
-        iterations = model.iteration_bunch(10)
-        self.assertEqual(len(iterations), 10)
+        iterations = model.iteration_bunch(1000)
+
+        self.assertEqual(len(iterations), 1000)
