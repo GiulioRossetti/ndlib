@@ -73,6 +73,7 @@ class IFModel(DiffusionModel):
                 if flip == 1:
                     return True
                 return False
+            return False
 
         # Fixed temperature scenario
         dif = s_u_inv - s_u
