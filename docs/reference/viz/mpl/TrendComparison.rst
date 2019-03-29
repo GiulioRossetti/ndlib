@@ -8,7 +8,7 @@ Each trend line describes the variation of the number of nodes for a given statu
 
 .. autoclass:: ndlib.viz.mpl.TrendComparison.DiffusionTrendComparison
 .. automethod:: ndlib.viz.mpl.TrendComparison.DiffusionTrendComparison.__init__(models, trends, statuses)
-.. automethod:: ndlib.viz.mpl.TrendComparison.DiffusionTrendComparison.plot(filename, percentile)
+.. automethod:: ndlib.viz.mpl.TrendComparison.DiffusionTrendComparison.plot(percentile)
 
 
 Below is shown an example of Diffusion Trend description and visualization for the SIR model.
@@ -54,7 +54,8 @@ Below is shown an example of Diffusion Trend description and visualization for t
 
     # Visualization
     viz = DiffusionTrend([model, model1], [trends, trends1])
-    viz.plot("trend_comparison.pdf")
+    fig = viz.plot()
+    fig.show()
 
 
 

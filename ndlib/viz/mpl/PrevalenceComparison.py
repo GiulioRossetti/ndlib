@@ -15,7 +15,7 @@ class DiffusionPrevalenceComparison(ComparisonPlot):
         :param statuses: The model statuses for which make the plot. Default ["Infected"].
         """
         super(self.__class__, self).__init__(models, trends, statuses)
-        self.ylabel = "#Nodes"
+        self.ylabel = "Delta Nodes"
         self.title = "DPrevalence"
         self.normalized = False
 

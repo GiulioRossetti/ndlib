@@ -16,7 +16,6 @@ __email__ = "giulio.rossetti@gmail.com"
 
 @six.add_metaclass(abc.ABCMeta)
 class DiffusionPlot(object):
-   # __metaclass__ = abc.ABCMeta
 
     def __init__(self, model, trends):
         self.model = model
@@ -38,14 +37,14 @@ class DiffusionPlot(object):
         """
         pass
 
-    def plot(self, filename=None, percentile=90):
+    def plot(self, percentile=90):
         """
         Generates the plot
 
-        :param filename: Output filename
         :param percentile: The percentile for the trend variance area
+        :return fig: A matplotlib Figure object
         """
-
+        fig = plt.figure()
         pres = self.iteration_series(percentile)
         infos = self.model.get_info()
         descr = ""
@@ -77,8 +76,4 @@ class DiffusionPlot(object):
         plt.xlim((0, mx))
 
         plt.tight_layout()
-        if filename is not None:
-            plt.savefig(filename)
-            plt.clf()
-        else:
-            plt.show()
+        return fig

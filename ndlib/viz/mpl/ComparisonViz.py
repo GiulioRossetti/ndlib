@@ -68,15 +68,15 @@ class ComparisonPlot(object):
         """
         pass
 
-    def plot(self, filename=None, percentile=90):
+    def plot(self, percentile=90):
         """
         Plot the comparison on file.
 
-        :param filename: the output filename
         :param percentile: The percentile for the trend variance area. Default 90.
-
+        :return fig: A matplotlib Figure object
         """
 
+        fig = plt.figure()
         pres = self.iteration_series(percentile)
 
         mx = 0
@@ -110,8 +110,4 @@ class ComparisonPlot(object):
 
         plt.tight_layout()
         
-        if filename is not None:
-            plt.savefig(filename)
-            plt.clf()
-        else:
-            plt.show()
+        return fig

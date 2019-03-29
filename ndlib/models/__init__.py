@@ -1,7 +1,3 @@
-"""
-The :mod:`ndlib.models` module contains...
-"""
-
 from . import dynamic
 from .dynamic import DynSIModel
 from .dynamic import DynSIRModel

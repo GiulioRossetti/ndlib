@@ -9,7 +9,7 @@ Each trend line describes the delta of the number of nodes for a given status it
 
 .. autoclass:: ndlib.viz.mpl.PrevalenceComparison.DiffusionPrevalenceComparison
 .. automethod:: ndlib.viz.mpl.PrevalenceComparison.DiffusionPrevalenceComparison.__init__(model, trends)
-.. automethod:: ndlib.viz.mpl.PrevalenceComparison.DiffusionPrevalenceComparison.plot(filename, percentile)
+.. automethod:: ndlib.viz.mpl.PrevalenceComparison.DiffusionPrevalenceComparison.plot(percentile)
 
 
 Below is shown an example of Diffusion Prevalence description and visualization for two instances of the SIR model.
@@ -55,7 +55,8 @@ Below is shown an example of Diffusion Prevalence description and visualization 
 
     # Visualization
     viz = DiffusionPrevalenceComparison([model, model1], [trends, trends1])
-    viz.plot("trend_comparison.pdf")
+    fig = viz.plot()
+    fig.show()
 
 
 
