@@ -72,7 +72,6 @@ class IFModel(DiffusionModel):
                 flip = random.randint(0, 1)
                 if flip == 1:
                     return True
-                return False
             return False
 
         # Fixed temperature scenario
