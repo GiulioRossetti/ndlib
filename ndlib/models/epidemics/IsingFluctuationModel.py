@@ -83,11 +83,11 @@ class IFModel(DiffusionModel):
             dif /= self.params['model']['T1']
             ds_bath /= self.params['model']['T1']
             self.ds_bath.append((self.actual_iteration + 1, ds_bath, 'T1'))
+
         else:
             dif /= self.params['model']['T2']
             ds_bath /= self.params['model']['T2']
             self.ds_bath.append((self.actual_iteration + 1, ds_bath, 'T2'))
-
 
         if s_u_inv < s_u:
             return True

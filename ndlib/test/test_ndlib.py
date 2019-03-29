@@ -493,7 +493,7 @@ class NdlibTest(unittest.TestCase):
         model = epd.IFModel(g)
         config = mc.Configuration()
         config.add_model_parameter('N1', 1)
-        config.add_model_parameter('N2', 100)
+        config.add_model_parameter('N2', 40)
         config.add_model_parameter('T1', -1)
         config.add_model_parameter('T2', 1)
 
