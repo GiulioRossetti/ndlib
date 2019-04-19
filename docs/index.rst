@@ -1,3 +1,5 @@
+.. |date| date::
+
 NDlib - Network Diffusion Library
 =================================
 
