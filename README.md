@@ -7,6 +7,7 @@
 [![Updates](https://pyup.io/repos/github/GiulioRossetti/ndlib/shield.svg)](https://pyup.io/repos/github/GiulioRossetti/ndlib/)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/GiulioRossetti/ndlib.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/GiulioRossetti/ndlib/context:python)
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/ndlib_nx/community?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FGiulioRossetti%2Fndlib.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FGiulioRossetti%2Fndlib?ref=badge_shield)
 
 ![NDlib logo](https://github.com/GiulioRossetti/ndlib/blob/master/docs/ndlogo2.png)
 
@@ -65,3 +66,7 @@ Do you want to be part of the NDlib community to discuss enhancements, desiderat
 [<img align="middle" width="150" src="docs/join-slack-team.png">](https://join.slack.com/t/ndlib/shared_invite/enQtNTA2ODk1MzQzODE0LWNjOWE2YTdiYjdkNTVmZjUyY2E5Y2NkMzczOGZkZjJiNDk5MDA4ZWUyNDgwNzNjMWIzMDIzNmQxYzQ4YWEyMDQ)
 
 We are a welcoming community... just follow the [Code of Conduct](https://github.com/GiulioRossetti/ndlib/blob/master/.github/CODE_OF_CONDUCT.md).
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FGiulioRossetti%2Fndlib.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FGiulioRossetti%2Fndlib?ref=badge_large)
