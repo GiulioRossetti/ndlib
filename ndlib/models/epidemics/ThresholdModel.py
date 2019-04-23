@@ -1,5 +1,4 @@
 from ..DiffusionModel import DiffusionModel
-import networkx as nx
 import future.utils
 
 __author__ = "Giulio Rossetti"
@@ -61,12 +60,12 @@ class ThresholdModel(DiffusionModel):
                 return {"iteration": 0, "status": {},
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
-        for u in self.graph.nodes():
+        for u in self.graph.nodes:
             if actual_status[u] == 1:
                 continue
 
             neighbors = list(self.graph.neighbors(u))
-            if isinstance(self.graph, nx.DiGraph):
+            if self.graph.directed:
                 neighbors = list(self.graph.predecessors(u))
 
             infected = 0

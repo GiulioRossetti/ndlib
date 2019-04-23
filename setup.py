@@ -14,7 +14,7 @@ __email__ = "giulio.rossetti@gmail.com"
 
 
 setup(name='ndlib',
-      version='4.0.2',
+      version='5.0.0',
       license='BSD-Clause-2',
       description='Network Diffusion Library',
       url='https://github.com/GiulioRossetti/ndlib',
@@ -46,10 +46,9 @@ setup(name='ndlib',
           # Specify the Python versions you support here. In particular, ensure
           # that you indicate whether you support Python 2, Python 3 or both.
           'Programming Language :: Python',
-          'Programming Language :: Python :: 2.7',
           'Programming Language :: Python :: 3'
       ],
       keywords='epidemics opinion-dynamics simulator complex-networks',
-      install_requires=['numpy', 'networkx', 'dynetx', 'scipy', 'bokeh', 'future', ''],
+      install_requires=['netdispatch', 'python-igraph', 'numpy', 'networkx', 'dynetx', 'scipy', 'bokeh', 'future', ''],
       packages=find_packages(exclude=["*.test", "*.test.*", "test.*", "test", "ndlib.test", "ndlib.test.*"]),
       )

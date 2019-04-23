@@ -1,5 +1,4 @@
 from ..DiffusionModel import DiffusionModel
-import networkx as nx
 import numpy as np
 import future
 
@@ -56,12 +55,12 @@ class SWIRModel(DiffusionModel):
                 return {"iteration": 0, "status": {},
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
-        for u in self.graph.nodes():
+        for u in self.graph.nodes:
 
             u_status = self.status[u]
             eventp = np.random.random_sample()
             neighbors = self.graph.neighbors(u)
-            if isinstance(self.graph, nx.DiGraph):
+            if self.graph.directed:
                 neighbors = self.graph.predecessors(u)
 
             if u_status == 1:  # Infected

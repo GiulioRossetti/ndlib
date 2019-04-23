@@ -43,7 +43,7 @@ class EdgeNumericalAttribute(Compartiment):
         if isinstance(graph, nx.DiGraph):
             neighbors = list(graph.predecessors(node))
 
-        edge_attr = nx.get_edge_attributes(graph, self.attribute)
+        edge_attr = graph.get_edge_attributes(self.attribute)
 
         triggered = []
 

@@ -1,5 +1,4 @@
 from ..DiffusionModel import DiffusionModel
-import networkx as nx
 import numpy as np
 from scipy import stats
 import future.utils
@@ -96,7 +95,7 @@ class KerteszThresholdModel(DiffusionModel):
                 return {"iteration": 0, "status": {},
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
-        for node in self.graph.nodes():
+        for node in self.graph.nodes:
             if self.status[node] == 0:
                 if self.params['model']['adopter_rate'] > 0:
                     xk = (0, 1)
@@ -112,7 +111,7 @@ class KerteszThresholdModel(DiffusionModel):
                 if len(neighbors) == 0:
                     continue
 
-                if isinstance(self.graph, nx.DiGraph):
+                if self.graph.directed:
                     neighbors = self.graph.predecessors(node)
 
                 infected = 0

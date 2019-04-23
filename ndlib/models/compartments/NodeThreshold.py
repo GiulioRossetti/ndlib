@@ -1,5 +1,4 @@
 from ndlib.models.compartments.Compartment import Compartiment, ConfigurationException
-import networkx as nx
 
 __author__ = 'Giulio Rossetti'
 __license__ = "BSD-2-Clause"
@@ -16,7 +15,13 @@ class NodeThreshold(Compartiment):
     def execute(self, node, graph, status, status_map, params, *args, **kwargs):
         neighbors = list(graph.neighbors(node))
         test = False
-        if isinstance(graph, nx.DiGraph):
+
+        try:
+            directed = graph.directed
+        except AttributeError:
+            directed = graph.is_directed()
+
+        if directed:
             neighbors = list(graph.predecessors(node))
 
         if self.trigger is None:
