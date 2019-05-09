@@ -77,7 +77,7 @@ class SIRModel(DiffusionModel):
 
             if u_status == 0:
                 infected_neighbors = len([v for v in neighbors if self.status[v] == 1])
-                if eventp < self.params['model']['beta'] * infected_neighbors:
+                if eventp < 1 - (1 - self.params['model']['beta']) ** infected_neighbors:
                     actual_status[u] = 1
             elif u_status == 1:
                 if eventp < self.params['model']['gamma']:
