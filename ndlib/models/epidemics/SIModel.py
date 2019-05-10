@@ -68,8 +68,9 @@ class SIModel(DiffusionModel):
                 neighbors = self.graph.predecessors(u)
 
             if u_status == 0:
-                infected_neighbors = len([v for v in neighbors if self.status[v] == 1])
-                if eventp < self.params['model']['beta'] * infected_neighbors:
+                triggered = 1 if len([v for v in neighbors if self.status[v] == 1]) > 0 else 0
+
+                if eventp < self.params['model']['beta'] * triggered:
                     actual_status[u] = 1
 
         delta, node_count, status_delta = self.status_delta(actual_status)
