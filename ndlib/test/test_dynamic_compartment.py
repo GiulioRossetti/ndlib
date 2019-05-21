@@ -7,9 +7,7 @@ import numpy as np
 import past.builtins
 import ndlib.models.ModelConfig as mc
 import ndlib.models.DynamicCompostiteModel as gc
-import ndlib.models.compartments.NodeStochastic as ns
-import ndlib.models.compartments.NodeThreshold as nt
-import ndlib.models.compartments.EdgeStochastic as es
+import ndlib.models.compartments as cpm
 
 __author__ = 'Giulio Rossetti'
 __license__ = "BSD-2-Clause"
@@ -32,9 +30,9 @@ class NdlibDynCompartmentsTest(unittest.TestCase):
         model.add_status("Infected")
         model.add_status("Removed")
 
-        c1 = ns.NodeStochastic(0.02, "Infected")
-        c2 = ns.NodeStochastic(0.01)
-        c3 = ns.NodeStochastic(0.5)
+        c1 = cpm.NodeStochastic(0.02, "Infected")
+        c2 = cpm.NodeStochastic(0.01)
+        c3 = cpm.NodeStochastic(0.5)
 
         model.add_rule("Susceptible", "Infected", c1)
         model.add_rule("Infected", "Removed", c2)
@@ -66,7 +64,7 @@ class NdlibDynCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c1 = nt.NodeThreshold(0.1, triggering_status="Infected")
+        c1 = cpm.NodeThreshold(0.1, triggering_status="Infected")
         model.add_rule("Susceptible", "Infected", c1)
 
         config = mc.Configuration()
@@ -87,7 +85,7 @@ class NdlibDynCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c1 = nt.NodeThreshold(triggering_status="Infected")
+        c1 = cpm.NodeThreshold(triggering_status="Infected")
         model.add_rule("Susceptible", "Infected", c1)
 
         config = mc.Configuration()
@@ -120,7 +118,7 @@ class NdlibDynCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c1 = es.EdgeStochastic(0.1, triggering_status="Infected")
+        c1 = cpm.EdgeStochastic(0.1, triggering_status="Infected")
         model.add_rule("Susceptible", "Infected", c1)
 
         config = mc.Configuration()
@@ -141,7 +139,7 @@ class NdlibDynCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c1 = es.EdgeStochastic(triggering_status="Infected")
+        c1 = cpm.EdgeStochastic(triggering_status="Infected")
         model.add_rule("Susceptible", "Infected", c1)
 
         config = mc.Configuration()
@@ -166,7 +164,7 @@ class NdlibDynCompartmentsTest(unittest.TestCase):
         model.add_status("Susceptible")
         model.add_status("Infected")
 
-        c1 = es.EdgeStochastic(triggering_status="Infected")
+        c1 = cpm.EdgeStochastic(triggering_status="Infected")
         model.add_rule("Susceptible", "Infected", c1)
 
         config = mc.Configuration()

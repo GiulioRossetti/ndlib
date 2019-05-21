@@ -6,24 +6,8 @@ import future.utils
 import networkx as nx
 
 import ndlib.models.ModelConfig as mc
-import ndlib.models.epidemics.IndependentCascadesModel as ids
-import ndlib.models.epidemics.KerteszThresholdModel as ks
-import ndlib.models.epidemics.ProfileModel as pr
-import ndlib.models.epidemics.ProfileThresholdModel as pt
-import ndlib.models.epidemics.SIModel as si
-import ndlib.models.epidemics.SIRModel as sir
-import ndlib.models.epidemics.SISModel as sis
-import ndlib.models.epidemics.SEIRModel as seir
-import ndlib.models.epidemics.SEISModel as seis
-import ndlib.models.epidemics.SWIRModel as swir
-import ndlib.models.epidemics.ThresholdModel as th
-import ndlib.models.epidemics.GeneralisedThresholdModel as gth
-import ndlib.models.opinions.CognitiveOpDynModel as cm
-import ndlib.models.opinions.MajorityRuleModel as mrm
-import ndlib.models.opinions.QVoterModel as qvm
-import ndlib.models.opinions.SznajdModel as sm
-import ndlib.models.opinions.VoterModel as vm
-import ndlib.models.opinions.AlgorithmicBiasModel as ab
+import ndlib.models.epidemics as epd
+import ndlib.models.opinions as opn
 import ndlib.utils as ut
 
 __author__ = 'Giulio Rossetti'
@@ -35,7 +19,7 @@ class NdlibTest(unittest.TestCase):
     
     def test_algorithmic_bias_model(self):
         g = nx.complete_graph(100)
-        model = ab.AlgorithmicBiasModel(g)
+        model = opn.AlgorithmicBiasModel(g)
         config = mc.Configuration()
         config.add_model_parameter("epsilon", 0.32)
         config.add_model_parameter("gamma", 1)
@@ -47,7 +31,7 @@ class NdlibTest(unittest.TestCase):
     
     def test_voter_model(self):
         g = nx.complete_graph(100)
-        model = vm.VoterModel(g)
+        model = opn.VoterModel(g)
         config = mc.Configuration()
         config.add_model_parameter("percentage_infected", 0.2)
         model.set_initial_status(config)
@@ -58,7 +42,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_sznajd_model(self):
         g = nx.complete_graph(100)
-        model = sm.SznajdModel(g)
+        model = opn.SznajdModel(g)
         config = mc.Configuration()
         config.add_model_parameter("percentage_infected", 0.2)
         model.set_initial_status(config)
@@ -69,7 +53,7 @@ class NdlibTest(unittest.TestCase):
 
         g = nx.complete_graph(100)
         g = g.to_directed()
-        model = sm.SznajdModel(g)
+        model = opn.SznajdModel(g)
         config = mc.Configuration()
         config.add_model_parameter("percentage_infected", 0.2)
         model.set_initial_status(config)
@@ -80,7 +64,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_majorityrule_model(self):
         g = nx.complete_graph(100)
-        model = mrm.MajorityRuleModel(g)
+        model = opn.MajorityRuleModel(g)
         config = mc.Configuration()
         config.add_model_parameter("q", 3)
         config.add_model_parameter("percentage_infected", 0.2)
@@ -92,7 +76,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_qvoter_model(self):
         g = nx.complete_graph(100)
-        model = qvm.QVoterModel(g)
+        model = opn.QVoterModel(g)
         config = mc.Configuration()
         config.add_model_parameter("q", 5)
         config.add_model_parameter("percentage_infected", 0.6)
@@ -104,7 +88,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_cognitive_model(self):
         g = nx.complete_graph(100)
-        model = cm.CognitiveOpDynModel(g)
+        model = opn.CognitiveOpDynModel(g)
         config = mc.Configuration()
         config.add_model_parameter("I", 0.15)
         config.add_model_parameter("B_range_min", 0)
@@ -123,7 +107,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_si_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = si.SIModel(g)
+        model = epd.SIModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.5)
         config.add_model_parameter("percentage_infected", 0.1)
@@ -135,7 +119,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_sir_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = sir.SIRModel(g)
+        model = epd.SIRModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.5)
         config.add_model_parameter('gamma', 0.2)
@@ -148,7 +132,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_seir_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = seir.SEIRModel(g)
+        model = epd.SEIRModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.5)
         config.add_model_parameter('gamma', 0.2)
@@ -159,7 +143,7 @@ class NdlibTest(unittest.TestCase):
         self.assertEqual(len(iterations), 10)
 
         g = g.to_directed()
-        model = seir.SEIRModel(g)
+        model = epd.SEIRModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.5)
         config.add_model_parameter('gamma', 0.8)
@@ -171,7 +155,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_swir_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = swir.SWIRModel(g)
+        model = epd.SWIRModel(g)
         config = mc.Configuration()
         config.add_model_parameter('kappa', 0.5)
         config.add_model_parameter('mu', 0.2)
@@ -183,7 +167,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_seis_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = seis.SEISModel(g)
+        model = epd.SEISModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.5)
         config.add_model_parameter('lambda', 0.2)
@@ -194,7 +178,7 @@ class NdlibTest(unittest.TestCase):
         self.assertEqual(len(iterations), 10)
 
         g = g.to_directed()
-        model = seis.SEISModel(g)
+        model = epd.SEISModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.5)
         config.add_model_parameter('lambda', 0.8)
@@ -206,7 +190,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_sis_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = sis.SISModel(g)
+        model = epd.SISModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.5)
         config.add_model_parameter('lambda', 0.2)
@@ -219,7 +203,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_kertesz_model(self):
         g = nx.complete_graph(100)
-        model = ks.KerteszThresholdModel(g)
+        model = epd.KerteszThresholdModel(g)
         config = mc.Configuration()
         config.add_model_parameter('adopter_rate', 0.4)
         config.add_model_parameter('percentage_blocked', 0.1)
@@ -237,7 +221,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_multiple_si_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = si.SIModel(g)
+        model = epd.SIModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.01)
         config.add_model_parameter("percentage_infected", 0.1)
@@ -249,7 +233,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_threshold_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = th.ThresholdModel(g)
+        model = epd.ThresholdModel(g)
         config = mc.Configuration()
         config.add_model_parameter('percentage_infected', 0.1)
 
@@ -265,7 +249,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_generalisedthreshold_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = gth.GeneralisedThresholdModel(g)
+        model = epd.GeneralisedThresholdModel(g)
         config = mc.Configuration()
         config.add_model_parameter('percentage_infected', 0.1)
         config.add_model_parameter('tau', 5)
@@ -283,7 +267,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_profile_threshold_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = pt.ProfileThresholdModel(g)
+        model = epd.ProfileThresholdModel(g)
         config = mc.Configuration()
         config.add_model_parameter('percentage_infected', 0.1)
 
@@ -298,7 +282,7 @@ class NdlibTest(unittest.TestCase):
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
-        model = pt.ProfileThresholdModel(g)
+        model = epd.ProfileThresholdModel(g)
         config = mc.Configuration()
         config.add_model_parameter('percentage_infected', 0.1)
         config.add_model_parameter("blocked", 0.1)
@@ -319,7 +303,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_profile_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = pr.ProfileModel(g)
+        model = epd.ProfileModel(g)
         config = mc.Configuration()
         config.add_model_parameter('percentage_infected', 0.1)
 
@@ -331,7 +315,7 @@ class NdlibTest(unittest.TestCase):
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
-        model = pr.ProfileModel(g)
+        model = epd.ProfileModel(g)
         config = mc.Configuration()
         config.add_model_parameter('percentage_infected', 0.1)
         config.add_model_parameter("blocked", 0.1)
@@ -347,7 +331,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_independent_cascade_model(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = ids.IndependentCascadesModel(g)
+        model = epd.IndependentCascadesModel(g)
         config = mc.Configuration()
         config.add_model_parameter('percentage_infected', 0.1)
         threshold = 0.1
@@ -362,7 +346,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_kertesz_model_predefined_blocked(self):
         g = nx.complete_graph(100)
-        model = ks.KerteszThresholdModel(g)
+        model = epd.KerteszThresholdModel(g)
         config = mc.Configuration()
         config.add_model_parameter('adopter_rate', 0.4)
         predefined_blocked = [0, 1, 2, 3, 4, 5]
@@ -380,7 +364,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_initial_infected(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = sis.SISModel(g)
+        model = epd.SISModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.5)
         config.add_model_parameter('lambda', 0.2)
@@ -394,7 +378,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_optional_parameters(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = th.ThresholdModel(g)
+        model = epd.ThresholdModel(g)
         config = mc.Configuration()
         config.add_model_parameter('percentage_infected', 0.1)
         model.set_initial_status(config)
@@ -404,7 +388,7 @@ class NdlibTest(unittest.TestCase):
 
         self.assertEqual(len(iterations), 10)
 
-        model = ks.KerteszThresholdModel(g)
+        model = epd.KerteszThresholdModel(g)
         config = mc.Configuration()
         config.add_model_parameter('adopter_rate', 0.4)
         predefined_blocked = [0, 1, 2, 3, 4, 5]
@@ -415,35 +399,35 @@ class NdlibTest(unittest.TestCase):
         blocked = [x for x, v in future.utils.iteritems(iteration["status"]) if v == -1]
         self.assertEqual(blocked, predefined_blocked)
 
-        model = ids.IndependentCascadesModel(g)
+        model = epd.IndependentCascadesModel(g)
         config = mc.Configuration()
         config.add_model_parameter('percentage_infected', 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
-        model = pr.ProfileModel(g)
+        model = epd.ProfileModel(g)
         config = mc.Configuration()
         config.add_model_parameter('percentage_infected', 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
-        model = pt.ProfileThresholdModel(g)
+        model = epd.ProfileThresholdModel(g)
         config = mc.Configuration()
         config.add_model_parameter('percentage_infected', 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
-        model = th.ThresholdModel(g)
+        model = epd.ThresholdModel(g)
         config = mc.Configuration()
         config.add_model_parameter('percentage_infected', 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
-        model = ks.KerteszThresholdModel(g)
+        model = epd.KerteszThresholdModel(g)
         config = mc.Configuration()
         config.add_model_parameter('adopter_rate', 0.4)
         config.add_model_parameter('percentage_blocked', 0.1)
@@ -454,7 +438,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_config(self):
         g = nx.erdos_renyi_graph(99, 0.1)
-        model = th.ThresholdModel(g)
+        model = epd.ThresholdModel(g)
         config = mc.Configuration()
         config.add_model_parameter('percentage_infected', 0.1)
         config.add_model_initial_configuration("Infected", [1, 2, 3])
@@ -474,7 +458,7 @@ class NdlibTest(unittest.TestCase):
         model.set_initial_status(config)
 
         g = nx.complete_graph(100)
-        model = mrm.MajorityRuleModel(g)
+        model = opn.MajorityRuleModel(g)
         config = mc.Configuration()
         config.add_model_parameter("percentage_infected", 0.2)
         try:
@@ -483,7 +467,7 @@ class NdlibTest(unittest.TestCase):
             pass
 
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = ids.IndependentCascadesModel(g)
+        model = epd.IndependentCascadesModel(g)
         config = mc.Configuration()
         config.add_model_parameter('percentage_infected', 0.1)
         try:
@@ -492,7 +476,7 @@ class NdlibTest(unittest.TestCase):
             pass
 
         g = nx.erdos_renyi_graph(1000, 0.1)
-        model = th.ThresholdModel(g)
+        model = epd.ThresholdModel(g)
         config = mc.Configuration()
         config.add_model_parameter('percentage_infected', 0.1)
         try:

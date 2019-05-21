@@ -1,39 +1,23 @@
-.. NDlib documentation master file, created by
-   sphinx-quickstart on Wed May 24 10:59:33 2017.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 .. |date| date::
 
 NDlib - Network Diffusion Library
 =================================
-.. image:: https://badge.fury.io/py/ndlib.svg
-    :target: https://badge.fury.io/py/ndlib.svg
-
-.. image:: https://img.shields.io/pypi/pyversions/ndlib.svg
-   :target: https://badge.fury.io/py/ndlib
-
-.. image:: https://secure.travis-ci.org/GiulioRossetti/ndlib.png
-    :target: http://travis-ci.org/GiulioRossetti/ndlib
-
-.. image:: https://coveralls.io/repos/GiulioRossetti/ndlib/badge.png?branch=master
-    :target: https://coveralls.io/r/GiulioRossetti/ndlib?branch=master
 
 ``NDlib`` is a Python software package that allows to describe, simulate, and study diffusion processes on complex networks.
 
 ================ =================== ==================  ==========  ===============
    **Date**      **Python Versions**   **Main Author**   **GitHub**      **pypl**
-|date|                2.7.x/3.x      `Giulio Rossetti`_  `Source`_   `Distribution`_
+|date|                   3.x         `Giulio Rossetti`_  `Source`_   `Distribution`_
 ================ =================== ==================  ==========  ===============
 
 .. raw:: html
 
 		<div style="text-align: center">
         <object width="480" height="385" align="center"><param name="movie"
-        value="https://www.youtube.com/watch?v=tYHNOuKJwbE&t=172s"></param><param
+        value="https://www.youtube.com/watch?v=tYHNOuKJwbE&t=2s"></param><param
         name="allowFullScreen" value="true"></param><param
         name="allowscriptaccess" value="always"></param><embed
-        src="https://www.youtube.com/watch?v=tYHNOuKJwbE&t=172s"
+        src="https://www.youtube.com/watch?v=tYHNOuKJwbE&t=2s"
         type="application/x-shockwave-flash" allowscriptaccess="always"
         allowfullscreen="true" width="480"
         height="385"></embed></object>

@@ -6,12 +6,7 @@ import dynetx as dn
 import networkx as nx
 
 import ndlib.models.ModelConfig as mc
-import ndlib.models.dynamic.DynSIModel as si
-import ndlib.models.dynamic.DynSIRModel as sir
-import ndlib.models.dynamic.DynSISModel as sis
-import ndlib.models.dynamic.DynProfileModel as pro
-import ndlib.models.dynamic.DynProfileThresholdModel as prTr
-import ndlib.models.dynamic.DynKerteszThresholdModel as keTr
+import ndlib.models.dynamic as dyn
 
 __author__ = 'Giulio Rossetti'
 __license__ = "BSD-2-Clause"
@@ -27,7 +22,7 @@ class DynTest(unittest.TestCase):
             g = nx.erdos_renyi_graph(200, 0.05)
             dg.add_interactions_from(g.edges(), t)
 
-        model = si.DynSIModel(dg)
+        model = dyn.DynSIModel(dg)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.1)
         config.add_model_parameter("percentage_infected", 0.1)
@@ -47,7 +42,7 @@ class DynTest(unittest.TestCase):
             g = nx.erdos_renyi_graph(200, 0.05)
             dg.add_interactions_from(g.edges(), t)
 
-        model = sis.DynSISModel(dg)
+        model = dyn.DynSISModel(dg)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.1)
         config.add_model_parameter('lambda', 0.1)
@@ -68,7 +63,7 @@ class DynTest(unittest.TestCase):
             g = nx.erdos_renyi_graph(200, 0.05)
             dg.add_interactions_from(g.edges(), t)
 
-        model = sir.DynSIRModel(dg)
+        model = dyn.DynSIRModel(dg)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.1)
         config.add_model_parameter('gamma', 0.1)
@@ -89,7 +84,7 @@ class DynTest(unittest.TestCase):
             g = nx.erdos_renyi_graph(200, 0.05)
             dg.add_interactions_from(g.edges(), t)
 
-        model = pro.DynProfileModel(dg)
+        model = dyn.DynProfileModel(dg)
         config = mc.Configuration()
         config.add_model_parameter("percentage_infected", 0.1)
         config.add_model_parameter("blocked", 0.1)
@@ -111,7 +106,7 @@ class DynTest(unittest.TestCase):
             g = nx.erdos_renyi_graph(200, 0.05)
             dg.add_interactions_from(g.edges(), t)
 
-        model = prTr.DynProfileThresholdModel(dg)
+        model = dyn.DynProfileThresholdModel(dg)
         config = mc.Configuration()
         config.add_model_parameter("percentage_infected", 0.1)
         config.add_model_parameter("blocked", 0.1)
@@ -135,7 +130,7 @@ class DynTest(unittest.TestCase):
             g = nx.erdos_renyi_graph(200, 0.05)
             dg.add_interactions_from(g.edges(), t)
 
-        model = keTr.DynKerteszThresholdModel(dg)
+        model = dyn.DynKerteszThresholdModel(dg)
         config = mc.Configuration()
         config.add_model_parameter("percentage_infected", 0.1)
         config.add_model_parameter("percentage_blocked", 0.1)

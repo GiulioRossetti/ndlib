@@ -38,6 +38,12 @@ class SISModel(DiffusionModel):
                     "descr": "Recovery rate",
                     "range": [0, 1],
                     "optional": False
+                },
+                "tp_rate": {
+                    "descr": "Whether if the infection rate depends on the number of infected neighbors",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 1
                 }
             },
             "nodes": {},
@@ -75,9 +81,16 @@ class SISModel(DiffusionModel):
                 neighbors = self.graph.predecessors(u)
 
             if u_status == 0:
-                infected_neighbors = len([v for v in neighbors if self.status[v] == 1])
-                if eventp < self.params['model']['beta'] * infected_neighbors:
-                    actual_status[u] = 1
+                infected_neighbors = [v for v in neighbors if self.status[v] == 1]
+                triggered = 1 if len(infected_neighbors) > 0 else 0
+
+                if self.params['model']['tp_rate'] == 1:
+                    if eventp < 1 - (1 - self.params['model']['beta']) ** len(infected_neighbors):
+                        actual_status[u] = 1
+                else:
+                    if eventp < self.params['model']['beta'] * triggered:
+                        actual_status[u] = 1
+
             elif u_status == 1:
                 if eventp < self.params['model']['lambda']:
                     actual_status[u] = 0

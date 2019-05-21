@@ -83,11 +83,12 @@ In the code below is shown an example of instantiation and execution of an DynSI
     import dynetx as dn
     import ndlib.models.ModelConfig as mc
     import ndlib.models.dynamic.DynSIModel as si
+    from past.builtins import xrange
 
     # Dynamic Network topology
     dg = dn.DynGraph()
 
-    for t in past.builtins.xrange(0, 3):
+    for t in xrange(0, 3):
         g = nx.erdos_renyi_graph(200, 0.05)
         dg.add_interactions_from(g.edges(), t)
 

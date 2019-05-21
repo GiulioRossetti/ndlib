@@ -23,7 +23,7 @@ class NodeStochastic(Compartiment):
         if self.trigger is None:
             triggered = 1
         else:
-            triggered = len([v for v in neighbors if status[v] == status_map[self.trigger]])
+            triggered = 1 if len([v for v in neighbors if status[v] == status_map[self.trigger]]) > 0 else 0
 
         test = p < self.rate * triggered
         if test:
