@@ -25,7 +25,7 @@ class DynTest(unittest.TestCase):
         model = dyn.DynSIModel(dg)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.1)
-        config.add_model_parameter("percentage_infected", 0.1)
+        config.add_model_parameter("fraction_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.execute_snapshots()
         self.assertEqual(len(iterations), 3)
@@ -46,7 +46,7 @@ class DynTest(unittest.TestCase):
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.1)
         config.add_model_parameter('lambda', 0.1)
-        config.add_model_parameter("percentage_infected", 0.1)
+        config.add_model_parameter("fraction_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.execute_snapshots()
         self.assertEqual(len(iterations), 3)
@@ -67,7 +67,7 @@ class DynTest(unittest.TestCase):
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.1)
         config.add_model_parameter('gamma', 0.1)
-        config.add_model_parameter("percentage_infected", 0.1)
+        config.add_model_parameter("fraction_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.execute_snapshots()
         self.assertEqual(len(iterations), 3)
@@ -86,7 +86,7 @@ class DynTest(unittest.TestCase):
 
         model = dyn.DynProfileModel(dg)
         config = mc.Configuration()
-        config.add_model_parameter("percentage_infected", 0.1)
+        config.add_model_parameter("fraction_infected", 0.1)
         config.add_model_parameter("blocked", 0.1)
         config.add_model_parameter("adopter_rate", 0.001)
 
@@ -108,7 +108,7 @@ class DynTest(unittest.TestCase):
 
         model = dyn.DynProfileThresholdModel(dg)
         config = mc.Configuration()
-        config.add_model_parameter("percentage_infected", 0.1)
+        config.add_model_parameter("fraction_infected", 0.1)
         config.add_model_parameter("blocked", 0.1)
         config.add_model_parameter("adopter_rate", 0.001)
 
@@ -132,7 +132,7 @@ class DynTest(unittest.TestCase):
 
         model = dyn.DynKerteszThresholdModel(dg)
         config = mc.Configuration()
-        config.add_model_parameter("percentage_infected", 0.1)
+        config.add_model_parameter("fraction_infected", 0.1)
         config.add_model_parameter("percentage_blocked", 0.1)
         config.add_model_parameter("adopter_rate", 0.001)
 

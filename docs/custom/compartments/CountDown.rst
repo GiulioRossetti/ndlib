@@ -65,7 +65,7 @@ It requires activates after 10 iteration.
 
 	# Model initial status configuration
 	config = mc.Configuration()
-	config.add_model_parameter('percentage_infected', 0.1)
+	config.add_model_parameter('fraction_infected', 0.1)
 
 	# Simulation execution
 	model.set_initial_status(config)

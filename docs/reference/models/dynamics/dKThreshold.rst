@@ -38,7 +38,7 @@ threshold           Node   float in [0, 1]   0.1     False      Individual thres
 
 The initial infection status can be defined via:
 
-    - **percentage_infected**: Model Parameter, float in [0, 1]
+    - **fraction_infected**: Model Parameter, float in [0, 1]
     - **Infected**: Status Parameter, set of nodes
 
 The initial blocked nodes can be defined via:
@@ -105,7 +105,7 @@ In the code below is shown an example of instantiation and execution of a Kertes
     config = mc.Configuration()
     config.add_model_parameter('adopter_rate', 0.4)
     config.add_model_parameter('percentage_blocked', 0.1)
-    config.add_model_parameter('percentage_infected', 0.1)
+    config.add_model_parameter('fraction_infected', 0.1)
 
     # Setting node parameters
     threshold = 0.25

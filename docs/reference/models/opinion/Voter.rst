@@ -30,7 +30,7 @@ Parameters
 
 The initial infection status can be defined via:
 
-    - **percentage_infected**: Model Parameter, float in [0, 1]
+    - **fraction_infected**: Model Parameter, float in [0, 1]
     - **Infected**: Status Parameter, set of nodes
 
 The initial blocked nodes can be defined via:
@@ -88,7 +88,7 @@ In the code below is shown an example of instantiation and execution of a Voter 
     # Model selection
     model = vt.VoterModel(g)
     config = mc.Configuration()
-    config.add_model_parameter('percentage_infected', 0.1)
+    config.add_model_parameter('fraction_infected', 0.1)
     
     model.set_initial_status(config)
 
