@@ -33,7 +33,7 @@ Below is shown an example of Diffusion Prevalence description and visualization 
     cfg = mc.Configuration()
     cfg.add_model_parameter('beta', 0.001)
     cfg.add_model_parameter('gamma', 0.01)
-    cfg.add_model_parameter("percentage_infected", 16 0.05)
+    cfg.add_model_parameter("fraction_infected", 16 0.05)
     model.set_initial_status(cfg)
 
     # Simulation execution

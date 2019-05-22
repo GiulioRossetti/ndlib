@@ -15,7 +15,7 @@ class KerteszThresholdModel(DiffusionModel):
 
         :param threshold: The node threshold. As default a value of 0.1 is assumed for all nodes.
         :param adopter_rate: The probability of spontaneous adoptions. Defaults value 0.
-        :param percentage_infected: The percentage of blocked nodes. Default value 0.1.
+        :param fraction_infected: The percentage of blocked nodes. Default value 0.1.
      """
 
     def __init__(self, graph):

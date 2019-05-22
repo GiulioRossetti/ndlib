@@ -23,7 +23,7 @@ class ParallelTest(unittest.TestCase):
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.001)
         config.add_model_parameter('gamma', 0.01)
-        config.add_model_parameter("percentage_infected", 0.05)
+        config.add_model_parameter("fraction_infected", 0.05)
         model1.set_initial_status(config)
 
         # Simulation multiple execution

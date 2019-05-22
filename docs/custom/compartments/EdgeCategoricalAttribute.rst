@@ -83,7 +83,7 @@ It restrain the rule evaluation to all those nodes connected trough a link havin
 
 	# Model initial status configuration
 	config = mc.Configuration()
-	config.add_model_parameter('percentage_infected', 0)
+	config.add_model_parameter('fraction_infected', 0)
 
 	# Simulation execution
 	model.set_initial_status(config)
