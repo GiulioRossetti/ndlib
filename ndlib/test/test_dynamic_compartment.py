@@ -39,7 +39,7 @@ class NdlibDynCompartmentsTest(unittest.TestCase):
         model.add_rule("Infected", "Susceptible", c3)
 
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
 
         model.set_initial_status(config)
         iterations = model.execute_snapshots()
@@ -68,7 +68,7 @@ class NdlibDynCompartmentsTest(unittest.TestCase):
         model.add_rule("Susceptible", "Infected", c1)
 
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
 
         model.set_initial_status(config)
         iterations = model.execute_snapshots()
@@ -93,7 +93,7 @@ class NdlibDynCompartmentsTest(unittest.TestCase):
         for i in g.nodes():
             config.add_node_configuration("threshold", i, np.random.random_sample())
 
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
 
         model.set_initial_status(config)
         iterations = model.execute_snapshots()
@@ -122,7 +122,7 @@ class NdlibDynCompartmentsTest(unittest.TestCase):
         model.add_rule("Susceptible", "Infected", c1)
 
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
 
         model.set_initial_status(config)
         iterations = model.execute_snapshots()
@@ -147,7 +147,7 @@ class NdlibDynCompartmentsTest(unittest.TestCase):
         for e in g.edges():
             config.add_edge_configuration("threshold", e, np.random.random_sample())
 
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
 
         model.set_initial_status(config)
         iterations = model.execute_snapshots()
@@ -168,7 +168,7 @@ class NdlibDynCompartmentsTest(unittest.TestCase):
         model.add_rule("Susceptible", "Infected", c1)
 
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
 
         model.set_initial_status(config)
         iterations = model.execute_snapshots()

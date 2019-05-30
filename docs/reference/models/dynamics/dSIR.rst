@@ -39,7 +39,7 @@ gamma  Model  float in [0, 1]           True       Removal probability
 
 The initial infection status can be defined via:
 
-    - **percentage_infected**: Model Parameter, float in [0, 1]
+    - **fraction_infected**: Model Parameter, float in [0, 1]
     - **Infected**: Status Parameter, set of nodes
 
 The two options are mutually exclusive and the latter takes precedence over the former.
@@ -101,7 +101,7 @@ In the code below is shown an example of instantiation and execution of an DynSI
     config = mc.Configuration()
     config.add_model_parameter('beta', 0.01)
     config.add_model_parameter('gamma', 0.01)
-    config.add_model_parameter("percentage_infected", 0.1)
+    config.add_model_parameter("fraction_infected", 0.1)
     model.set_initial_status(config)
 
     # Simulate snapshot based execution

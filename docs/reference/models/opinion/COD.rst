@@ -52,7 +52,7 @@ The initial state is generated randomly uniformly from the domain defined by mod
 
 The initial infection status can be defined via:
 
-    - **percentage_infected**: Model Parameter, float in [0, 1]
+    - **fraction_infected**: Model Parameter, float in [0, 1]
     - **Infected**: Status Parameter, set of nodes
 
 The two options are mutually exclusive and the latter takes precedence over the former.
@@ -114,7 +114,7 @@ In the code below is shown an example of instantiation and execution of a Cognit
     config.add_model_parameter("R_fraction_negative", 1.0 / 3)
     config.add_model_parameter("R_fraction_neutral", 1.0 / 3)
     config.add_model_parameter("R_fraction_positive", 1.0 / 3)
-    config.add_model_parameter('percentage_infected', 0.1)
+    config.add_model_parameter('fraction_infected', 0.1)
     model.set_initial_status(config)
 
     # Simulation execution

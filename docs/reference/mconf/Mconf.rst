@@ -37,7 +37,7 @@ Model parameters can be setted as in the following example:
     config = mc.Configuration()
     config.add_model_parameter("beta", 0.15)
 
-The only model parameter common to all the diffusive approaches is ``percentage_infected`` that allows to specify the ratio of infected nodes at the beginning of the simulation.
+The only model parameter common to all the diffusive approaches is ``fraction_infected`` that allows to specify the ratio of infected nodes at the beginning of the simulation.
 
 
 ------------------
@@ -110,6 +110,6 @@ Node statuses can be set as in the following example:
     infected_nodes = [0, 1, 2, 3, 4, 5]
     config.add_model_initial_configuration("Infected", infected_nodes)
 
-Explicit status specification takes priority over the percentage specification expressed via model definition (e.g. ``percentage_infected``).
+Explicit status specification takes priority over the percentage specification expressed via model definition (e.g. ``fraction_infected``).
 
 Only the statuses implemented by the chosen model can be used to specify initial configurations of nodes.

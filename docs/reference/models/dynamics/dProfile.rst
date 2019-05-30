@@ -45,7 +45,7 @@ adopter_rate  Model  float in [0, 1]   0       False      Autonomous adoption
 
 The initial infection status can be defined via:
 
-    - **percentage_infected**: Model Parameter, float in [0, 1]
+    - **fraction_infected**: Model Parameter, float in [0, 1]
     - **Infected**: Status Parameter, set of nodes
 
 The two options are mutually exclusive and the latter takes precedence over the former.
@@ -107,7 +107,7 @@ In the code below is shown an example of instantiation and execution of a Profil
     config = mc.Configuration()
     config.add_model_parameter('blocked', 0)
     config.add_model_parameter('adopter_rate', 0)
-    config.add_model_parameter('percentage_infected', 0.1)
+    config.add_model_parameter('fraction_infected', 0.1)
 
     # Setting nodes parameters
     profile = 0.15

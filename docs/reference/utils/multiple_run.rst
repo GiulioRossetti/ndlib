@@ -6,10 +6,10 @@ Model Multiple Executions
 
 The initial infected nodes for each instance of the model can be specified either:
 
-- by the "percentage_infected" model parameter, or
+- by the "fraction_infected" model parameter, or
 - explicitly through a list of ``n`` sets of nodes (where ``n`` is the number of executions required).
 
-In the first scenario "percentage_infected" nodes will be sampled independently for each model execution.
+In the first scenario "fraction_infected" nodes will be sampled independently for each model execution.
 
 Results of ``dlib.utils.multi_runs`` can be feed directly to all the visualization facilities exposed by ``ndlib.viz``.
 
@@ -39,7 +39,7 @@ Example
     config = mc.Configuration()
     config.add_model_parameter('beta', 0.001)
     config.add_model_parameter('gamma', 0.01)
-    config.add_model_parameter("percentage_infected", 0.05)
+    config.add_model_parameter("fraction_infected", 0.05)
     model1.set_initial_status(config)
 
     # Simulation multiple execution

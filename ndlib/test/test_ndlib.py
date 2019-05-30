@@ -33,7 +33,7 @@ class NdlibTest(unittest.TestCase):
         g = nx.complete_graph(100)
         model = opn.VoterModel(g)
         config = mc.Configuration()
-        config.add_model_parameter("percentage_infected", 0.2)
+        config.add_model_parameter("fraction_infected", 0.2)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
@@ -44,7 +44,7 @@ class NdlibTest(unittest.TestCase):
         g = nx.complete_graph(100)
         model = opn.SznajdModel(g)
         config = mc.Configuration()
-        config.add_model_parameter("percentage_infected", 0.2)
+        config.add_model_parameter("fraction_infected", 0.2)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
@@ -55,7 +55,7 @@ class NdlibTest(unittest.TestCase):
         g = g.to_directed()
         model = opn.SznajdModel(g)
         config = mc.Configuration()
-        config.add_model_parameter("percentage_infected", 0.2)
+        config.add_model_parameter("fraction_infected", 0.2)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
@@ -67,7 +67,7 @@ class NdlibTest(unittest.TestCase):
         model = opn.MajorityRuleModel(g)
         config = mc.Configuration()
         config.add_model_parameter("q", 3)
-        config.add_model_parameter("percentage_infected", 0.2)
+        config.add_model_parameter("fraction_infected", 0.2)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
@@ -79,7 +79,7 @@ class NdlibTest(unittest.TestCase):
         model = opn.QVoterModel(g)
         config = mc.Configuration()
         config.add_model_parameter("q", 5)
-        config.add_model_parameter("percentage_infected", 0.6)
+        config.add_model_parameter("fraction_infected", 0.6)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
@@ -110,7 +110,7 @@ class NdlibTest(unittest.TestCase):
         model = epd.SIModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.5)
-        config.add_model_parameter("percentage_infected", 0.1)
+        config.add_model_parameter("fraction_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
@@ -123,7 +123,7 @@ class NdlibTest(unittest.TestCase):
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.5)
         config.add_model_parameter('gamma', 0.2)
-        config.add_model_parameter("percentage_infected", 0.1)
+        config.add_model_parameter("fraction_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
@@ -137,7 +137,7 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter('beta', 0.5)
         config.add_model_parameter('gamma', 0.2)
         config.add_model_parameter('alpha', 0.05)
-        config.add_model_parameter("percentage_infected", 0.1)
+        config.add_model_parameter("fraction_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
@@ -148,7 +148,7 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter('beta', 0.5)
         config.add_model_parameter('gamma', 0.8)
         config.add_model_parameter('alpha', 0.5)
-        config.add_model_parameter("percentage_infected", 0.1)
+        config.add_model_parameter("fraction_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
@@ -160,7 +160,7 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter('kappa', 0.5)
         config.add_model_parameter('mu', 0.2)
         config.add_model_parameter('nu', 0.05)
-        config.add_model_parameter("percentage_infected", 0.1)
+        config.add_model_parameter("fraction_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
@@ -172,7 +172,7 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter('beta', 0.5)
         config.add_model_parameter('lambda', 0.2)
         config.add_model_parameter('alpha', 0.05)
-        config.add_model_parameter("percentage_infected", 0.1)
+        config.add_model_parameter("fraction_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
@@ -183,7 +183,7 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter('beta', 0.5)
         config.add_model_parameter('lambda', 0.8)
         config.add_model_parameter('alpha', 0.5)
-        config.add_model_parameter("percentage_infected", 0.1)
+        config.add_model_parameter("fraction_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10, node_status=False)
         self.assertEqual(len(iterations), 10)
@@ -194,7 +194,7 @@ class NdlibTest(unittest.TestCase):
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.5)
         config.add_model_parameter('lambda', 0.2)
-        config.add_model_parameter("percentage_infected", 0.1)
+        config.add_model_parameter("fraction_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
@@ -207,7 +207,7 @@ class NdlibTest(unittest.TestCase):
         config = mc.Configuration()
         config.add_model_parameter('adopter_rate', 0.4)
         config.add_model_parameter('percentage_blocked', 0.1)
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
 
         threshold = 0.2
         for i in g.nodes():
@@ -224,7 +224,7 @@ class NdlibTest(unittest.TestCase):
         model = epd.SIModel(g)
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.01)
-        config.add_model_parameter("percentage_infected", 0.1)
+        config.add_model_parameter("fraction_infected", 0.1)
         model.set_initial_status(config)
         executions = ut.multi_runs(model, execution_number=10, iteration_number=50)
         self.assertEqual(len(executions), 10)
@@ -235,7 +235,7 @@ class NdlibTest(unittest.TestCase):
         g = nx.erdos_renyi_graph(1000, 0.1)
         model = epd.ThresholdModel(g)
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
 
         threshold = 0.2
         for i in g.nodes():
@@ -251,7 +251,7 @@ class NdlibTest(unittest.TestCase):
         g = nx.erdos_renyi_graph(1000, 0.1)
         model = epd.GeneralisedThresholdModel(g)
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
         config.add_model_parameter('tau', 5)
         config.add_model_parameter('mu', 5)
 
@@ -269,7 +269,7 @@ class NdlibTest(unittest.TestCase):
         g = nx.erdos_renyi_graph(1000, 0.1)
         model = epd.ProfileThresholdModel(g)
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
 
         threshold = 0.2
         profile = 0.1
@@ -284,7 +284,7 @@ class NdlibTest(unittest.TestCase):
 
         model = epd.ProfileThresholdModel(g)
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
         config.add_model_parameter("blocked", 0.1)
         config.add_model_parameter("adopter_rate", 0.001)
 
@@ -305,7 +305,7 @@ class NdlibTest(unittest.TestCase):
         g = nx.erdos_renyi_graph(1000, 0.1)
         model = epd.ProfileModel(g)
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
 
         profile = 0.1
         for i in g.nodes():
@@ -317,7 +317,7 @@ class NdlibTest(unittest.TestCase):
 
         model = epd.ProfileModel(g)
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
         config.add_model_parameter("blocked", 0.1)
         config.add_model_parameter("adopter_rate", 0.001)
 
@@ -333,7 +333,7 @@ class NdlibTest(unittest.TestCase):
         g = nx.erdos_renyi_graph(1000, 0.1)
         model = epd.IndependentCascadesModel(g)
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
         threshold = 0.1
         for e in g.edges():
             config.add_edge_configuration("threshold", e, threshold)
@@ -351,7 +351,7 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter('adopter_rate', 0.4)
         predefined_blocked = [0, 1, 2, 3, 4, 5]
         config.add_model_initial_configuration("Blocked", predefined_blocked)
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
 
         threshold = 0.2
         for i in g.nodes():
@@ -380,7 +380,7 @@ class NdlibTest(unittest.TestCase):
         g = nx.erdos_renyi_graph(1000, 0.1)
         model = epd.ThresholdModel(g)
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         config.add_node_set_configuration("test", {n: 1 for n in g.nodes()})
@@ -393,7 +393,7 @@ class NdlibTest(unittest.TestCase):
         config.add_model_parameter('adopter_rate', 0.4)
         predefined_blocked = [0, 1, 2, 3, 4, 5]
         config.add_model_initial_configuration("Blocked", predefined_blocked)
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
         model.set_initial_status(config)
         iteration = model.iteration()
         blocked = [x for x, v in future.utils.iteritems(iteration["status"]) if v == -1]
@@ -401,28 +401,28 @@ class NdlibTest(unittest.TestCase):
 
         model = epd.IndependentCascadesModel(g)
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
         model = epd.ProfileModel(g)
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
         model = epd.ProfileThresholdModel(g)
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
 
         model = epd.ThresholdModel(g)
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
@@ -431,7 +431,7 @@ class NdlibTest(unittest.TestCase):
         config = mc.Configuration()
         config.add_model_parameter('adopter_rate', 0.4)
         config.add_model_parameter('percentage_blocked', 0.1)
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
@@ -440,7 +440,7 @@ class NdlibTest(unittest.TestCase):
         g = nx.erdos_renyi_graph(99, 0.1)
         model = epd.ThresholdModel(g)
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
         config.add_model_initial_configuration("Infected", [1, 2, 3])
         config.add_node_set_configuration("partial", {1: 1, 2: 2})
         try:
@@ -460,7 +460,7 @@ class NdlibTest(unittest.TestCase):
         g = nx.complete_graph(100)
         model = opn.MajorityRuleModel(g)
         config = mc.Configuration()
-        config.add_model_parameter("percentage_infected", 0.2)
+        config.add_model_parameter("fraction_infected", 0.2)
         try:
             model.set_initial_status(config)
         except:
@@ -469,7 +469,7 @@ class NdlibTest(unittest.TestCase):
         g = nx.erdos_renyi_graph(1000, 0.1)
         model = epd.IndependentCascadesModel(g)
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
         try:
             model.set_initial_status(config)
         except:
@@ -478,7 +478,7 @@ class NdlibTest(unittest.TestCase):
         g = nx.erdos_renyi_graph(1000, 0.1)
         model = epd.ThresholdModel(g)
         config = mc.Configuration()
-        config.add_model_parameter('percentage_infected', 0.1)
+        config.add_model_parameter('fraction_infected', 0.1)
         try:
             model.set_initial_status(config)
         except:

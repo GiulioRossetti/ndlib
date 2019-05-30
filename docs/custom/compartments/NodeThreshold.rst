@@ -64,7 +64,7 @@ It requires a threshold - here set equals to 0.2.
 
 	# Model initial status configuration
 	config = mc.Configuration()
-	config.add_model_parameter('percentage_infected', 0.1)
+	config.add_model_parameter('fraction_infected', 0.1)
 
 	# Simulation execution
 	model.set_initial_status(config)
@@ -103,7 +103,7 @@ In case of an heterogeneous node threshold distribution the same model can be ex
 		config.add_node_configuration("threshold", i, np.random.random_sample())
 
 	config = mc.Configuration()
-	config.add_model_parameter('percentage_infected', 0.1)
+	config.add_model_parameter('fraction_infected', 0.1)
 
 	# Simulation execution
 	model.set_initial_status(config)

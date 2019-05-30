@@ -73,7 +73,7 @@ Since such transition is not tied to neighbors statuses the only parameter requi
 
 	# Model initial status configuration
 	config = mc.Configuration()
-	config.add_model_parameter('percentage_infected', 0.1)
+	config.add_model_parameter('fraction_infected', 0.1)
 
 	# Simulation execution
 	model.set_initial_status(config)
