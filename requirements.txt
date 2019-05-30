@@ -1,6 +1,6 @@
 mock==3.0.5
 sphinx_rtd_theme==0.4.3
-numpy==1.16.3
+numpy==1.16.4
 future==0.17.1
 networkx==2.3
 dynetx==0.2.2
