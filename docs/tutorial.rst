@@ -56,7 +56,8 @@ Each model has its own parameters: in order to completely instantiate the simula
 
 The model configuration allows to specify model parameters (as in this scenario) as well as nodes' and edges' ones (e.g.  individual thresholds).
 
-Moreover it allows to specify the initial percentage of infected nodes using the ``fraction_infected`` model parameter.
+Moreover it allows to specify the initial fraction of infected nodes using the 
+``fraction_infected`` model parameter.
 
 It is also possible to explicitly specify an initial set of infected nodes: see :ref:`model_conf` for the complete set of use cases.
 
