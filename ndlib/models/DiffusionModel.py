@@ -158,7 +158,9 @@ class DiffusionModel(object):
             if 'fraction_infected' in self.params['model']:
                 number_of_initial_infected = len(self.graph.nodes()) * float(self.params['model']['fraction_infected'])
                 if number_of_initial_infected < 1:
-                    warnings.warn('Graph with less than 100 nodes: a single node will be set as infected')
+                    warnings.warn(
+                        "The fraction_infected value is too low given the number of nodes of the selected graph: a "
+                        "single node will be set as infected")
                     number_of_initial_infected = 1
 
                 available_nodes = [n for n in self.status if self.status[n] == 0]
