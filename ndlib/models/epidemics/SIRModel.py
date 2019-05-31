@@ -90,7 +90,7 @@ class SIRModel(DiffusionModel):
                 else:
                     if eventp < self.params['model']['beta'] * triggered:
                         actual_status[u] = 1
-
+                        
             elif u_status == 1:
                 if eventp < self.params['model']['gamma']:
                     actual_status[u] = 2
