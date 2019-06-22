@@ -156,7 +156,7 @@ class MplVizTest(unittest.TestCase):
 
         viz = OpinionEvolution(model, iterations)
         viz.plot("opinion_ev.png")
-        os.remove("opinion_ev.pdf")
+        os.remove("opinion_ev.png")
 
 
 if __name__ == '__main__':
