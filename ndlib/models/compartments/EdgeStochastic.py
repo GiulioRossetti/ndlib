@@ -1,6 +1,5 @@
 from ndlib.models.compartments.Compartment import Compartiment, ConfigurationException
 import numpy as np
-import networkx as nx
 
 __author__ = 'Giulio Rossetti'
 __license__ = "BSD-2-Clause"
@@ -18,7 +17,13 @@ class EdgeStochastic(Compartiment):
 
     def execute(self, node, graph, status, status_map, params, *args, **kwargs):
         neighbors = list(graph.neighbors(node))
-        if isinstance(graph, nx.DiGraph):
+
+        try:
+            directed = graph.directed
+        except AttributeError:
+            directed = graph.is_directed()
+
+        if directed:
             neighbors = list(graph.predecessors(node))
 
         threshold = float(1)/len(neighbors)

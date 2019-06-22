@@ -4,6 +4,7 @@ import numpy as np
 import past.builtins
 import future.utils
 import six
+from netdispatch import AGraph
 
 __author__ = "Giulio Rossetti"
 __license__ = "BSD-2-Clause"
@@ -52,8 +53,8 @@ class DiffusionModel(object):
         }
 
         self.actual_iteration = 0
-        self.graph = graph
-        self.status = {n: 0 for n in self.graph.nodes()}
+        self.graph = AGraph(graph)
+        self.status = {n: 0 for n in self.graph.nodes}
         self.initial_status = {}
 
     def __validate_configuration(self, configuration):
@@ -99,13 +100,13 @@ class DiffusionModel(object):
         if len(onp) > 0:
             for param in onp:
                 if param not in ndp:
-                    for nid in self.graph.nodes():
+                    for nid in self.graph.nodes:
                         configuration.add_node_configuration(param, nid, self.parameters['nodes'][param]['default'])
 
         if len(oep) > 0:
             for param in oep:
                 if param not in edp:
-                    for eid in self.graph.edges():
+                    for eid in self.graph.edges:
                         configuration.add_edge_configuration(param, eid, self.parameters['edges'][param]['default'])
 
         # Checking initial simulation status
@@ -128,7 +129,7 @@ class DiffusionModel(object):
         # Set additional node information
 
         for param, node_to_value in future.utils.iteritems(nodes_cfg):
-            if len(node_to_value) < len(self.graph.nodes()):
+            if len(node_to_value) < len(self.graph.nodes):
                 raise ConfigurationException({"message": "Not all nodes have a configuration specified"})
             
             self.params['nodes'][param] = node_to_value
@@ -136,7 +137,7 @@ class DiffusionModel(object):
         edges_cfg = configuration.get_edges_configuration()
         # Set additional edges information
         for param, edge_to_values in future.utils.iteritems(edges_cfg):
-            if len(edge_to_values) == len(self.graph.edges()):
+            if len(edge_to_values) == len(self.graph.edges):
                 self.params['edges'][param] = {}
                 for e in edge_to_values:
                     self.params['edges'][param][e] = edge_to_values[e]
@@ -227,7 +228,6 @@ class DiffusionModel(object):
             if 'fraction_infected' in self.params['model']:
                 for n in self.status:
                     self.status[n] = 0
-
                 number_of_initial_infected = len(self.graph.nodes()) * float(self.params['model']['fraction_infected'])
                 available_nodes = [n for n in self.status if self.status[n] == 0]
                 sampled_nodes = np.random.choice(available_nodes, int(number_of_initial_infected), replace=False)

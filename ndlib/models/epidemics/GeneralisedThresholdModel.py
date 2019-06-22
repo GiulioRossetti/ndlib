@@ -1,5 +1,4 @@
 from ..DiffusionModel import DiffusionModel
-import networkx as nx
 import future.utils
 import random
 import queue
@@ -70,10 +69,10 @@ class GeneralisedThresholdModel(DiffusionModel):
             return 0, actual_status
 
         gamma = float(self.params['model']['mu']) * float(self.actual_iteration) / float(self.params['model']['tau'])
-        list_node = self.graph.nodes()
+        list_node = self.graph.nodes
         start = min(list_node)
         stop = max(list_node)
-        number_node_susceptible = len(self.graph.nodes()) - sum(self.status.values())
+        number_node_susceptible = len(self.graph.nodes) - sum(self.status.values())
 
         while gamma >= 1 and number_node_susceptible >= 1:
             random_index = random.randrange(start, stop+1, 1)
@@ -82,12 +81,12 @@ class GeneralisedThresholdModel(DiffusionModel):
                 gamma -= 1
                 number_node_susceptible -= 1
 
-        for u in self.graph.nodes():
+        for u in self.graph.nodes:
             if actual_status[u] == 1:
                 continue
 
             neighbors = list(self.graph.neighbors(u))
-            if isinstance(self.graph, nx.DiGraph):
+            if self.graph.directed:
                 neighbors = list(self.graph.predecessors(u))
 
             infected = 0

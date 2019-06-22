@@ -1,5 +1,4 @@
 from ..DiffusionModel import DiffusionModel
-import networkx as nx
 import numpy as np
 
 __author__ = "Alina Sirbu"
@@ -50,11 +49,11 @@ class VoterModel(DiffusionModel):
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
         # select a random node
-        listener = list(self.graph.nodes())[np.random.randint(0, self.graph.number_of_nodes())]
+        listener = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]
 
         # select a random neighbour
         neighbours = list(self.graph.neighbors(listener))
-        if isinstance(self.graph, nx.DiGraph):
+        if self.graph.directed:
             # difficult to have a digraph but assumed if a->b then b can be influenced by a
             # but not the other way around
             neighbours = list(self.graph.predecessors(listener))

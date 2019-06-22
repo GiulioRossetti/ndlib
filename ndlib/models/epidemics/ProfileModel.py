@@ -1,5 +1,4 @@
 from ..DiffusionModel import DiffusionModel
-import networkx as nx
 import numpy as np
 import future.utils
 from scipy import stats
@@ -76,7 +75,7 @@ class ProfileModel(DiffusionModel):
                 return {"iteration": 0, "status": {},
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
-        for u in self.graph.nodes():
+        for u in self.graph.nodes:
             if actual_status[u] != 0:
                 continue
 
@@ -91,7 +90,7 @@ class ProfileModel(DiffusionModel):
                     continue
 
             neighbors = self.graph.neighbors(u)
-            if isinstance(self.graph, nx.DiGraph):
+            if self.graph.directed:
                 neighbors = self.graph.predecessors(u)
 
             infected = 0
