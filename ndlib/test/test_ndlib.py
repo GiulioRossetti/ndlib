@@ -123,7 +123,7 @@ class NdlibTest(unittest.TestCase):
         config = mc.Configuration()
         config.add_model_parameter('beta', 0.5)
         config.add_model_parameter('gamma', 0.2)
-        config.add_model_parameter("fraction_infected", 0.1)
+        config.add_model_parameter("percentage_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)

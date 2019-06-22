@@ -110,7 +110,8 @@ class DiffusionModel(object):
 
         # Checking initial simulation status
         sts = set(configuration.get_model_configuration().keys())
-        if self.discrete_state and "Infected" not in sts and "fraction_infected" not in mdp:
+        if self.discrete_state and "Infected" not in sts and "fraction_infected" not in mdp \
+                and "percentage_infected" not in mdp:
             warnings.warn('Initial infection missing: a random sample of 5% of graph nodes will be set as infected')
             self.params['model']["fraction_infected"] = 0.05
 
@@ -155,6 +156,8 @@ class DiffusionModel(object):
 
         # Handle initial infection
         if 'Infected' not in self.params['status']:
+            if 'percentage_infected' in self.params['model']:
+                self.params['model']['fraction_infected'] = self.params['model']['percentage_infected']
             if 'fraction_infected' in self.params['model']:
                 number_of_initial_infected = len(self.graph.nodes()) * float(self.params['model']['fraction_infected'])
                 if number_of_initial_infected < 1:
@@ -219,6 +222,8 @@ class DiffusionModel(object):
             self.initial_status = self.status
 
         else:
+            if 'percentage_infected' in self.params['model']:
+                self.params['model']['fraction_infected'] = self.params['model']['percentage_infected']
             if 'fraction_infected' in self.params['model']:
                 for n in self.status:
                     self.status[n] = 0
