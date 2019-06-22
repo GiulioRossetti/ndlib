@@ -17,6 +17,8 @@ This can be seen as a measure of the open-mindedness of individuals in a populat
 It defines a threshold on the distance between the opinion of the two individuals, beyond which communication between individuals is not possible due to conflicting views.
 Thus, if the distance between the opinions of the selected individuals is lower than epsilon, the two individuals adopt their average opinion. Otherwise nothing happens.
 
+Note: setting gamma=0 reproduce the results for the Deffuant model.
+
 --------
 Statuses
 --------

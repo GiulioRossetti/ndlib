@@ -1,5 +1,3 @@
-from ndlib.viz.mpl.DiffusionViz import DiffusionPlot
-from bokeh.palettes import Category20_9 as cols
 import os
 import matplotlib as mpl
 if os.environ.get('DISPLAY', '') == '':
@@ -25,7 +23,7 @@ class OpinionEvolution(object):
         self.srev = trends
         self.ylabel = "Opinion"
 
-    def plot(self, filename=None, percentile=90):
+    def plot(self, filename=None):
         """
         Generates the plot
 
@@ -44,13 +42,27 @@ class OpinionEvolution(object):
         node2col = {}
 
         mx = 0
+
+        last_it = self.srev[-1]['iteration'] + 1
+        last_seen = {}
+
         for it in self.srev:
             sts = it['status']
+            its = it['iteration']
             for n, v in sts.items():
                 if n in nodes2opinions:
-                    nodes2opinions[n].append(v)
+                    last_id = last_seen[n]
+                    last_value = nodes2opinions[n][last_id]
+
+                    for i in range(last_id, its):
+                        nodes2opinions[n][i] = last_value
+
+                    nodes2opinions[n][its] = v
+                    last_seen[n] = its
                 else:
-                    nodes2opinions[n] = [v]
+                    nodes2opinions[n] = [0]*last_it
+                    nodes2opinions[n][its] = v
+                    last_seen[n] = 0
                     if v < 0.33:
                         node2col[n] = '#ff0000'
                     elif 0.33 <= v <= 0.66:
@@ -58,16 +70,19 @@ class OpinionEvolution(object):
                     else:
                         node2col[n] = '#0000ff'
 
+        mx = 0
         for k, l in future.utils.iteritems(nodes2opinions):
-            mx = len(l)
-            plt.plot(range(0, mx), l, lw=1, alpha=0.5, color=node2col[k])
+            if mx < last_seen[k]:
+                mx = last_seen[k]
+            x = list(range(0, last_seen[k]))
+            y = l[0:last_seen[k]]
+            plt.plot(x, y, lw=1, alpha=0.5, color=node2col[k])
 
-        # plt.grid(axis="y")
         plt.title(descr)
         plt.xlabel("Iterations", fontsize=24)
         plt.ylabel(self.ylabel, fontsize=24)
         plt.legend(loc="best", fontsize=18)
-        plt.xlim((0, mx))
+
 
         plt.tight_layout()
         if filename is not None:

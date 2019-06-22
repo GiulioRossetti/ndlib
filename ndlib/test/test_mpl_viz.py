@@ -141,22 +141,23 @@ class MplVizTest(unittest.TestCase):
         os.remove("trend_comparison.pdf")
 
     def test_opinion_viz(self):
-        g = nx.complete_graph(100)
+        g = nx.complete_graph(50)
 
         model = op.AlgorithmicBiasModel(g)
 
         # Model configuration
         config = mc.Configuration()
         config.add_model_parameter("epsilon", 0.32)
-        config.add_model_parameter("gamma", 1.2)
+        config.add_model_parameter("gamma", 0)
         model.set_initial_status(config)
 
         # Simulation execution
-        iterations = model.iteration_bunch(1000)
+        iterations = model.iteration_bunch(50)
 
         viz = OpinionEvolution(model, iterations)
-        viz.plot("opinion_ev.pdf")
+        viz.plot("opinion_ev.png")
         os.remove("opinion_ev.pdf")
+
 
 if __name__ == '__main__':
     unittest.main()

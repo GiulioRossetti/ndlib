@@ -148,6 +148,7 @@ Pyplot Viz
 
    viz/mpl/DiffusionTrend.rst
    viz/mpl/DiffusionPrevalence.rst
+   viz/mpl/OpinionEvolution.rst
 
 
 **Model Comparison Visualizations**
