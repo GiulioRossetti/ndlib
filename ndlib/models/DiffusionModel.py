@@ -160,7 +160,7 @@ class DiffusionModel(object):
             if 'percentage_infected' in self.params['model']:
                 self.params['model']['fraction_infected'] = self.params['model']['percentage_infected']
             if 'fraction_infected' in self.params['model']:
-                number_of_initial_infected = len(self.graph.nodes()) * float(self.params['model']['fraction_infected'])
+                number_of_initial_infected = self.graph.number_of_nodes() * float(self.params['model']['fraction_infected'])
                 if number_of_initial_infected < 1:
                     warnings.warn(
                         "The fraction_infected value is too low given the number of nodes of the selected graph: a "
@@ -228,7 +228,7 @@ class DiffusionModel(object):
             if 'fraction_infected' in self.params['model']:
                 for n in self.status:
                     self.status[n] = 0
-                number_of_initial_infected = len(self.graph.nodes()) * float(self.params['model']['fraction_infected'])
+                number_of_initial_infected = self.graph.number_of_nodes() * float(self.params['model']['fraction_infected'])
                 available_nodes = [n for n in self.status if self.status[n] == 0]
                 sampled_nodes = np.random.choice(available_nodes, int(number_of_initial_infected), replace=False)
 
