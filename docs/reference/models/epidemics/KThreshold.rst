@@ -87,13 +87,13 @@ In the code below is shown an example of instantiation and execution of a Kertes
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.epidemics.KerteszThresholdModel as ks
+    import ndlib.models.epidemics as ep
 
     # Network topology
     g = nx.erdos_renyi_graph(1000, 0.1)
 
     # Model selection
-    model = ks.KerteszThresholdModel(g)
+    model = ep.KerteszThresholdModel(g)
         
     # Model Configuration
     config = mc.Configuration()

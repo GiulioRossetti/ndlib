@@ -88,7 +88,7 @@ In the code below is shown an example of instantiation and execution of a Profil
     import networkx as nx
     import dynetx as dn
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.dynamic.DynProfileThresholdModel as prTr
+    import ndlib.models.dynamic as dm
     from past.builtins import xrange
 
     # Dynamic Network topology
@@ -99,7 +99,7 @@ In the code below is shown an example of instantiation and execution of a Profil
         dg.add_interactions_from(g.edges(), t)
 
     # Model selection
-    model = prTr.DynProfileThresholdModel(dg)
+    model = dm.DynProfileThresholdModel(dg)
     config = mc.Configuration()
     config.add_model_parameter('blocked', 0)
     config.add_model_parameter('adopter_rate', 0)

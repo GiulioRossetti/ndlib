@@ -77,13 +77,13 @@ In the code below is shown an example of instantiation and execution of a Algori
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.opinions.AlgorithmicBiasModel as ab
+    import ndlib.models.opinions as op
 
     # Network topology
     g = nx.erdos_renyi_graph(1000, 0.1)
 
     # Model selection
-    model = ab.AlgorithmicBiasModel(g)
+    model = op.AlgorithmicBiasModel(g)
 
     # Model configuration
     config = mc.Configuration()

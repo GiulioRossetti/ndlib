@@ -85,13 +85,13 @@ In the code below is shown an example of instantiation and execution of a Thresh
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.epidemics.GeneralisedThresholdModel as gth
+    import ndlib.models.epidemics as ep
 
     # Network topology
     g = nx.erdos_renyi_graph(1000, 0.1)
 
     # Model selection
-    model = gth.GeneralisedThresholdModel(g)
+    model = ep.GeneralisedThresholdModel(g)
         
     # Model Configuration
     config = mc.Configuration()

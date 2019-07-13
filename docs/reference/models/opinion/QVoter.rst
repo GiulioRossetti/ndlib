@@ -83,13 +83,13 @@ In the code below is shown an example of instantiation and execution of a Q-Vote
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.opinions.QVoterModel as qvt
+    import ndlib.models.opinions as op
 
     # Network topology
     g = nx.erdos_renyi_graph(1000, 0.1)
 
     # Model selection
-    model = qvt.QVoterModel(g)
+    model = op.QVoterModel(g)
     config = mc.Configuration()
     config.add_model_parameter("q", 5)
     config.add_model_parameter('fraction_infected', 0.1)

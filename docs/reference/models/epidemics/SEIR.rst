@@ -83,13 +83,13 @@ In the code below is shown an example of instantiation and execution of an SEIR 
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.epidemics.SEIRModel as seir
+    import ndlib.models.epidemics as ep
 
     # Network topology
     g = nx.erdos_renyi_graph(1000, 0.1)
 
     # Model selection
-    model = seir.SEIRModel(g)
+    model = ep.SEIRModel(g)
 
     # Model Configuration
     cfg = mc.Configuration()

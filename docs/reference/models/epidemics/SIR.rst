@@ -82,13 +82,13 @@ In the code below is shown an example of instantiation and execution of an SIR s
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.epidemics.SIRModel as sir
+    import ndlib.models.epidemics as ep
 
     # Network topology
     g = nx.erdos_renyi_graph(1000, 0.1)
 
     # Model selection
-    model = sir.SIRModel(g)
+    model = ep.SIRModel(g)
 
     # Model Configuration
     cfg = mc.Configuration()

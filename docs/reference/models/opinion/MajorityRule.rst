@@ -81,13 +81,13 @@ In the code below is shown an example of instantiation and execution of a Majori
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.opinions.MajorityRuleModel as mr
+    import ndlib.models.opinions as op
 
     # Network topology
     g = nx.erdos_renyi_graph(1000, 0.1)
 
     # Model selection
-    model = mr.MajorityRuleModel(g)
+    model = op.MajorityRuleModel(g)
     config = mc.Configuration()
     config.add_model_parameter('fraction_infected', 0.1)
     

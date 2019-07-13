@@ -14,7 +14,7 @@ The Multi Plot object allows the generation of composite grid figures composed b
     import networkx as nx
     from bokeh.io import show
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.epidemics.SIRModel as sir 
+    import ndlib.models.epidemics as ep
     from ndlib.viz.bokeh.DiffusionTrend import DiffusionTrend
     from ndlib.viz.bokeh.DiffusionPrevalence import DiffusionPrevalence
     from ndlib.viz.bokeh.MultiPlot import Multiplot
@@ -25,7 +25,7 @@ The Multi Plot object allows the generation of composite grid figures composed b
     g = nx.erdos_renyi_graph(1000, 0.1)
 
     # Model selection
-    model = sir.SIRModel(g)
+    model = ep.SIRModel(g)
 
     # Model Configuration
     cfg = mc.Configuration()
