@@ -25,7 +25,7 @@ Let's start importing the required libraries
 .. code:: python
 
     import networkx as nx
-    import ndlib.models.epidemics as ep
+    import ndlib.models.epidemics.SIRModel as sir
 
 Once imported the selected model, SIR, and the networkx library we can initialize the simulation:
 
@@ -35,7 +35,7 @@ Once imported the selected model, SIR, and the networkx library we can initializ
     g = nx.erdos_renyi_graph(1000, 0.1)
     
     # Model Selection
-    model = ep.SIRModel(g)
+    model = sir.SIRModel(g)
 
 ------------------------
 Configure the simulation
@@ -117,13 +117,15 @@ Multiplots - implemented only for the ``bokeh`` provider - are also useful to co
 
 .. code:: python
 
-	import ndlib.models.epidemics as ep
+	import ndlib.models.epidemics.SISModel as sis
+	import ndlib.models.epidemics.SIModel as si
+	import ndlib.models.epidemics.ThresholdModel as th
 
 	vm = MultiPlot()
 	vm.add_plot(p)
 
 	# SIS
-	sis_model = ep.SISModel(g)
+	sis_model = sis.SISModel(g)
 	config = mc.Configuration()
 	config.add_model_parameter('beta', 0.001)
 	config.add_model_parameter('lambda', 0.01)
@@ -137,7 +139,7 @@ Multiplots - implemented only for the ``bokeh`` provider - are also useful to co
 	vm.add_plot(p3)
 
 	# SI
-	si_model = ep.SIModel(g)
+	si_model = si.SIModel(g)
 	config = mc.Configuration()
 	config.add_model_parameter('beta', 0.001)
 	config.add_model_parameter("fraction_infected", 0.05)
@@ -150,7 +152,7 @@ Multiplots - implemented only for the ``bokeh`` provider - are also useful to co
 	vm.add_plot(p4)
 
 	# Threshold
-	th_model = ep.ThresholdModel(g)
+	th_model = th.ThresholdModel(g)
 	config = mc.Configuration()
 
 	# Set individual node threshold
