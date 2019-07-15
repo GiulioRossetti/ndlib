@@ -8,12 +8,12 @@ if os.environ.get('DISPLAY', '') == '':
 import matplotlib.pyplot as plt
 import future.utils
 import six
-
+import itertools
 __author__ = 'Giulio Rossetti'
 __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
-
+marker = itertools.cycle(('D', '+', '>', 'o', '*')) 
 @six.add_metaclass(abc.ABCMeta)
 class DiffusionPlot(object):
    # __metaclass__ = abc.ABCMeta
@@ -59,12 +59,12 @@ class DiffusionPlot(object):
         for k, l in future.utils.iteritems(pres):
             mx = len(l[0])
             if self.normalized:
-                plt.plot(range(0, mx), l[1]/self.nnodes, lw=2, label=self.srev[k], alpha=0.5, color=cols[i])
-                plt.fill_between(range(0,  mx), l[0]/self.nnodes, l[2]/self.nnodes, alpha="0.2",
+                plt.plot(list(range(0, mx)), l[1]/self.nnodes, lw=2, label=self.srev[k], alpha=0.5, marker = next(marker),markersize=12, color=cols[i])
+                plt.fill_between(list(range(0,  mx)), l[0]/self.nnodes, l[2]/self.nnodes, alpha="0.2",
                                  color=cols[i])
             else:
-                plt.plot(range(0, mx), l[1], lw=2, label=self.srev[k], alpha=0.5, color=cols[i])
-                plt.fill_between(range(0, mx), l[0], l[2], alpha="0.2",
+                plt.plot(list(range(0, mx)), l[1], lw=2, label=self.srev[k], alpha=0.5, marker = next(marker),markersize=12, color=cols[i])
+                plt.fill_between(list(range(0, mx)), l[0], l[2], alpha="0.2",
                                  color=cols[i])
 
             i += 1
