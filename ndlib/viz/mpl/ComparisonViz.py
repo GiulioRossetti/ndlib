@@ -89,12 +89,12 @@ class ComparisonPlot(object):
                 mx = len(l[st][0])
                 if self.normalized:
                     plt.plot(list(range(0, mx)), l[st][1]/self.nnodes, lw=2,
-                             label="%s - %s" % (k.split("_")[0], st), alpha=0.9,color=cols[h+j])
+                             label="%s - %s" % (k.split("_")[0], st), alpha=0.9, marker = next(marker), color=cols[h+j])
                     plt.fill_between(list(range(0,  mx)), l[st][0]/self.nnodes,
                                      l[st][2]/self.nnodes,alpha=0.2, color=cols[h+j])
                 else:
                     plt.plot(list(range(0, mx)), l[st][1], lw=2,
-                             label="%s - %s" % (k.split("_")[0], st),alpha=0.9, color=cols[h + j])
+                             label="%s - %s" % (k.split("_")[0], st),alpha=0.9, marker = next(marker), color=cols[h + j])
                     plt.fill_between(list(range(0, mx)), l[st][0],
                                      l[st][2], alpha=0.2, color=cols[h + j])
                 j += 1
