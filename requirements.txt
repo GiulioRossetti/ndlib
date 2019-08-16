@@ -8,4 +8,4 @@ networkx==2.3
 dynetx==0.2.2
 bokeh==1.2.0
 matplotlib==3.0.3
-pytest==5.0.1
+pytest==5.1.0
