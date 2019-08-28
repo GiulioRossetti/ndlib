@@ -2,7 +2,7 @@ mock==3.0.5
 python-igraph
 netdispatch==0.0.3
 sphinx_rtd_theme==0.4.3
-numpy==1.16.4
+numpy==1.17.1
 future==0.17.1
 networkx==2.3
 dynetx==0.2.2
