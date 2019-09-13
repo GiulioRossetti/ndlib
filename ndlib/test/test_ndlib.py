@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import unittest
-
+import random
 import future.utils
 import networkx as nx
 import igraph as ig
@@ -402,6 +402,56 @@ class NdlibTest(unittest.TestCase):
                 edges = [(g.vs[e.tuple[0]]['name'], g.vs[e.tuple[1]]['name']) for e in g.es]
                 for e in edges:
                     config.add_edge_configuration("threshold", e, threshold)
+
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
+    def test_ICE(self):
+        for g in get_graph(True):
+            model = epd.ICEModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter('percentage_infected', 0.1)
+            if isinstance(g, nx.Graph):
+                node_to_com = {n: random.choice([0, 1])for n in g.nodes()}
+                for i in g.nodes():
+                    config.add_node_configuration("com", i, node_to_com[i])
+            else:
+                node_to_com = {n: random.choice([0, 1]) for n in g.vs['name']}
+                for i in g.vs['name']:
+                    config.add_node_configuration("com", i, node_to_com[i])
+
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
+    def test_ICP(self):
+
+        threshold = 0.1
+
+        for g in get_graph(True):
+            model = epd.ICPModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter('percentage_infected', 0.1)
+            if isinstance(g, nx.Graph):
+                node_to_com = {n: random.choice([0, 1])for n in g.nodes()}
+                for i in g.nodes():
+                    config.add_node_configuration("com", i, node_to_com[i])
+                for e in g.edges:
+                    config.add_edge_configuration("threshold", e, threshold)
+            else:
+                node_to_com = {n: random.choice([0, 1]) for n in g.vs['name']}
+                for i in g.vs['name']:
+                    config.add_node_configuration("com", i, node_to_com[i])
+                edges = [(g.vs[e.tuple[0]]['name'], g.vs[e.tuple[1]]['name']) for e in g.es]
+                for e in edges:
+                    config.add_edge_configuration("threshold", e, threshold)
+
+            config.add_model_parameter('permeability', 0.1)
 
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)

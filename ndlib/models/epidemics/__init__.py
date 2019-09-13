@@ -14,6 +14,8 @@ from .SIRModel import SIRModel
 from .SISModel import SISModel
 from .SWIRModel import SWIRModel
 from .ThresholdModel import ThresholdModel
+from .ICEModel import ICEModel
+from .ICPModel import ICPModel
 
 __all__ = [
     'GeneralisedThresholdModel',
@@ -28,4 +30,6 @@ __all__ = [
     'SISModel',
     'SWIRModel',
     'ThresholdModel',
+    'ICEModel',
+    'ICPModel'
 ]
