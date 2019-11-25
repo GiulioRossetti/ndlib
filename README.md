@@ -65,7 +65,7 @@ Contributing is good, doing it correctly is better! Check out our [rules](https:
 
 Do you want to be part of the NDlib community to discuss enhancements, desiderata, bug fix? Join us on **Slack**!
 
-[<img align="middle" width="150" src="docs/join-slack-team.png">](https://join.slack.com/t/ndlib/shared_invite/enQtNTA2ODk1MzQzODE0LWNjOWE2YTdiYjdkNTVmZjUyY2E5Y2NkMzczOGZkZjJiNDk5MDA4ZWUyNDgwNzNjMWIzMDIzNmQxYzQ4YWEyMDQ)
+[<img align="middle" width="150" src="docs/join-slack-team.png">](https://join.slack.com/t/ndlib/shared_invite/enQtNTA2ODk1MzQzODE0LTU2YWEzZjAzNDFiNTBlY2QxN2IyODAwMjgyMDBmYjQ2NzhjZjA4NzA1M2U0ZmZlN2I1NGM5OTI2N2I4ZTFmMzQ)
 
 We are a welcoming community... just follow the [Code of Conduct](https://github.com/GiulioRossetti/ndlib/blob/master/.github/CODE_OF_CONDUCT.md).
 
