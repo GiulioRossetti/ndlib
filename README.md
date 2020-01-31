@@ -9,7 +9,7 @@
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/ndlib_nx/community?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FGiulioRossetti%2Fndlib.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FGiulioRossetti%2Fndlib?ref=badge_shield)
 [![DOI](https://zenodo.org/badge/59556819.svg)](https://zenodo.org/badge/latestdoi/59556819)
-[![PyPI download month](https://img.shields.io/pypi/dm/ndlib.svg?color=blue&style=plastic)]
+[![PyPI download month](https://img.shields.io/pypi/dm/ndlib.svg?color=blue&style=plastic)](https://pypi.python.org/pypi/ndlib/)
 
 
 ![NDlib logo](https://github.com/GiulioRossetti/ndlib/blob/master/docs/ndlogo2.png)
