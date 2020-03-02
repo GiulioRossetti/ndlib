@@ -1,5 +1,5 @@
 ************************
-Describe a Visuzlization
+Describe a visualization
 ************************
 
 All the ``matplotlib`` visualizations implemented so far in ``NDlib`` extends the abstract class ``nndlib.viz.mpl.DiffusionViz.DiffusionPlot``.
