@@ -14,13 +14,13 @@ class SEISModel(DiffusionModel):
        :param lambda: The recovery rate (float value in [0,1])
     """
 
-    def __init__(self, graph):
+    def __init__(self, graph, seed=None):
         """
              Model Constructor
 
              :param graph: A networkx graph object
          """
-        super(self.__class__, self).__init__(graph)
+        super(self.__class__, self).__init__(graph, seed)
         self.available_statuses = {
             "Susceptible": 0,
             "Exposed": 2,

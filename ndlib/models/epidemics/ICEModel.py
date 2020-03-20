@@ -12,13 +12,13 @@ class ICEModel(DiffusionModel):
         Parameter free model: probability of diffusion tied to community embeddedness of individual nodes
     """
 
-    def __init__(self, graph):
+    def __init__(self, graph, seed=None):
         """
              Model Constructor
 
              :param graph: A networkx graph object
          """
-        super(self.__class__, self).__init__(graph)
+        super(self.__class__, self).__init__(graph, seed)
         self.available_statuses = {
             "Susceptible": 0,
             "Infected": 1,

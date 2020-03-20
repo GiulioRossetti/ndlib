@@ -46,7 +46,7 @@ class NdlibTest(unittest.TestCase):
     def test_algorithmic_bias_model(self):
 
         for g in get_graph():
-            model = opn.AlgorithmicBiasModel(g)
+            model = opn.AlgorithmicBiasModel(g, seed=0)
             config = mc.Configuration()
             config.add_model_parameter("epsilon", 0.32)
             config.add_model_parameter("gamma", 1)
@@ -58,7 +58,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_voter_model(self):
         for g in get_graph():
-            model = opn.VoterModel(g)
+            model = opn.VoterModel(g, seed=0)
             config = mc.Configuration()
             config.add_model_parameter("fraction_infected", 0.2)
             model.set_initial_status(config)
@@ -115,7 +115,7 @@ class NdlibTest(unittest.TestCase):
 
     def test_cognitive_model(self):
         for g in get_graph():
-            model = opn.CognitiveOpDynModel(g)
+            model = opn.CognitiveOpDynModel(g, seed=0)
             config = mc.Configuration()
             config.add_model_parameter("I", 0.15)
             config.add_model_parameter("B_range_min", 0)

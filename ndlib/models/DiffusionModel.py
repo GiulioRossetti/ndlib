@@ -22,12 +22,15 @@ class DiffusionModel(object):
     """
     # __metaclass__ = abc.ABCMeta
 
-    def __init__(self, graph):
+    def __init__(self, graph, seed=None):
         """
             Model Constructor
 
             :param graph: A networkx graph object
         """
+
+        np.random.seed(seed)
+
         self.discrete_state = True
 
         self.params = {

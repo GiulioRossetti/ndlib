@@ -26,13 +26,13 @@ class CognitiveOpDynModel(DiffusionModel):
     The initial state is generated randomly uniformly from the domain defined by model parameters.
     """
 
-    def __init__(self, graph):
+    def __init__(self, graph, seed=None):
         """
              Model Constructor
 
              :param graph: A networkx graph object
          """
-        super(self.__class__, self).__init__(graph)
+        super(self.__class__, self).__init__(graph, seed)
 
         self.discrete_state = False
 
