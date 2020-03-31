@@ -17,6 +17,7 @@ from .ThresholdModel import ThresholdModel
 from .ICEModel import ICEModel
 from .ICPModel import ICPModel
 from .GeneralThresholdModel import GeneralThresholdModel
+from .UTLDRModel import UTLDRModel
 
 __all__ = [
     'GeneralisedThresholdModel',
@@ -33,5 +34,6 @@ __all__ = [
     'ThresholdModel',
     'ICEModel',
     'ICPModel',
-    'GeneralThresholdModel'
+    'GeneralThresholdModel',
+    'UTLDRModel'
 ]

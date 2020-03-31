@@ -42,7 +42,62 @@ def get_directed_graph(er=False):
 
 
 class NdlibTest(unittest.TestCase):
-    
+
+    def test_utldr(self):
+        for g in get_graph():
+            model = epd.UTLDRModel(g)
+            config = mc.Configuration()
+
+            # Undetected
+            config.add_model_parameter("sigma", 0.05)
+            config.add_model_parameter("beta", 0.25)
+            config.add_model_parameter("gamma", 0.05)
+            config.add_model_parameter("omega", 0.01)
+            config.add_model_parameter("p", 0.04)
+            config.add_model_parameter("lsize", 0.2)
+
+            # Testing
+            config.add_model_parameter("phi_e", 0.03)
+            config.add_model_parameter("phi_i", 0.1)
+            config.add_model_parameter("kappa_e", 0.03)
+            config.add_model_parameter("kappa_i", 0.1)
+            config.add_model_parameter("gamma_t", 0.08)
+            config.add_model_parameter("omega_t", 0.01)
+            config.add_model_parameter("epsilon_e", 1)
+
+            # Lockdown
+            config.add_model_parameter("lambda", 0.8)
+            config.add_model_parameter("epsilon_l", 0.75)
+            config.add_model_parameter("mu", 0.05)
+            config.add_model_parameter("p_l", 0.04)
+
+            # node activity level
+            if isinstance(g, nx.Graph):
+                nodes = g.nodes
+            else:
+                nodes = g.vs['name']
+            for i in nodes:
+                config.add_node_configuration("activity", i, 0.5)
+
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
+            model.set_lockdown()
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
+            model.unset_lockdown()
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
+
     def test_algorithmic_bias_model(self):
 
         for g in get_graph():
