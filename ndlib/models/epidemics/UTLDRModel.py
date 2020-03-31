@@ -292,24 +292,21 @@ class UTLDRModel(DiffusionModel):
         self.old_graph = self.graph  # saving graph current state
 
         for u in self.graph.nodes:
-            if actual_status[u] in [self.available_statuses['Susceptible'], self.available_statuses['Exposed'],
-                                    self.available_statuses['Infected']]:
-                la = np.random.random_sample()  # loockdown acceptance
 
-                if la < self.params['model']['lambda']:
+            la = np.random.random_sample()  # loockdown acceptance
+            if la < self.params['model']['lambda']:
 
-                    if self.graph.directed:
-                        neighbors = self.graph.predecessors(u)
-                    else:
-                        neighbors = self.graph.neighbors(u)
-                    self.__limit_social_contacts(u, neighbors, type="Lockdown")
+                if actual_status[u] == self.available_statuses['Susceptible']:
+                    actual_status[u] = self.available_statuses['Lockdown_S']
+                    self.__limit_social_contacts(u, type="Lockdown")
 
-                    if actual_status[u] == self.available_statuses['Susceptible']:
-                        actual_status[u] = self.available_statuses['Lockdown_S']
-                    elif actual_status[u] == self.available_statuses['Exposed']:
-                        actual_status[u] = self.available_statuses["Lockdown_E"]
-                    elif actual_status[u] == self.available_statuses['Infected']:
-                        actual_status[u] = self.available_statuses['Lockdown_I']
+                elif actual_status[u] == self.available_statuses['Exposed']:
+                    actual_status[u] = self.available_statuses["Lockdown_E"]
+                    self.__limit_social_contacts(u, type="Lockdown")
+
+                elif actual_status[u] == self.available_statuses['Infected']:
+                    actual_status[u] = self.available_statuses['Lockdown_I']
+                    self.__limit_social_contacts(u, type="Lockdown")
 
         delta, node_count, status_delta = self.status_delta(actual_status)
         self.status = actual_status
@@ -326,22 +323,26 @@ class UTLDRModel(DiffusionModel):
             self.graph = graph
 
         for u in self.graph.nodes:
-            if actual_status[u] in [self.available_statuses['Lockdown_S'], self.available_statuses['Lockdown_E'],
-                                    self.available_statuses['Lockdown_I']]:
-
-                if actual_status[u] == self.available_statuses['Lockdown_S']:
-                    actual_status[u] = self.available_statuses['Susceptible']
-                elif actual_status[u] == self.available_statuses['Lockdown_E']:
-                    actual_status[u] = self.available_statuses["Exposed"]
-                elif actual_status[u] == self.available_statuses['Lockdown_I']:
-                    actual_status[u] = self.available_statuses['Infected']
+            if actual_status[u] == self.available_statuses['Lockdown_S']:
+                actual_status[u] = self.available_statuses['Susceptible']
+            elif actual_status[u] == self.available_statuses['Lockdown_E']:
+                actual_status[u] = self.available_statuses["Exposed"]
+            elif actual_status[u] == self.available_statuses['Lockdown_I']:
+                actual_status[u] = self.available_statuses['Infected']
 
         delta, node_count, status_delta = self.status_delta(actual_status)
         self.status = actual_status
         return {"iteration": self.actual_iteration - 1, "status": {}, "node_count": node_count.copy(),
                 "status_delta": status_delta.copy()}
 
-    def __limit_social_contacts(self, u, neighbors, type='Tested'):
+    def __limit_social_contacts(self, u, neighbors=None, type='Tested'):
+
+        if neighbors is None:
+            if self.graph.directed:
+                neighbors = self.graph.predecessors(u)
+            else:
+                neighbors = self.graph.neighbors(u)
+
         if type == 'Tested':
             filtering_prob = self.params['model']['epsilon_l']
         else:
