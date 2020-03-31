@@ -23,10 +23,11 @@ class UTLDRModel(DiffusionModel):
             "Recovered": 3,
             "Tested_E": 4,
             "Tested_I": 5,
-            "Lockdown_S": 6,
-            "Lockdown_E": 7,
-            "Lockdown_I": 8,
-            "Dead": 9
+            "Tested_H": 6,
+            "Lockdown_S": 7,
+            "Lockdown_E": 8,
+            "Lockdown_I": 9,
+            "Dead": 10
         }
         self.parameters = {
             "model": {
@@ -128,6 +129,18 @@ class UTLDRModel(DiffusionModel):
                     "optional": True,
                     "default": 0.25
                 },
+                "icu_b": {
+                    "descr": "Beds availability in ICU (as percentage of the population)",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 1
+                },
+                "iota": {
+                    "descr": "ICU case probability",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 1
+                },
             },
              "nodes": {
                 "activity": {
@@ -212,9 +225,23 @@ class UTLDRModel(DiffusionModel):
             elif u_status == self.available_statuses['Tested_E']:
                 at = np.random.random_sample()
                 if at < self.params['model']['sigma']:
-                    actual_status[u] = self.available_statuses['Infected']
+                    icup = np.random.random_sample()
+                    icu_avalaibility = np.random.random_sample()
+                    if icup < self.params['model']['iota'] and icu_avalaibility < self.params['model']['icu_b']:
+                        actual_status[u] = self.available_statuses['Tested_H']
+                    else:
+                        actual_status[u] = self.available_statuses['Tested_I']
 
             elif u_status == self.available_statuses['Tested_I']:
+                dead = np.random.random_sample()
+                if dead < self.params['model']['omega']:
+                    actual_status[u] = self.available_statuses['Dead']
+                else:
+                    recovered = np.random.random_sample()
+                    if recovered < self.params['model']['gamma']:
+                        actual_status[u] = self.available_statuses['Recovered']
+
+            elif u_status == self.available_statuses['Tested_H']:
                 dead = np.random.random_sample()
                 if dead < self.params['model']['omega_t']:
                     actual_status[u] = self.available_statuses['Dead']

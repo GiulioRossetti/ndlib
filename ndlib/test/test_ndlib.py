@@ -64,6 +64,8 @@ class NdlibTest(unittest.TestCase):
             config.add_model_parameter("gamma_t", 0.08)
             config.add_model_parameter("omega_t", 0.01)
             config.add_model_parameter("epsilon_e", 1)
+            config.add_model_parameter("icu_b", 0.15)
+            config.add_model_parameter("iota", 0.20)
 
             # Lockdown
             config.add_model_parameter("lambda", 0.8)
