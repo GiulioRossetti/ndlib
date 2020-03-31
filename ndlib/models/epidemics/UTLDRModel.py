@@ -141,6 +141,18 @@ class UTLDRModel(DiffusionModel):
                     "optional": True,
                     "default": 1
                 },
+                "z": {
+                    "descr": "Probability of infection from corpses",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0
+                },
+                "s": {
+                    "descr": "Probability of absent immunization",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0
+                },
             },
              "nodes": {
                 "activity": {
@@ -293,7 +305,12 @@ class UTLDRModel(DiffusionModel):
 
             ####################### Resolved Compartment ###########################
 
-            elif u_status == self.available_statuses['Dead'] or u_status == self.available_statuses['Recovered']:
+            elif u_status == self.available_statuses['Recovered']:
+                immunity = np.random.random_sample()
+                if immunity < self.params['model']['s']:
+                    actual_status[u] = self.available_statuses['Susceptible']
+
+            elif u_status == self.available_statuses['Dead']:
                 pass
 
         delta, node_count, status_delta = self.status_delta(actual_status)
@@ -400,13 +417,25 @@ class UTLDRModel(DiffusionModel):
         l_range = np.random.random_sample()  # long range interaction
         if l_range < l_range_proba:
             # filtering out quarantined and dead nodes
-            candidates = [n for n in self.graph.nodes if self.status[n] not in [self.available_statuses['Tested_E'], self.available_statuses['Tested_I'], self.available_statuses['Dead']]]
+            if self.params['model']['z'] == 0:
+                candidates = [n for n in self.graph.nodes if self.status[n] not in [self.available_statuses['Tested_E'], self.available_statuses['Tested_I'], self.available_statuses['Dead']]]
+            else:
+                candidates = [n for n in self.graph.nodes if self.status[n] not in [self.available_statuses['Tested_E'],
+                                                                                    self.available_statuses['Tested_I']]]
+
             interactions.extend(list(np.random.choice(a=candidates, size=int(social_interactions*self.params['model']['lsize']), replace=True)))
 
         for v in interactions:
             if self.status[v] == self.available_statuses['Infected'] or self.status[v] == self.available_statuses['Lockdown_I'] or self.status[v] == self.available_statuses['Tested_I']:
                 bt = np.random.random_sample()
                 if bt < self.params['model']['beta']:
+                    if lockdown:
+                        return self.available_statuses['Lockdown_E']
+                    return self.available_statuses['Exposed']
+
+            elif self.status[v] == self.available_statuses['Dead']:
+                zp = np.random.random_sample()
+                if zp < self.params['model']['z']:
                     if lockdown:
                         return self.available_statuses['Lockdown_E']
                     return self.available_statuses['Exposed']
