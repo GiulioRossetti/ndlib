@@ -12,6 +12,8 @@ class UTLDRModel(DiffusionModel):
 
         super(self.__class__, self).__init__(graph, seed)
 
+        self.params['nodes']['vaccinated'] = {n: False for n in self.graph.nodes}
+
         self.old_graph = None
 
         self.name = "UTLDR"
@@ -27,7 +29,8 @@ class UTLDRModel(DiffusionModel):
             "Lockdown_S": 7,
             "Lockdown_E": 8,
             "Lockdown_I": 9,
-            "Dead": 10
+            "Dead": 10,
+            "Vaccinated": 11,
         }
         self.parameters = {
             "model": {
@@ -149,6 +152,18 @@ class UTLDRModel(DiffusionModel):
                 },
                 "s": {
                     "descr": "Probability of absent immunization",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0
+                },
+                "v": {
+                    "descr": "Probability of vaccination (single chance per agent)",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0
+                },
+                "f": {
+                    "descr": "Probability of Vaccination nullification (inverse of temporal coverage)",
                     "range": [0, 1],
                     "optional": True,
                     "default": 0
@@ -310,6 +325,12 @@ class UTLDRModel(DiffusionModel):
                 if immunity < self.params['model']['s']:
                     actual_status[u] = self.available_statuses['Susceptible']
 
+            elif u_status == self.available_statuses['Vaccinated']:
+                failure = np.random.random_sample()
+                if failure < self.params['model']['f']:
+                    self.params['nodes']['vaccinated'][u] = False
+                    actual_status[u] = self.available_statuses['Susceptible']
+
             elif u_status == self.available_statuses['Dead']:
                 pass
 
@@ -407,6 +428,14 @@ class UTLDRModel(DiffusionModel):
 
 
     def __Susceptible_to_Exposed(self, u, neighbors, lockdown=False):
+
+        # vaccination test
+        if self.params['model']['v'] > 0 and not self.params['nodes']['vaccinated'][u]:
+            v_prob = np.random.random_sample()
+            if v_prob < self.params['model']['v']:
+                self.params['nodes']['vaccinated'][u] = True
+                return self.available_statuses['Vaccinated']
+
         interactions = list(self.__interaction_selection(neighbors, self.params['nodes']['activity'][u]))
         social_interactions = len(interactions)
 
@@ -418,15 +447,22 @@ class UTLDRModel(DiffusionModel):
         if l_range < l_range_proba:
             # filtering out quarantined and dead nodes
             if self.params['model']['z'] == 0:
-                candidates = [n for n in self.graph.nodes if self.status[n] not in [self.available_statuses['Tested_E'], self.available_statuses['Tested_I'], self.available_statuses['Dead']]]
+                candidates = [n for n in self.graph.nodes if self.status[n] not in [self.available_statuses['Tested_E'],
+                                                                                    self.available_statuses['Tested_I'],
+                                                                                    self.available_statuses['Dead']]]
             else:
                 candidates = [n for n in self.graph.nodes if self.status[n] not in [self.available_statuses['Tested_E'],
-                                                                                    self.available_statuses['Tested_I']]]
+                                                                                    self.available_statuses['Tested_I']]
+                              ]
 
-            interactions.extend(list(np.random.choice(a=candidates, size=int(social_interactions*self.params['model']['lsize']), replace=True)))
+            interactions.extend(list(np.random.choice(a=candidates,
+                                                      size=int(social_interactions*self.params['model']['lsize']),
+                                                      replace=True)))
 
         for v in interactions:
-            if self.status[v] == self.available_statuses['Infected'] or self.status[v] == self.available_statuses['Lockdown_I'] or self.status[v] == self.available_statuses['Tested_I']:
+            if self.status[v] == self.available_statuses['Infected'] or \
+                    self.status[v] == self.available_statuses['Lockdown_I'] or \
+                    self.status[v] == self.available_statuses['Tested_I']:
                 bt = np.random.random_sample()
                 if bt < self.params['model']['beta']:
                     if lockdown:
@@ -435,7 +471,7 @@ class UTLDRModel(DiffusionModel):
 
             elif self.status[v] == self.available_statuses['Dead']:
                 zp = np.random.random_sample()
-                if zp < self.params['model']['z']:
+                if zp < self.params['model']['z']:  # infection risk due to partial corpse disposal
                     if lockdown:
                         return self.available_statuses['Lockdown_E']
                     return self.available_statuses['Exposed']

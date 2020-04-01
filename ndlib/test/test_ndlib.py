@@ -75,6 +75,10 @@ class NdlibTest(unittest.TestCase):
             config.add_model_parameter("mu", 0.05)
             config.add_model_parameter("p_l", 0.04)
 
+            # Vaccination
+            config.add_model_parameter("v", 0.15)
+            config.add_model_parameter("f", 0.02)
+
             # node activity level
             if isinstance(g, nx.Graph):
                 nodes = g.nodes
