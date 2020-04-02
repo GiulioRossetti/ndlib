@@ -1,6 +1,7 @@
 from ..DiffusionModel import DiffusionModel
 import numpy as np
 import future
+import tqdm
 
 __author__ = ["Giulio Rossetti"]
 __license__ = "BSD-2-Clause"
@@ -14,7 +15,10 @@ class UTLDRModel(DiffusionModel):
 
         self.params['nodes']['vaccinated'] = {n: False for n in self.graph.nodes}
 
+        self.params['nodes']['tested'] = {n: False for n in self.graph.nodes}
+
         self.old_graph = None
+        self.lockdown = False
 
         self.name = "UTLDR"
 
@@ -175,7 +179,7 @@ class UTLDRModel(DiffusionModel):
                              "with replacement)",
                     "range": [0, 1],
                     "optional": True,
-                    "default": 0.1
+                    "default": 1
                 },
              },
             "edges": {},
@@ -214,16 +218,17 @@ class UTLDRModel(DiffusionModel):
             ####################### Undetected Compartment ###########################
 
             if u_status == self.available_statuses['Susceptible']:
-                actual_status[u] = self.__Susceptible_to_Exposed(u, neighbors, lockdown=False)
+                actual_status[u]  = self.__Susceptible_to_Exposed(u, neighbors, lockdown=False)
 
             elif u_status == self.available_statuses['Exposed']:
 
                 tested = np.random.random_sample()  # selection for testing
-                if tested < self.params['model']['phi_e']:
+                if not self.params['nodes']['tested'][u] and tested < self.params['model']['phi_e']:
                     res = np.random.random_sample()  # probability of false negative result
                     if res > self.params['model']['kappa_e']:
                         self.__limit_social_contacts(u, neighbors, 'Tested')
                         actual_status[u] = self.available_statuses['Tested_E']
+                    self.params['nodes']['tested'][u] = True
                 else:
                     at = np.random.random_sample()
                     if at < self.params['model']['sigma']:
@@ -232,11 +237,13 @@ class UTLDRModel(DiffusionModel):
             elif u_status == self.available_statuses['Infected']:
 
                 tested = np.random.random_sample()  # selection for testing
-                if tested < self.params['model']['phi_i']:
+                if not self.params['nodes']['tested'][u] and tested < self.params['model']['phi_i']:
                     res = np.random.random_sample()  # probability of false negative result
                     if res > self.params['model']['kappa_i']:
                         self.__limit_social_contacts(u, neighbors, 'Tested')
                         actual_status[u] = self.available_statuses['Tested_I']
+                    self.params['nodes']['tested'][u] = True
+
                 else:
                     dead = np.random.random_sample()
                     if dead < self.params['model']['omega']:
@@ -356,6 +363,8 @@ class UTLDRModel(DiffusionModel):
 
         self.old_graph = self.graph  # saving graph current state
 
+        self.lockdown = True
+
         for u in self.graph.nodes:
 
             la = np.random.random_sample()  # loockdown acceptance
@@ -380,6 +389,8 @@ class UTLDRModel(DiffusionModel):
 
     def unset_lockdown(self, graph=None):
         actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
+
+        self.lockdown = False
 
         # restoring previous graph state (or new one if data available)
         if graph is None:
@@ -464,6 +475,7 @@ class UTLDRModel(DiffusionModel):
                     self.status[v] == self.available_statuses['Lockdown_I'] or \
                     self.status[v] == self.available_statuses['Tested_I']:
                 bt = np.random.random_sample()
+
                 if bt < self.params['model']['beta']:
                     if lockdown:
                         return self.available_statuses['Lockdown_E']

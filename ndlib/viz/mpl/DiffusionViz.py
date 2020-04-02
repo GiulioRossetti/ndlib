@@ -38,7 +38,7 @@ class DiffusionPlot(object):
         """
         pass
 
-    def plot(self, filename=None, percentile=90):
+    def plot(self, filename=None, percentile=90, statuses=None):
         """
         Generates the plot
 
@@ -47,30 +47,34 @@ class DiffusionPlot(object):
         """
 
         pres = self.iteration_series(percentile)
-        infos = self.model.get_info()
-        descr = ""
+        # infos = self.model.get_info()
+        # descr = ""
 
-        for k, v in future.utils.iteritems(infos):
-            descr += "%s: %s, " % (k, v)
-        descr = descr[:-2].replace("_", " ")
+        plt.figure(figsize=(20, 10))
+
+        # for k, v in future.utils.iteritems(infos):
+        #     descr += "%s: %s, " % (k, v)
+        # descr = descr[:-2].replace("_", " ")
 
         mx = 0
         i = 0
         for k, l in future.utils.iteritems(pres):
+
+            if statuses is not None and self.srev[k] not in statuses:
+                continue
             mx = len(l[0])
             if self.normalized:
-                plt.plot(range(0, mx), l[1]/self.nnodes, lw=2, label=self.srev[k], alpha=0.5, color=cols[i])
-                plt.fill_between(range(0,  mx), l[0]/self.nnodes, l[2]/self.nnodes, alpha="0.2",
-                                 color=cols[i])
+                plt.plot(range(0, mx), l[1]/self.nnodes, lw=2, label=self.srev[k], alpha=0.5)  # , color=cols[i])
+                plt.fill_between(range(0,  mx), l[0]/self.nnodes, l[2]/self.nnodes, alpha="0.2")
+                    #,color=cols[i])
             else:
-                plt.plot(range(0, mx), l[1], lw=2, label=self.srev[k], alpha=0.5, color=cols[i])
-                plt.fill_between(range(0, mx), l[0], l[2], alpha="0.2",
-                                 color=cols[i])
+                plt.plot(range(0, mx), l[1], lw=2, label=self.srev[k], alpha=0.5)  # , color=cols[i])
+                plt.fill_between(range(0, mx), l[0], l[2], alpha="0.2")  # ,color=cols[i])
 
             i += 1
 
         plt.grid(axis="y")
-        plt.title(descr)
+        # plt.title(descr)
         plt.xlabel("Iterations", fontsize=24)
         plt.ylabel(self.ylabel, fontsize=24)
         plt.legend(loc="best", fontsize=18)
