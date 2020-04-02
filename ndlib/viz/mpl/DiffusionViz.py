@@ -44,6 +44,7 @@ class DiffusionPlot(object):
 
         :param filename: Output filename
         :param percentile: The percentile for the trend variance area
+        :param statuses: List of statuses to plot. If not specified all statuses trends will be shown.
         """
 
         pres = self.iteration_series(percentile)
