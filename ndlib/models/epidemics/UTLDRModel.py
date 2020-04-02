@@ -14,8 +14,9 @@ class UTLDRModel(DiffusionModel):
         super(self.__class__, self).__init__(graph, seed)
 
         self.params['nodes']['vaccinated'] = {n: False for n in self.graph.nodes}
-
         self.params['nodes']['tested'] = {n: False for n in self.graph.nodes}
+        self.params['nodes']['ICU'] = {n: False for n in self.graph.nodes}
+        self.params['nodes']['filtered'] = {n: [] for n in self.graph.nodes}
 
         self.old_graph = None
         self.lockdown = False
@@ -62,13 +63,14 @@ class UTLDRModel(DiffusionModel):
                 "omega": {
                     "descr": "Death probability",
                     "range": [0, 1],
-                    "optional": False
+                    "optional": True,
+                    "default": 0
                 },
                 "omega_t": {
                     "descr": "Death probability, quarantine",
                     "range": [0, 1],
                     "optional": True,
-                    "default": 0.1
+                    "default": 0
                 },
                 "phi_e": {
                     "descr": "Testing probability if exposed",
@@ -215,6 +217,9 @@ class UTLDRModel(DiffusionModel):
             else:
                 neighbors = self.graph.neighbors(u)
 
+            if len(self.params['nodes']['filtered'][u]) > 0:
+                neighbors = list(set(neighbors) & set(self.params['nodes']['filtered'][u]))
+
             ####################### Undetected Compartment ###########################
 
             if u_status == self.available_statuses['Susceptible']:
@@ -245,13 +250,14 @@ class UTLDRModel(DiffusionModel):
                     self.params['nodes']['tested'][u] = True
 
                 else:
-                    dead = np.random.random_sample()
-                    if dead < self.params['model']['omega']:
-                        actual_status[u] = self.available_statuses['Dead']
+                    recovered = np.random.random_sample()
+                    if recovered < self.params['model']['gamma']:
+                        actual_status[u] = self.available_statuses['Recovered']
                     else:
-                        recovered = np.random.random_sample()
-                        if recovered < self.params['model']['gamma']:
-                            actual_status[u] = self.available_statuses['Recovered']
+                        dead = np.random.random_sample()
+                        if dead < self.params['model']['omega']:
+                            actual_status[u] = self.available_statuses['Dead']
+
 
 
             ####################### Quarantined Compartment ###########################
@@ -261,28 +267,29 @@ class UTLDRModel(DiffusionModel):
                 if at < self.params['model']['sigma']:
                     icup = np.random.random_sample()
                     icu_avalaibility = np.random.random_sample()
-                    if icup < self.params['model']['iota'] and icu_avalaibility < self.params['model']['icu_b']:
+                    if icup < self.params['model']['iota'] and icu_avalaibility < self.params['model']['icu_b'] and not self.params['nodes']['ICU'][u]:
                         actual_status[u] = self.available_statuses['Tested_H']
                     else:
                         actual_status[u] = self.available_statuses['Tested_I']
+                    self.params['nodes']['ICU'][u] = True
 
             elif u_status == self.available_statuses['Tested_I']:
-                dead = np.random.random_sample()
-                if dead < self.params['model']['omega']:
-                    actual_status[u] = self.available_statuses['Dead']
+                recovered = np.random.random_sample()
+                if recovered < self.params['model']['gamma']:
+                    actual_status[u] = self.available_statuses['Recovered']
                 else:
-                    recovered = np.random.random_sample()
-                    if recovered < self.params['model']['gamma']:
-                        actual_status[u] = self.available_statuses['Recovered']
+                    dead = np.random.random_sample()
+                    if dead < self.params['model']['omega']:
+                        actual_status[u] = self.available_statuses['Dead']
 
             elif u_status == self.available_statuses['Tested_H']:
-                dead = np.random.random_sample()
-                if dead < self.params['model']['omega_t']:
-                    actual_status[u] = self.available_statuses['Dead']
+                recovered = np.random.random_sample()
+                if recovered < self.params['model']['gamma_t']:
+                    actual_status[u] = self.available_statuses['Recovered']
                 else:
-                    recovered = np.random.random_sample()
-                    if recovered < self.params['model']['gamma_t']:
-                        actual_status[u] = self.available_statuses['Recovered']
+                    dead = np.random.random_sample()
+                    if dead < self.params['model']['omega_t']:
+                        actual_status[u] = self.available_statuses['Dead']
 
             ####################### Lockdown Compartment ###########################
 
@@ -393,12 +400,13 @@ class UTLDRModel(DiffusionModel):
         self.lockdown = False
 
         # restoring previous graph state (or new one if data available)
-        if graph is None:
-            self.graph = self.old_graph
-        else:
-            self.graph = graph
+        ##if graph is None:
+        ##    self.graph = self.old_graph
+        #else:
+        #    self.graph = graph
 
         for u in self.graph.nodes:
+            self.__ripristinate_social_contacts(u)
             if actual_status[u] == self.available_statuses['Lockdown_S']:
                 actual_status[u] = self.available_statuses['Susceptible']
             elif actual_status[u] == self.available_statuses['Lockdown_E']:
@@ -423,16 +431,17 @@ class UTLDRModel(DiffusionModel):
             filtering_prob = self.params['model']['epsilon_l']
         else:
             filtering_prob = self.params['model']['epsilon_e']
-        to_remove = list(np.random.choice(a=neighbors, size=int(len(neighbors)*filtering_prob), replace=False))
-        self.graph.remove_edges(u, to_remove)
+        to_keep = list(np.random.choice(a=neighbors, size=int(len(neighbors)*(1-filtering_prob)), replace=False))
+        self.params['nodes']['filtered'][u] = to_keep
+        # self.graph.remove_edges(u, to_remove)
 
     def __ripristinate_social_contacts(self, u):
-
-        if self.old_graph.directed:
-            to_add = self.old_graph.predecessors(u)
-        else:
-            to_add = self.old_graph.neighbors(u)
-        self.graph.add_edges(u, to_add)
+        self.params['nodes']['filtered'][u] = []
+        #if self.old_graph.directed:
+        #    to_add = self.old_graph.predecessors(u)
+        #else:
+        #    to_add = self.old_graph.neighbors(u)
+        #self.graph.add_edges(u, to_add)
 
 
     ####################### Undetected Compartment ###########################
