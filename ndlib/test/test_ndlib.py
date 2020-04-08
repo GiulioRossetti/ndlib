@@ -73,7 +73,7 @@ class NdlibTest(unittest.TestCase):
 
             # Lockdown
             config.add_model_parameter("lambda", 0.8)
-            config.add_model_parameter("epsilon_l", 0.75)
+            config.add_model_parameter("epsilon_l", 5)
             config.add_model_parameter("mu", 0.05)
             config.add_model_parameter("p_l", 0.04)
 

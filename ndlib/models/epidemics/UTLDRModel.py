@@ -27,13 +27,13 @@ class UTLDRModel(DiffusionModel):
             "Exposed": 2,
             "Infected": 1,
             "Recovered": 3,
-            "Tested_E": 4,
-            "Tested_I": 5,
-            "Tested_H": 6,
-            "Tested_F": 7,
-            "Lockdown_S": 8,
-            "Lockdown_E": 9,
-            "Lockdown_I": 10,
+            "Identified_Exposed": 4,
+            "Hospitalized_mild": 5,
+            "Hospitalized_severe_ICU": 6,
+            "Hospitalized_severe": 7,
+            "Lockdown_Susceptible": 8,
+            "Lockdown_Exposed": 9,
+            "Lockdown_Infected": 10,
             "Dead": 11,
             "Vaccinated": 12,
         }
@@ -85,25 +85,25 @@ class UTLDRModel(DiffusionModel):
                     "default": 0
                 },
                 "phi_e": {
-                    "descr": "Testing probability if exposed",
+                    "descr": "Testing probability if Exposed",
                     "range": [0, 1],
                     "optional": True,
                     "default": 0
                 },
                 "phi_i": {
-                    "descr": "Testing probability if infected",
+                    "descr": "Testing probability if Infected",
                     "range": [0, 1],
                     "optional": True,
                     "default": 0
                 },
                 "kappa_e": {
-                    "descr": "Test False Negative probability if exposed",
+                    "descr": "Test False Negative probability if Exposed",
                     "range": [0, 1],
                     "optional": True,
                     "default": 0.7
                 },
                 "kappa_i": {
-                    "descr": "Test False Negative probability if infected",
+                    "descr": "Test False Negative probability if Infected",
                     "range": [0, 1],
                     "optional": True,
                     "default": 0.9
@@ -115,10 +115,10 @@ class UTLDRModel(DiffusionModel):
                     "default": 1
                 },
                 "epsilon_l": {
-                    "descr": "Social restriction due to lockdown (percentage of pruned edges)",
+                    "descr": "Social restriction due to lockdown (maximum household size)",
                     "range": [0, 1],
                     "optional": True,
-                    "default": 0.25
+                    "default": 1
                 },
                 "lambda": {
                     "descr": "Lockdown effectiveness (percentage of compliant individuals)",
@@ -127,7 +127,7 @@ class UTLDRModel(DiffusionModel):
                     "default": 1
                 },
                 "mu": {
-                    "descr": "Lockdown length (1/expected iterations)",
+                    "descr": "Lockdown duration (1/expected iterations)",
                     "range": [0, 1],
                     "optional": True,
                     "default": 1
@@ -139,7 +139,7 @@ class UTLDRModel(DiffusionModel):
                     "default": 0
                 },
                 "p_l": {
-                    "descr": "Probability of long-range interactions if in lockdown",
+                    "descr": "Probability of long-range interactions if in Lockdown",
                     "range": [0, 1],
                     "optional": True,
                     "default": 0
@@ -151,13 +151,13 @@ class UTLDRModel(DiffusionModel):
                     "default": 0.25
                 },
                 "icu_b": {
-                    "descr": "Beds availability in ICU (as percentage of the population)",
+                    "descr": "Beds availability in ICU (absolute value)",
                     "range": [0, np.infty],
                     "optional": True,
                     "default": self.graph.number_of_nodes()
                 },
                 "iota": {
-                    "descr": "ICU case probability",
+                    "descr": "Severe case probability (needing ICU treatments)",
                     "range": [0, 1],
                     "optional": True,
                     "default": 1
@@ -246,7 +246,7 @@ class UTLDRModel(DiffusionModel):
                     res = np.random.random_sample()  # probability of false negative result
                     if res > self.params['model']['kappa_e']:
                         self.__limit_social_contacts(u, neighbors, 'Tested')
-                        actual_status[u] = self.available_statuses['Tested_E']
+                        actual_status[u] = self.available_statuses['Identified_Exposed']
                     self.params['nodes']['tested'][u] = True
                 else:
                     at = np.random.random_sample()
@@ -265,12 +265,12 @@ class UTLDRModel(DiffusionModel):
 
                         if icup < self.params['model']['iota']:
                             if self.icu_b > 0 and not self.params['nodes']['ICU'][u]:
-                                actual_status[u] = self.available_statuses['Tested_H']
+                                actual_status[u] = self.available_statuses['Hospitalized_severe_ICU']
                                 self.icu_b -= 1
                             else:
-                                actual_status[u] = self.available_statuses['Tested_F']
+                                actual_status[u] = self.available_statuses['Hospitalized_severe']
                         else:
-                            actual_status[u] = self.available_statuses['Tested_I']
+                            actual_status[u] = self.available_statuses['Hospitalized_mild']
                     self.params['nodes']['tested'][u] = True
 
                 else:
@@ -284,22 +284,22 @@ class UTLDRModel(DiffusionModel):
 
             ####################### Quarantined Compartment ###########################
 
-            elif u_status == self.available_statuses['Tested_E']:
+            elif u_status == self.available_statuses['Identified_Exposed']:
                 at = np.random.random_sample()
                 if at < self.params['model']['sigma']:
                     icup = np.random.random_sample()
                     # icu_avalaibility = np.random.random_sample()
                     if icup < self.params['model']['iota']:
                         if self.icu_b > 0 and not self.params['nodes']['ICU'][u]:
-                            actual_status[u] = self.available_statuses['Tested_H']
+                            actual_status[u] = self.available_statuses['Hospitalized_severe_ICU']
                             self.icu_b -= 1
                         else:
-                            actual_status[u] = self.available_statuses['Tested_F']
+                            actual_status[u] = self.available_statuses['Hospitalized_severe']
                     else:
-                        actual_status[u] = self.available_statuses['Tested_I']
+                        actual_status[u] = self.available_statuses['Hospitalized_mild']
                     self.params['nodes']['ICU'][u] = True
 
-            elif u_status == self.available_statuses['Tested_I']:
+            elif u_status == self.available_statuses['Hospitalized_mild']:
                 recovered = np.random.random_sample()
                 if recovered < self.params['model']['gamma']:
                     actual_status[u] = self.available_statuses['Recovered']
@@ -308,7 +308,7 @@ class UTLDRModel(DiffusionModel):
                     if dead < self.params['model']['omega']:
                         actual_status[u] = self.available_statuses['Dead']
 
-            elif u_status == self.available_statuses['Tested_F']:
+            elif u_status == self.available_statuses['Hospitalized_severe']:
                 recovered = np.random.random_sample()
                 if recovered < self.params['model']['gamma_f']:
                     actual_status[u] = self.available_statuses['Recovered']
@@ -317,7 +317,7 @@ class UTLDRModel(DiffusionModel):
                     if dead < self.params['model']['omega_f']:
                         actual_status[u] = self.available_statuses['Dead']
 
-            elif u_status == self.available_statuses['Tested_H']:
+            elif u_status == self.available_statuses['Hospitalized_severe_ICU']:
                 recovered = np.random.random_sample()
                 if recovered < self.params['model']['gamma_t']:
                     actual_status[u] = self.available_statuses['Recovered']
@@ -330,7 +330,7 @@ class UTLDRModel(DiffusionModel):
 
             ####################### Lockdown Compartment ###########################
 
-            elif u_status == self.available_statuses['Lockdown_S']:
+            elif u_status == self.available_statuses['Lockdown_Susceptible']:
                 # test lockdown exit
                 exit = np.random.random_sample()  # loockdown acceptance
                 if exit < self.params['model']['mu']:
@@ -340,7 +340,7 @@ class UTLDRModel(DiffusionModel):
                 else:
                     actual_status[u] = self.__Susceptible_to_Exposed(u, neighbors, lockdown=True)
 
-            elif u_status == self.available_statuses['Lockdown_E']:
+            elif u_status == self.available_statuses['Lockdown_Exposed']:
                 # test lockdown exit
                 exit = np.random.random_sample()  # loockdown exit
                 if exit < self.params['model']['mu']:
@@ -350,9 +350,9 @@ class UTLDRModel(DiffusionModel):
                 else:
                     at = np.random.random_sample()
                     if at < self.params['model']['sigma']:
-                        actual_status[u] = self.available_statuses['Lockdown_I']
+                        actual_status[u] = self.available_statuses['Lockdown_Infected']
 
-            elif u_status == self.available_statuses['Lockdown_I']:
+            elif u_status == self.available_statuses['Lockdown_Infected']:
                 # test lockdown exit
                 exit = np.random.random_sample()  # loockdown exit
 
@@ -416,15 +416,15 @@ class UTLDRModel(DiffusionModel):
             if la < self.params['model']['lambda']:
 
                 if actual_status[u] == self.available_statuses['Susceptible']:
-                    actual_status[u] = self.available_statuses['Lockdown_S']
+                    actual_status[u] = self.available_statuses['Lockdown_Susceptible']
                     self.__limit_social_contacts(u, event="Lockdown")
 
                 elif actual_status[u] == self.available_statuses['Exposed']:
-                    actual_status[u] = self.available_statuses["Lockdown_E"]
+                    actual_status[u] = self.available_statuses["Lockdown_Exposed"]
                     self.__limit_social_contacts(u, event="Lockdown")
 
                 elif actual_status[u] == self.available_statuses['Infected']:
-                    actual_status[u] = self.available_statuses['Lockdown_I']
+                    actual_status[u] = self.available_statuses['Lockdown_Infected']
                     self.__limit_social_contacts(u, event="Lockdown")
 
         delta, node_count, status_delta = self.status_delta(actual_status)
@@ -439,11 +439,11 @@ class UTLDRModel(DiffusionModel):
 
         for u in self.graph.nodes:
             self.__ripristinate_social_contacts(u)
-            if actual_status[u] == self.available_statuses['Lockdown_S']:
+            if actual_status[u] == self.available_statuses['Lockdown_Susceptible']:
                 actual_status[u] = self.available_statuses['Susceptible']
-            elif actual_status[u] == self.available_statuses['Lockdown_E']:
+            elif actual_status[u] == self.available_statuses['Lockdown_Exposed']:
                 actual_status[u] = self.available_statuses["Exposed"]
-            elif actual_status[u] == self.available_statuses['Lockdown_I']:
+            elif actual_status[u] == self.available_statuses['Lockdown_Infected']:
                 actual_status[u] = self.available_statuses['Infected']
 
         delta, node_count, status_delta = self.status_delta(actual_status)
@@ -464,11 +464,11 @@ class UTLDRModel(DiffusionModel):
 
         if event == 'Tested':
             filtering_prob = self.params['model']['epsilon_e']
+            remaining_candidates = [n for n in neighbors if len(self.params['nodes']['filtered'][n]) == 0]
+            size = min(int(len(neighbors) * (1 - filtering_prob)), len(remaining_candidates))
         else:
-            filtering_prob = self.params['model']['epsilon_l']
-
-        remaining_candidates = [n for n in neighbors if len(self.params['nodes']['filtered'][n]) == 0]
-        size = min(int(len(neighbors)*(1-filtering_prob)), len(remaining_candidates))
+            houseold_max_size = self.params['model']['epsilon_l']
+            size = list(np.random.choice(a=range(houseold_max_size), size=1))[0]
 
         to_keep = list(np.random.choice(a=neighbors, size=size, replace=False))
         self.params['nodes']['filtered'][u] = to_keep
@@ -513,12 +513,14 @@ class UTLDRModel(DiffusionModel):
         if l_range < l_range_proba:
             # filtering out quarantined and dead nodes
             if self.params['model']['z'] == 0:
-                candidates = [n for n in self.graph.nodes if self.status[n] not in [self.available_statuses['Tested_E'],
-                                                                                    self.available_statuses['Tested_I'],
-                                                                                    self.available_statuses['Dead']]]
+                candidates = [n for n in self.graph.nodes if self.status[n] not in
+                              [self.available_statuses['Identified_Exposed'],
+                               self.available_statuses['Hospitalized_mild'],
+                               self.available_statuses['Dead']]]
             else:
-                candidates = [n for n in self.graph.nodes if self.status[n] not in [self.available_statuses['Tested_E'],
-                                                                                    self.available_statuses['Tested_I']]
+                candidates = [n for n in self.graph.nodes if self.status[n] not in
+                              [self.available_statuses['Identified_Exposed'],
+                               self.available_statuses['Hospitalized_mild']]
                               ]
 
             interactions.extend(list(np.random.choice(a=candidates,
@@ -527,22 +529,22 @@ class UTLDRModel(DiffusionModel):
 
         for v in interactions:
             if self.status[v] == self.available_statuses['Infected'] or \
-                    self.status[v] == self.available_statuses['Lockdown_I'] or \
-                    self.status[v] == self.available_statuses['Tested_I']:
+                    self.status[v] == self.available_statuses['Lockdown_Infected'] or \
+                    self.status[v] == self.available_statuses['Hospitalized_mild']:
                 bt = np.random.random_sample()
 
                 if bt < self.params['model']['beta']:
                     if lockdown:
-                        return self.available_statuses['Lockdown_E']
+                        return self.available_statuses['Lockdown_Exposed']
                     return self.available_statuses['Exposed']
 
             elif self.status[v] == self.available_statuses['Dead']:
                 zp = np.random.random_sample()
                 if zp < self.params['model']['z']:  # infection risk due to partial corpse disposal
                     if lockdown:
-                        return self.available_statuses['Lockdown_E']
+                        return self.available_statuses['Lockdown_Exposed']
                     return self.available_statuses['Exposed']
 
         if lockdown:
-            return self.available_statuses['Lockdown_S']
+            return self.available_statuses['Lockdown_Susceptible']
         return self.available_statuses['Susceptible']
