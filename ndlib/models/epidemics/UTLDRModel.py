@@ -30,11 +30,12 @@ class UTLDRModel(DiffusionModel):
             "Tested_E": 4,
             "Tested_I": 5,
             "Tested_H": 6,
-            "Lockdown_S": 7,
-            "Lockdown_E": 8,
-            "Lockdown_I": 9,
-            "Dead": 10,
-            "Vaccinated": 11,
+            "Tested_F": 7,
+            "Lockdown_S": 8,
+            "Lockdown_E": 9,
+            "Lockdown_I": 10,
+            "Dead": 11,
+            "Vaccinated": 12,
         }
         self.parameters = {
             "model": {
@@ -49,24 +50,36 @@ class UTLDRModel(DiffusionModel):
                     "optional": False
                 },
                 "gamma": {
-                    "descr": "Recovery rate (1/expected iterations)",
+                    "descr": "Recovery rate - Mild, Asymptomatic, Paucisymptomatic (1/expected iterations)",
                     "range": [0, 1],
                     "optional": False
                 },
                 "gamma_t": {
-                    "descr": "Recovery rate, quarantine (1/expected iterations)",
+                    "descr": "Recovery rate - Severe in ICU (1/expected iterations)",
                     "range": [0, 1],
                     "optional": True,
-                    "default": 0.05
+                    "default": 0.6
+                },
+                "gamma_f": {
+                    "descr": "Recovery rate - Severe not in ICU (1/expected iterations)",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0.95
                 },
                 "omega": {
-                    "descr": "Death probability",
+                    "descr": "Death probability - Mild, Asymptomatic, Paucisymptomatic",
                     "range": [0, 1],
                     "optional": True,
                     "default": 0
                 },
                 "omega_t": {
-                    "descr": "Death probability, quarantine",
+                    "descr": "Death probability - Severe in ICU",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0
+                },
+                "omega_f": {
+                    "descr": "Death probability - Severe not in ICU",
                     "range": [0, 1],
                     "optional": True,
                     "default": 0
@@ -249,10 +262,13 @@ class UTLDRModel(DiffusionModel):
                         self.__limit_social_contacts(u, neighbors, 'Tested')
 
                         icup = np.random.random_sample()  # probability of severe case needing ICU
-                        #icu_avalaibility = np.random.random_sample()  # Availability in ICU
-                        if icup < self.params['model']['iota'] and self.icu_b > 0 and not self.params['nodes']['ICU'][u]:
-                            actual_status[u] = self.available_statuses['Tested_H']
-                            self.icu_b -= 1
+
+                        if icup < self.params['model']['iota']:
+                            if self.icu_b > 0 and not self.params['nodes']['ICU'][u]:
+                                actual_status[u] = self.available_statuses['Tested_H']
+                                self.icu_b -= 1
+                            else:
+                                actual_status[u] = self.available_statuses['Tested_F']
                         else:
                             actual_status[u] = self.available_statuses['Tested_I']
                     self.params['nodes']['tested'][u] = True
@@ -273,9 +289,12 @@ class UTLDRModel(DiffusionModel):
                 if at < self.params['model']['sigma']:
                     icup = np.random.random_sample()
                     # icu_avalaibility = np.random.random_sample()
-                    if icup < self.params['model']['iota'] and self.icu_b > 0 and not self.params['nodes']['ICU'][u]:
-                        actual_status[u] = self.available_statuses['Tested_H']
-                        self.icu_b -= 1
+                    if icup < self.params['model']['iota']:
+                        if self.icu_b > 0 and not self.params['nodes']['ICU'][u]:
+                            actual_status[u] = self.available_statuses['Tested_H']
+                            self.icu_b -= 1
+                        else:
+                            actual_status[u] = self.available_statuses['Tested_F']
                     else:
                         actual_status[u] = self.available_statuses['Tested_I']
                     self.params['nodes']['ICU'][u] = True
@@ -287,6 +306,15 @@ class UTLDRModel(DiffusionModel):
                 else:
                     dead = np.random.random_sample()
                     if dead < self.params['model']['omega']:
+                        actual_status[u] = self.available_statuses['Dead']
+
+            elif u_status == self.available_statuses['Tested_F']:
+                recovered = np.random.random_sample()
+                if recovered < self.params['model']['gamma_f']:
+                    actual_status[u] = self.available_statuses['Recovered']
+                else:
+                    dead = np.random.random_sample()
+                    if dead < self.params['model']['omega_f']:
                         actual_status[u] = self.available_statuses['Dead']
 
             elif u_status == self.available_statuses['Tested_H']:

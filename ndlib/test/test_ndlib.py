@@ -62,9 +62,11 @@ class NdlibTest(unittest.TestCase):
             config.add_model_parameter("kappa_e", 0.03)
             config.add_model_parameter("kappa_i", 0.1)
             config.add_model_parameter("gamma_t", 0.08)
+            config.add_model_parameter("gamma_f", 0.1)
             config.add_model_parameter("omega_t", 0.01)
+            config.add_model_parameter("omega_f", 0.08)
             config.add_model_parameter("epsilon_e", 1)
-            config.add_model_parameter("icu_b", 0.15)
+            config.add_model_parameter("icu_b", 10)
             config.add_model_parameter("iota", 0.20)
             config.add_model_parameter("z", 0.2)
             config.add_model_parameter("s", 0.05)
@@ -85,7 +87,7 @@ class NdlibTest(unittest.TestCase):
             else:
                 nodes = g.vs['name']
             for i in nodes:
-                config.add_node_configuration("activity", i, 0.5)
+                config.add_node_configuration("activity", i, 1)
 
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
