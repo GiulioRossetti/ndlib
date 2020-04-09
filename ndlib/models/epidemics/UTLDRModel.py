@@ -1,7 +1,6 @@
 from ..DiffusionModel import DiffusionModel
 import numpy as np
 import future
-import tqdm
 
 __author__ = ["Giulio Rossetti"]
 __license__ = "BSD-2-Clause"
@@ -37,6 +36,7 @@ class UTLDRModel(DiffusionModel):
             "Dead": 11,
             "Vaccinated": 12,
         }
+
         self.parameters = {
             "model": {
                 "sigma": {
@@ -187,7 +187,7 @@ class UTLDRModel(DiffusionModel):
                     "default": 0
                 },
             },
-             "nodes": {
+            "nodes": {
                 "activity": {
                     "descr": "Node interactions per iteration (sample size of existing social relationships, "
                              "with replacement)",
@@ -195,7 +195,7 @@ class UTLDRModel(DiffusionModel):
                     "optional": True,
                     "default": 1
                 },
-             },
+            },
             "edges": {},
         }
 
@@ -237,7 +237,7 @@ class UTLDRModel(DiffusionModel):
             ####################### Undetected Compartment ###########################
 
             if u_status == self.available_statuses['Susceptible']:
-                actual_status[u]  = self.__Susceptible_to_Exposed(u, neighbors, lockdown=False)
+                actual_status[u] = self.__Susceptible_to_Exposed(u, neighbors, lockdown=False)
 
             elif u_status == self.available_statuses['Exposed']:
 
@@ -400,12 +400,24 @@ class UTLDRModel(DiffusionModel):
 
     @staticmethod
     def __interaction_selection(neighbors, prob):
-        return np.random.choice(a=neighbors, size=int(len(neighbors)*prob), replace=True)
+        return np.random.choice(a=neighbors, size=int(len(neighbors) * prob), replace=True)
 
     def add_ICU_beds(self, n):
+        """
+        Add/Subtract beds in intensive care
+
+        :param n: number of beds to add/remove
+        :return:
+        """
         self.icu_b = max(0, self.icu_b + n)
 
-    def set_lockdown(self):
+    def set_lockdown(self, households=None):
+        """
+        Impose the beginning of a lockdown
+
+        :param households: (optional) dictionary specifying the households for each node <node_id -> list(nodes in household)>
+        :return:
+        """
         actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
 
         self.lockdown = True
@@ -417,22 +429,36 @@ class UTLDRModel(DiffusionModel):
 
                 if actual_status[u] == self.available_statuses['Susceptible']:
                     actual_status[u] = self.available_statuses['Lockdown_Susceptible']
-                    self.__limit_social_contacts(u, event="Lockdown")
+                    if households is None or u not in households:
+                        self.__limit_social_contacts(u, event="Lockdown")
+                    else:
+                        self.params['nodes']['filtered'][u] = households[u]
 
                 elif actual_status[u] == self.available_statuses['Exposed']:
                     actual_status[u] = self.available_statuses["Lockdown_Exposed"]
-                    self.__limit_social_contacts(u, event="Lockdown")
+                    if households is None or u not in households:
+                        self.__limit_social_contacts(u, event="Lockdown")
+                    else:
+                        self.params['nodes']['filtered'][u] = households[u]
 
                 elif actual_status[u] == self.available_statuses['Infected']:
                     actual_status[u] = self.available_statuses['Lockdown_Infected']
-                    self.__limit_social_contacts(u, event="Lockdown")
+                    if households is None or u not in households:
+                        self.__limit_social_contacts(u, event="Lockdown")
+                    else:
+                        self.params['nodes']['filtered'][u] = households[u]
 
         delta, node_count, status_delta = self.status_delta(actual_status)
         self.status = actual_status
         return {"iteration": self.actual_iteration - 1, "status": {}, "node_count": node_count.copy(),
-                 "status_delta": status_delta.copy()}
+                "status_delta": status_delta.copy()}
 
     def unset_lockdown(self):
+        """
+        Remove the lockdown social limitations
+
+        :return:
+        """
         actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
 
         self.lockdown = False
@@ -490,7 +516,6 @@ class UTLDRModel(DiffusionModel):
     def __ripristinate_social_contacts(self, u):
         self.params['nodes']['filtered'][u] = []
 
-
     ####################### Undetected Compartment ###########################
 
     def __Susceptible_to_Exposed(self, u, neighbors, lockdown=False):
@@ -524,7 +549,7 @@ class UTLDRModel(DiffusionModel):
                               ]
 
             interactions.extend(list(np.random.choice(a=candidates,
-                                                      size=int(social_interactions*self.params['model']['lsize']),
+                                                      size=int(social_interactions * self.params['model']['lsize']),
                                                       replace=True)))
 
         for v in interactions:

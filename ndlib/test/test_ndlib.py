@@ -95,7 +95,9 @@ class NdlibTest(unittest.TestCase):
             iterations = model.iteration_bunch(10, node_status=False)
             self.assertEqual(len(iterations), 10)
 
-            model.set_lockdown()
+            households = {0: [1, 2, 3, 4], 5: [6, 7]}
+
+            model.set_lockdown(households)
             iterations = model.iteration_bunch(10)
             self.assertEqual(len(iterations), 10)
             iterations = model.iteration_bunch(10, node_status=False)
