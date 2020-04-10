@@ -5,6 +5,7 @@ import random
 import future.utils
 import networkx as nx
 import igraph as ig
+import numpy as np
 
 import ndlib.models.ModelConfig as mc
 import ndlib.models.epidemics as epd
@@ -50,7 +51,7 @@ class NdlibTest(unittest.TestCase):
 
             # Undetected
             config.add_model_parameter("sigma", 0.05)
-            config.add_model_parameter("beta", 0.25)
+            config.add_model_parameter("beta", {"M": 0.25, "F": 0})
             config.add_model_parameter("gamma", 0.05)
             config.add_model_parameter("omega", 0.01)
             config.add_model_parameter("p", 0.04)
@@ -86,8 +87,11 @@ class NdlibTest(unittest.TestCase):
                 nodes = g.nodes
             else:
                 nodes = g.vs['name']
+
+            ngender = ['M', 'F']
             for i in nodes:
                 config.add_node_configuration("activity", i, 1)
+                config.add_node_configuration("segment", i, np.random.choice(ngender, 1)[0])
 
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
@@ -108,7 +112,6 @@ class NdlibTest(unittest.TestCase):
             self.assertEqual(len(iterations), 10)
             iterations = model.iteration_bunch(10, node_status=False)
             self.assertEqual(len(iterations), 10)
-
 
     def test_algorithmic_bias_model(self):
 
