@@ -34,3 +34,40 @@ class NodeStochastic(Compartiment):
             return self.compose(node, graph, status, status_map, kwargs)
 
         return False
+
+
+## STEFANO: NEW ARRAY BASED COMPARTMENT
+class NodeStochasticArray(Compartiment):
+
+    def __init__(self, rate, triggering_status=None, **kwargs):
+        super(self.__class__, self).__init__(kwargs)
+        self.rate = rate
+        self.trigger = triggering_status
+
+    def execute(self, adjacency, edges, attributes, status_map, *args, **kwargs):
+        '''
+        adjacency is a non-symmetric adjacency matrix: if the edge i,j exists, in i,j there is the status of j, in j,i the status of i. otherwise, in i,j there is 0
+        nb: statuses now start from 1
+        nb: we assume that the graph is undirected
+        '''
+        # try:
+        #     directed = graph.directed
+        # except AttributeError:
+        #     directed = graph.is_directed()
+        #
+        # if directed:
+        #     neighbors = graph.predecessors(node)
+        # else:
+        #     neighbors = graph.neighbors(node)
+        
+        p = np.random.random(adjacency.shape[0])
+        if self.trigger is None:
+            triggered = np.ones(adjacency.shape[0], dtype=bool)
+        else:
+            triggered = (adjacency==status_map[self.trigger]).sum(axis=1)
+            
+        test = (p < (self.rate*triggered))
+        if np.any(test):
+            return np.logical_and(test, self.compose(adjacency, edges, attributes, status_map, kwargs))
+        else:
+            return test

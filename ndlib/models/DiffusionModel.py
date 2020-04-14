@@ -112,12 +112,13 @@ class DiffusionModel(object):
                     for eid in self.graph.edges:
                         configuration.add_edge_configuration(param, eid, self.parameters['edges'][param]['default'])
 
-        # Checking initial simulation status
-        sts = set(configuration.get_model_configuration().keys())
-        if self.discrete_state and "Infected" not in sts and "fraction_infected" not in mdp \
-                and "percentage_infected" not in mdp:
-            warnings.warn('Initial infection missing: a random sample of 5% of graph nodes will be set as infected')
-            self.params['model']["fraction_infected"] = 0.05
+        # Checking initial simulation status 
+        ## STEFANO: REMOVED THIS CHECK THAT SETS 5% INFECTED NODES IF NO INFECTED NODES ARE GIVEN EXPLICITLY (MY MODEL STARTS WITH EXPOSED, NOT INFECTED)
+        # sts = set(configuration.get_model_configuration().keys())
+        # if self.discrete_state and "Infected" not in sts and "fraction_infected" not in mdp \
+        #         and "percentage_infected" not in mdp:
+        #     warnings.warn('Initial infection missing: a random sample of 5% of graph nodes will be set as infected')
+        #     self.params['model']["fraction_infected"] = 0.05
 
     def set_initial_status(self, configuration):
         """
@@ -184,9 +185,13 @@ class DiffusionModel(object):
         """
         for n, s in future.utils.iteritems(self.status):
             if s not in valid_status:
-                self.status[n] = 0
+                try: # if a list of valid statuses is given, the first of such values is assumed to be the default one (e.g., "susceptible")
+                    self.status[n] = valid_status[0]
+                    # print('warning: cleaning the status of node {} from {} to {}'.format(n,s,valid_status[0]))
+                except:
+                    self.status[n] = 0
 
-    def iteration_bunch(self, bunch_size, node_status=True):
+    def iteration_bunch(self, bunch_size, node_status=True, verbose=False): ## STEFANO: ADDED verbose ##
         """
         Execute a bunch of model iterations
 
@@ -197,6 +202,10 @@ class DiffusionModel(object):
         """
         system_status = []
         for it in past.builtins.xrange(0, bunch_size):
+            ## STEFANO: verbose ##
+            if verbose:
+                print('at iteration', it)
+            ###################
             its = self.iteration(node_status)
             system_status.append(its)
         return system_status

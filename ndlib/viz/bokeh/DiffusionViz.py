@@ -34,7 +34,7 @@ class DiffusionPlot(object):
         """
         pass
 
-    def plot(self, percentile=100, width=500, height=500):
+    def plot(self, percentile=100, width=500, height=500, cols=cols): ## STEFANO: Added optional cols parameter
         """
         Generates the plot
 
