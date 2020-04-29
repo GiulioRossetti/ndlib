@@ -89,8 +89,10 @@ class NdlibTest(unittest.TestCase):
                 nodes = g.vs['name']
 
             ngender = ['M', 'F']
+            work = ['school', 'PA', 'hospital', 'none']
             for i in nodes:
                 config.add_node_configuration("activity", i, 1)
+                config.add_node_configuration("work", i, np.random.choice(work, 2))
                 config.add_node_configuration("segment", i, np.random.choice(ngender, 1)[0])
 
             model.set_initial_status(config)
@@ -101,13 +103,25 @@ class NdlibTest(unittest.TestCase):
 
             households = {0: [1, 2, 3, 4], 5: [6, 7]}
 
+            model.set_lockdown(households, ['PA', 'school'])
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
+            model.unset_lockdown(['PA'])
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
             model.set_lockdown(households)
             iterations = model.iteration_bunch(10)
             self.assertEqual(len(iterations), 10)
             iterations = model.iteration_bunch(10, node_status=False)
             self.assertEqual(len(iterations), 10)
 
-            model.unset_lockdown()
+            model.unset_lockdown(['school'])
             iterations = model.iteration_bunch(10)
             self.assertEqual(len(iterations), 10)
             iterations = model.iteration_bunch(10, node_status=False)

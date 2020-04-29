@@ -418,7 +418,7 @@ class UTLDRModel(DiffusionModel):
         """
         self.icu_b = max(0, self.icu_b + n)
 
-    def set_lockdown(self, households=None):
+    def set_lockdown(self, households=None, workplaces=None):
         """
         Impose the beginning of a lockdown
 
@@ -430,6 +430,14 @@ class UTLDRModel(DiffusionModel):
         self.lockdown = True
 
         for u in self.graph.nodes:
+
+            candidate = True
+            if workplaces is not None and 'work' in self.params['nodes']:
+                if len(set(workplaces) & set(self.params['nodes']['work'][u])) == 0:
+                    candidate = False
+
+            if not candidate:
+                continue
 
             la = np.random.random_sample()  # loockdown acceptance
             if la < self.__get_threshold(u, 'lambda'):
@@ -463,7 +471,7 @@ class UTLDRModel(DiffusionModel):
         return {"iteration": self.actual_iteration - 1, "status": {}, "node_count": node_count.copy(),
                 "status_delta": status_delta.copy()}
 
-    def unset_lockdown(self):
+    def unset_lockdown(self, workplaces=None):
         """
         Remove the lockdown social limitations
 
@@ -474,6 +482,15 @@ class UTLDRModel(DiffusionModel):
         self.lockdown = False
 
         for u in self.graph.nodes:
+
+            candidate = True
+            if workplaces is not None and 'work' in self.params['nodes']:
+                if len(set(workplaces) & set(self.params['nodes']['work'][u])) == 0:
+                    candidate = False
+
+            if not candidate:
+                continue
+
             self.__ripristinate_social_contacts(u)
             if actual_status[u] == self.available_statuses['Lockdown_Susceptible']:
                 actual_status[u] = self.available_statuses['Susceptible']
