@@ -26,13 +26,13 @@ class CognitiveOpDynModel(DiffusionModel):
     The initial state is generated randomly uniformly from the domain defined by model parameters.
     """
 
-    def __init__(self, graph):
+    def __init__(self, graph, seed=None):
         """
              Model Constructor
 
              :param graph: A networkx graph object
          """
-        super(self.__class__, self).__init__(graph)
+        super(self.__class__, self).__init__(graph, seed)
 
         self.discrete_state = False
 
@@ -119,7 +119,7 @@ class CognitiveOpDynModel(DiffusionModel):
                           self.params['model']['R_fraction_positive']/s)
 
         # then sample parameters from the ranges and distribution
-        for node in self.graph.nodes():
+        for node in self.graph.nodes:
             R_prob = np.random.random_sample()
             if R_prob < R_distribution[0]:
                 R = -1
@@ -164,7 +164,7 @@ class CognitiveOpDynModel(DiffusionModel):
 
         # first interact with I
         I = self.params['model']['I']
-        for node in self.graph.nodes():
+        for node in self.graph.nodes:
             T = self.params['nodes']['cognitive'][node][2]
             R = self.params['nodes']['cognitive'][node][0]
             actual_status[node] = actual_status[node] + T * (I - actual_status[node])

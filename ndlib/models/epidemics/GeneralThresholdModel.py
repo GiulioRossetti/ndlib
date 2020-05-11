@@ -1,18 +1,18 @@
 from ..DiffusionModel import DiffusionModel
-import numpy as np
 import future.utils
 
-__author__ = "Giulio Rossetti"
+
+__author__ = "Letizia Milli"
 __license__ = "BSD-2-Clause"
-__email__ = "giulio.rossetti@gmail.com"
+__email__ = "letizia.milli@di.unipi.it"
 
 
-class SISModel(DiffusionModel):
+class GeneralThresholdModel(DiffusionModel):
     """
-       Model Parameters to be specified via ModelConfig
+        Node Parameters to be specified via ModelConfig
 
-       :param beta: The infection rate (float value in [0,1])
-       :param lambda: The recovery rate (float value in [0,1])
+       :param threshold: The node threshold. If not specified otherwise a value of 0.1 is assumed for all nodes.
+       :param weight: The edge weight. If not specified otherwise a value of 0.1 is assumed for all edges.
     """
 
     def __init__(self, graph, seed=None):
@@ -28,28 +28,26 @@ class SISModel(DiffusionModel):
         }
 
         self.parameters = {
-            "model": {
-                "beta": {
-                    "descr": "Infection rate",
-                    "range": [0, 1],
-                    "optional": False},
-                "lambda": {
-                    "descr": "Recovery rate",
-                    "range": [0, 1],
-                    "optional": False
-                },
-                "tp_rate": {
-                    "descr": "Whether if the infection rate depends on the number of infected neighbors",
+            "model": {},
+            "nodes": {
+                "threshold": {
+                    "descr": "Node threshold",
                     "range": [0, 1],
                     "optional": True,
-                    "default": 1
+                    "default": 0.1
                 }
             },
-            "nodes": {},
-            "edges": {},
+            "edges": {
+                "weight": {
+                    "descr": "Edge threshold",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0.1
+                }
+            },
         }
 
-        self.name = "SIS"
+        self.name = "GeneralThresholdModel"
 
     def iteration(self, node_status=True):
         """
@@ -72,27 +70,25 @@ class SISModel(DiffusionModel):
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
         for u in self.graph.nodes:
+            if actual_status[u] == 1:
+                continue
 
-            u_status = self.status[u]
-            eventp = np.random.random_sample()
-            neighbors = self.graph.neighbors(u)
+            neighbors = list(self.graph.neighbors(u))
             if self.graph.directed:
-                neighbors = self.graph.predecessors(u)
+                neighbors = list(self.graph.predecessors(u))
 
-            if u_status == 0:
-                infected_neighbors = [v for v in neighbors if self.status[v] == 1]
-                triggered = 1 if len(infected_neighbors) > 0 else 0
+            weight = 0
+            for v in neighbors:
+                if self.status[v] == 1:
+                    key = (u, v)
+                    if key in self.params['edges']['weight']:
+                        weight += self.params['edges']['weight'][key]
+                    elif (v, u) in self.params['edges']['weight'] and not self.graph.directed:
+                        weight += self.params['edges']['weight'][(v, u)]
 
-                if self.params['model']['tp_rate'] == 1:
-                    if eventp < 1 - (1 - self.params['model']['beta']) ** len(infected_neighbors):
-                        actual_status[u] = 1
-                else:
-                    if eventp < self.params['model']['beta'] * triggered:
-                        actual_status[u] = 1
-
-            elif u_status == 1:
-                if eventp < self.params['model']['lambda']:
-                    actual_status[u] = 0
+            if len(neighbors) > 0:
+                if weight >= self.params['nodes']['threshold'][u]:
+                    actual_status[u] = 1
 
         delta, node_count, status_delta = self.status_delta(actual_status)
         self.status = actual_status
@@ -104,4 +100,3 @@ class SISModel(DiffusionModel):
         else:
             return {"iteration": self.actual_iteration - 1, "status": {},
                     "node_count": node_count.copy(), "status_delta": status_delta.copy()}
-

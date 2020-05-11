@@ -18,7 +18,7 @@ Below is shown an example of Diffusion Trend description and visualization for t
     import networkx as nx
     from bokeh.io import show
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.epidemics.SIRModel as sir 
+    import ndlib.models.epidemics as ep
     from ndlib.viz.bokeh.DiffusionTrend import DiffusionTrend
 
 
@@ -26,7 +26,7 @@ Below is shown an example of Diffusion Trend description and visualization for t
     g = nx.erdos_renyi_graph(1000, 0.1)
 
     # Model selection
-    model = sir.SIRModel(g)
+    model = ep.SIRModel(g)
 
     # Model Configuration
     cfg = mc.Configuration()

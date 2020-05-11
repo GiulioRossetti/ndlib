@@ -1,5 +1,4 @@
 from ..DiffusionModel import DiffusionModel
-import networkx as nx
 import numpy as np
 from scipy import stats
 import future.utils
@@ -18,13 +17,13 @@ class KerteszThresholdModel(DiffusionModel):
         :param fraction_infected: The percentage of blocked nodes. Default value 0.1.
      """
 
-    def __init__(self, graph):
+    def __init__(self, graph, seed=None):
         """
              Model Constructor
 
              :param graph: A networkx graph object
          """
-        super(self.__class__, self).__init__(graph)
+        super(self.__class__, self).__init__(graph, seed)
         self.available_statuses = {
             "Susceptible": 0,
             "Infected": 1,
@@ -77,14 +76,18 @@ class KerteszThresholdModel(DiffusionModel):
                 i = 0
                 while i < number_node_blocked:
                     # select a random node
-                    node = list(self.graph.nodes())[np.random.randint(0, self.graph.number_of_nodes())]
+                    #print("aa", len(self.graph.nodes()))#, self.graph.number_of_nodes(), np.random.randint(0, self.graph.number_of_nodes()))
+                    try:
+                        node = list(self.graph.nodes())[np.random.randint(0, self.graph.number_of_nodes())]
 
-                    # node not infected
-                    if actual_status[node] == 0:
+                        # node not infected
+                        if actual_status[node] == 0:
 
-                        # node blocked
-                        actual_status[node] = -1
-                        self.status[node] = -1
+                            # node blocked
+                            actual_status[node] = -1
+                            self.status[node] = -1
+                            i += 1
+                    except:
                         i += 1
 
             self.actual_iteration += 1
@@ -96,7 +99,7 @@ class KerteszThresholdModel(DiffusionModel):
                 return {"iteration": 0, "status": {},
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
-        for node in self.graph.nodes():
+        for node in self.graph.nodes:
             if self.status[node] == 0:
                 if self.params['model']['adopter_rate'] > 0:
                     xk = (0, 1)
@@ -112,7 +115,7 @@ class KerteszThresholdModel(DiffusionModel):
                 if len(neighbors) == 0:
                     continue
 
-                if isinstance(self.graph, nx.DiGraph):
+                if self.graph.directed:
                     neighbors = self.graph.predecessors(node)
 
                 infected = 0

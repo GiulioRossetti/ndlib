@@ -18,13 +18,13 @@ class AlgorithmicBiasModel(DiffusionModel):
     The initial state is generated randomly uniformly from the domain [0,1].
     """
 
-    def __init__(self, graph):
+    def __init__(self, graph, seed=None):
         """
              Model Constructor
 
              :param graph: A networkx graph object
          """
-        super(self.__class__, self).__init__(graph)
+        super(self.__class__, self).__init__(graph, seed)
 
         self.discrete_state = False
 
@@ -103,7 +103,7 @@ class AlgorithmicBiasModel(DiffusionModel):
         # interact with peers
         for i in range(0, self.graph.number_of_nodes()):
             # select a random node
-            n1 = list(self.graph.nodes())[np.random.randint(0, self.graph.number_of_nodes())]
+            n1 = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]
             # select all of the node's neighbours (no digraph possible)
             neighbours = list(self.graph.neighbors(n1))
             if len(neighbours) == 0:

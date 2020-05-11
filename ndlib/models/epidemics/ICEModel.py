@@ -1,18 +1,15 @@
-from ..DiffusionModel import DiffusionModel
+from ndlib.models.DiffusionModel import DiffusionModel
 import numpy as np
 import future.utils
 
-__author__ = "Giulio Rossetti"
+__author__ = 'Giulio Rossetti'
 __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
-class SISModel(DiffusionModel):
+class ICEModel(DiffusionModel):
     """
-       Model Parameters to be specified via ModelConfig
-
-       :param beta: The infection rate (float value in [0,1])
-       :param lambda: The recovery rate (float value in [0,1])
+        Parameter free model: probability of diffusion tied to community embeddedness of individual nodes
     """
 
     def __init__(self, graph, seed=None):
@@ -24,32 +21,17 @@ class SISModel(DiffusionModel):
         super(self.__class__, self).__init__(graph, seed)
         self.available_statuses = {
             "Susceptible": 0,
-            "Infected": 1
+            "Infected": 1,
+            "Removed": 2
         }
 
         self.parameters = {
-            "model": {
-                "beta": {
-                    "descr": "Infection rate",
-                    "range": [0, 1],
-                    "optional": False},
-                "lambda": {
-                    "descr": "Recovery rate",
-                    "range": [0, 1],
-                    "optional": False
-                },
-                "tp_rate": {
-                    "descr": "Whether if the infection rate depends on the number of infected neighbors",
-                    "range": [0, 1],
-                    "optional": True,
-                    "default": 1
-                }
-            },
+            "model": {},
             "nodes": {},
-            "edges": {},
+            "edges": {}
         }
 
-        self.name = "SIS"
+        self.name = "Community Embeddedness"
 
     def iteration(self, node_status=True):
         """
@@ -58,7 +40,6 @@ class SISModel(DiffusionModel):
         :return: Iteration_id, Incremental node status (dictionary node->status)
         """
         self.clean_initial_status(self.available_statuses.values())
-
         actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
 
         if self.actual_iteration == 0:
@@ -72,27 +53,29 @@ class SISModel(DiffusionModel):
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
         for u in self.graph.nodes:
+            if self.status[u] != 1:
+                continue
 
-            u_status = self.status[u]
-            eventp = np.random.random_sample()
-            neighbors = self.graph.neighbors(u)
-            if self.graph.directed:
-                neighbors = self.graph.predecessors(u)
+            neighbors = list(self.graph.neighbors(u))  # neighbors and successors (in DiGraph) produce the same result
+            same_community_neighbors = [n for n in neighbors if self.params['nodes']['com'][u] == self.params['nodes']['com'][n]]
 
-            if u_status == 0:
-                infected_neighbors = [v for v in neighbors if self.status[v] == 1]
-                triggered = 1 if len(infected_neighbors) > 0 else 0
+            # Standard threshold
+            if len(neighbors) > 0:
 
-                if self.params['model']['tp_rate'] == 1:
-                    if eventp < 1 - (1 - self.params['model']['beta']) ** len(infected_neighbors):
-                        actual_status[u] = 1
-                else:
-                    if eventp < self.params['model']['beta'] * triggered:
-                        actual_status[u] = 1
+                for v in neighbors:
+                    if actual_status[v] == 0:
 
-            elif u_status == 1:
-                if eventp < self.params['model']['lambda']:
-                    actual_status[u] = 0
+                        if self.params['nodes']['com'][u] == self.params['nodes']['com'][v]:
+                            threshold = float(len(same_community_neighbors))/len(neighbors)
+
+                        else: # across communities
+                            threshold = 1 - float(len(same_community_neighbors))/len(neighbors)
+
+                        flip = np.random.random_sample()
+                        if flip <= threshold:
+                            actual_status[v] = 1
+
+            actual_status[u] = 2
 
         delta, node_count, status_delta = self.status_delta(actual_status)
         self.status = actual_status
@@ -104,4 +87,3 @@ class SISModel(DiffusionModel):
         else:
             return {"iteration": self.actual_iteration - 1, "status": {},
                     "node_count": node_count.copy(), "status_delta": status_delta.copy()}
-

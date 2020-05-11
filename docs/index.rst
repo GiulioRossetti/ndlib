@@ -10,21 +10,6 @@ NDlib - Network Diffusion Library
 |date|                   3.x         `Giulio Rossetti`_  `Source`_   `Distribution`_
 ================ =================== ==================  ==========  ===============
 
-.. raw:: html
-
-		<div style="text-align: center">
-        <object width="480" height="385" align="center"><param name="movie"
-        value="https://www.youtube.com/watch?v=tYHNOuKJwbE&t=2s"></param><param
-        name="allowFullScreen" value="true"></param><param
-        name="allowscriptaccess" value="always"></param><embed
-        src="https://www.youtube.com/watch?v=tYHNOuKJwbE&t=2s"
-        type="application/x-shockwave-flash" allowscriptaccess="always"
-        allowfullscreen="true" width="480"
-        height="385"></embed></object>
-        </div>
-        <br/><br/>
-
-
 
 If you use ``NDlib`` as support to your research consider citing:
 

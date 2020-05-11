@@ -1,6 +1,5 @@
 from ..DiffusionModel import DiffusionModel
 import numpy as np
-import networkx as nx
 import future.utils
 
 __author__ = "Giulio Rossetti"
@@ -15,13 +14,13 @@ class SIModel(DiffusionModel):
     :param beta: The infection rate (float value in [0,1])
     """
 
-    def __init__(self, graph):
+    def __init__(self, graph, seed=None):
         """
              Model Constructor
 
              :param graph: A networkx graph object
          """
-        super(self.__class__, self).__init__(graph)
+        super(self.__class__, self).__init__(graph, seed)
         self.available_statuses = {
             "Susceptible": 0,
             "Infected": 1
@@ -66,11 +65,11 @@ class SIModel(DiffusionModel):
                 return {"iteration": 0, "status": {},
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
-        for u in self.graph.nodes():
+        for u in self.graph.nodes:
             u_status = self.status[u]
             eventp = np.random.random_sample()
             neighbors = self.graph.neighbors(u)
-            if isinstance(self.graph, nx.DiGraph):
+            if self.graph.directed:
                 neighbors = self.graph.predecessors(u)
 
             if u_status == 0:

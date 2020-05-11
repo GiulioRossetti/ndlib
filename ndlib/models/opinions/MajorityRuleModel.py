@@ -10,13 +10,13 @@ class MajorityRuleModel(DiffusionModel):
 
     """
 
-    def __init__(self, graph):
+    def __init__(self, graph, seed=None):
         """
              Model Constructor
 
              :param graph: A networkx graph object
          """
-        super(self.__class__, self).__init__(graph)
+        super(self.__class__, self).__init__(graph, seed)
         self.available_statuses = {
             "Susceptible": 0,
             "Infected": 1,
@@ -25,7 +25,7 @@ class MajorityRuleModel(DiffusionModel):
         self.parameters = {"model": {
             "q": {
                 "descr": "Number of randomly chosen voters",
-                "range": [0, len(self.graph.nodes())],
+                "range": [0, len(self.graph.nodes)],
                 "optional": False
             }
         },
@@ -61,7 +61,7 @@ class MajorityRuleModel(DiffusionModel):
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
         # select q random nodes
-        discussion_group = [list(self.graph.nodes())[i]
+        discussion_group = [list(self.graph.nodes)[i]
                             for i in np.random.randint(0, self.graph.number_of_nodes(), self.params['model']['q'])]
 
         # compute majority

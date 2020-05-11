@@ -25,7 +25,7 @@ class EdgeCategoricalAttribute(Compartiment):
         if isinstance(graph, nx.DiGraph):
             neighbors = list(graph.predecessors(node))
 
-        edge_attr = nx.get_edge_attributes(graph, self.attribute)
+        edge_attr = graph.get_edge_attributes(self.attribute)
 
         if self.trigger is not None:
             triggered = [v for v in neighbors if status[v] == status_map[self.trigger] and

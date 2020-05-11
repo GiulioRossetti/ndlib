@@ -1,4 +1,4 @@
-from ..DiffusionModel import DiffusionModel
+from ndlib.models.DiffusionModel import DiffusionModel
 import numpy as np
 import future.utils
 
@@ -7,11 +7,12 @@ __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
-class IndependentCascadesModel(DiffusionModel):
+class ICPModel(DiffusionModel):
     """
         Edge Parameters to be specified via ModelConfig
 
         :param threshold: The edge threshold. As default a value of 0.1 is assumed for all edges.
+        :param permeability: The degree of permeability of a community toward outgoing diffusion processes
     """
 
     def __init__(self, graph, seed=None):
@@ -28,7 +29,14 @@ class IndependentCascadesModel(DiffusionModel):
         }
 
         self.parameters = {
-            "model": {},
+            "model": {
+                "permeability":{
+                    "descr": "Community permeability",
+                    "range": [0,1],
+                    "optional": False,
+                    "default": 0.5
+                }
+            },
             "nodes": {},
             "edges": {
                 "threshold": {
@@ -40,7 +48,7 @@ class IndependentCascadesModel(DiffusionModel):
             },
         }
 
-        self.name = "Independent Cascades"
+        self.name = "Community Permeability"
 
     def iteration(self, node_status=True):
         """
@@ -75,12 +83,21 @@ class IndependentCascadesModel(DiffusionModel):
                     if actual_status[v] == 0:
                         key = (u, v)
 
-                        # Individual specified thresholds
-                        if 'threshold' in self.params['edges']:
-                            if key in self.params['edges']['threshold']:
-                                threshold = self.params['edges']['threshold'][key]
-                            elif (v, u) in self.params['edges']['threshold'] and not self.graph.directed:
-                                threshold = self.params['edges']['threshold'][(v, u)]
+                        if self.params['nodes']['com'][u] == self.params['nodes']['com'][v]: # within same community
+                            # Individual specified thresholds
+                            if 'threshold' in self.params['edges']:
+                                if key in self.params['edges']['threshold']:
+                                    threshold = self.params['edges']['threshold'][key]
+                                elif (v, u) in self.params['edges']['threshold'] and not self.graph.directed:
+                                    threshold = self.params['edges']['threshold'][(v, u)]
+
+                        else: # across communities
+                            p = self.params['model']['permeability']
+                            if 'threshold' in self.params['edges']:
+                                if key in self.params['edges']['threshold']:
+                                    threshold = self.params['edges']['threshold'][key] * p
+                                elif (v, u) in self.params['edges']['threshold'] and not self.graph.directed:
+                                    threshold = self.params['edges']['threshold'][(v, u)] * p
 
                         flip = np.random.random_sample()
                         if flip <= threshold:

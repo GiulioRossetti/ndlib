@@ -1,5 +1,4 @@
 from ..DiffusionModel import DiffusionModel
-import networkx as nx
 import numpy as np
 
 __author__ = "Alina Sirbu"
@@ -13,13 +12,13 @@ class QVoterModel(DiffusionModel):
     :param q: the number of neighbors that affect the opinion of a node
     """
 
-    def __init__(self, graph):
+    def __init__(self, graph, seed=None):
         """
              Model Constructor
 
              :param graph: A networkx graph object
          """
-        super(self.__class__, self).__init__(graph)
+        super(self.__class__, self).__init__(graph, seed)
         self.available_statuses = {
             "Susceptible": 0,
             "Infected": 1
@@ -28,7 +27,7 @@ class QVoterModel(DiffusionModel):
         self.parameters = {"model": {
                 "q": {
                     "descr": "Number of neighbours that affect the opinion of an agent",
-                    "range": [0, len(self.graph.nodes())],
+                    "range": [0, len(self.graph.nodes)],
                     "optional": False
                 }
             },
@@ -62,11 +61,11 @@ class QVoterModel(DiffusionModel):
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
                 # select a random listener
-        listener = list(self.graph.nodes())[np.random.randint(0, self.graph.number_of_nodes())]
+        listener = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]
 
         # select all of the listener's neighbours
         neighbours = list(self.graph.neighbors(listener))
-        if isinstance(self.graph, nx.DiGraph):
+        if self.graph.directed:
             # consider only the predecessors
             # assumed if a->b then b can be influenced by a
             neighbours = list(self.graph.predecessors(listener))

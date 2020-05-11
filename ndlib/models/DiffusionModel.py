@@ -4,6 +4,8 @@ import numpy as np
 import past.builtins
 import future.utils
 import six
+from netdispatch import AGraph
+import tqdm
 
 __author__ = "Giulio Rossetti"
 __license__ = "BSD-2-Clause"
@@ -21,12 +23,15 @@ class DiffusionModel(object):
     """
     # __metaclass__ = abc.ABCMeta
 
-    def __init__(self, graph):
+    def __init__(self, graph, seed=None):
         """
             Model Constructor
 
             :param graph: A networkx graph object
         """
+
+        np.random.seed(seed)
+
         self.discrete_state = True
 
         self.params = {
@@ -52,8 +57,8 @@ class DiffusionModel(object):
         }
 
         self.actual_iteration = 0
-        self.graph = graph
-        self.status = {n: 0 for n in self.graph.nodes()}
+        self.graph = AGraph(graph)
+        self.status = {n: 0 for n in self.graph.nodes}
         self.initial_status = {}
 
     def __validate_configuration(self, configuration):
@@ -99,18 +104,19 @@ class DiffusionModel(object):
         if len(onp) > 0:
             for param in onp:
                 if param not in ndp:
-                    for nid in self.graph.nodes():
+                    for nid in self.graph.nodes:
                         configuration.add_node_configuration(param, nid, self.parameters['nodes'][param]['default'])
 
         if len(oep) > 0:
             for param in oep:
                 if param not in edp:
-                    for eid in self.graph.edges():
+                    for eid in self.graph.edges:
                         configuration.add_edge_configuration(param, eid, self.parameters['edges'][param]['default'])
 
         # Checking initial simulation status
         sts = set(configuration.get_model_configuration().keys())
-        if self.discrete_state and "Infected" not in sts and "fraction_infected" not in mdp:
+        if self.discrete_state and "Infected" not in sts and "fraction_infected" not in mdp \
+                and "percentage_infected" not in mdp:
             warnings.warn('Initial infection missing: a random sample of 5% of graph nodes will be set as infected')
             self.params['model']["fraction_infected"] = 0.05
 
@@ -127,7 +133,7 @@ class DiffusionModel(object):
         # Set additional node information
 
         for param, node_to_value in future.utils.iteritems(nodes_cfg):
-            if len(node_to_value) < len(self.graph.nodes()):
+            if len(node_to_value) < len(self.graph.nodes):
                 raise ConfigurationException({"message": "Not all nodes have a configuration specified"})
             
             self.params['nodes'][param] = node_to_value
@@ -135,7 +141,7 @@ class DiffusionModel(object):
         edges_cfg = configuration.get_edges_configuration()
         # Set additional edges information
         for param, edge_to_values in future.utils.iteritems(edges_cfg):
-            if len(edge_to_values) == len(self.graph.edges()):
+            if len(edge_to_values) == len(self.graph.edges):
                 self.params['edges'][param] = {}
                 for e in edge_to_values:
                     self.params['edges'][param][e] = edge_to_values[e]
@@ -155,8 +161,10 @@ class DiffusionModel(object):
 
         # Handle initial infection
         if 'Infected' not in self.params['status']:
+            if 'percentage_infected' in self.params['model']:
+                self.params['model']['fraction_infected'] = self.params['model']['percentage_infected']
             if 'fraction_infected' in self.params['model']:
-                number_of_initial_infected = len(self.graph.nodes()) * float(self.params['model']['fraction_infected'])
+                number_of_initial_infected = self.graph.number_of_nodes() * float(self.params['model']['fraction_infected'])
                 if number_of_initial_infected < 1:
                     warnings.warn(
                         "The fraction_infected value is too low given the number of nodes of the selected graph: a "
@@ -189,7 +197,7 @@ class DiffusionModel(object):
         :return: a list containing for each iteration a dictionary {"iteration": iteration_id, "status": dictionary_node_to_status}
         """
         system_status = []
-        for it in past.builtins.xrange(0, bunch_size):
+        for it in tqdm.tqdm(past.builtins.xrange(0, bunch_size)):
             its = self.iteration(node_status)
             system_status.append(its)
         return system_status
@@ -219,11 +227,12 @@ class DiffusionModel(object):
             self.initial_status = self.status
 
         else:
+            if 'percentage_infected' in self.params['model']:
+                self.params['model']['fraction_infected'] = self.params['model']['percentage_infected']
             if 'fraction_infected' in self.params['model']:
                 for n in self.status:
                     self.status[n] = 0
-
-                number_of_initial_infected = len(self.graph.nodes()) * float(self.params['model']['fraction_infected'])
+                number_of_initial_infected = self.graph.number_of_nodes() * float(self.params['model']['fraction_infected'])
                 available_nodes = [n for n in self.status if self.status[n] == 0]
                 sampled_nodes = np.random.choice(available_nodes, int(number_of_initial_infected), replace=False)
 

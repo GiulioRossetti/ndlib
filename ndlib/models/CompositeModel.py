@@ -47,7 +47,7 @@ class CompositeModel(DiffusionModel):
                 return {"iteration": 0, "status": {},
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
-        for u in self.graph.nodes():
+        for u in self.graph.nodes:
             u_status = self.status[u]
             for i in range(0, self.compartment_progressive):
 

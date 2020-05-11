@@ -89,7 +89,7 @@ In the code below is shown an example of instantiation and execution of a Kertes
     import networkx as nx
     import dynetx as dn
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.dynamic.DynKerteszThresholdModel as ks
+    import ndlib.models.dynamic as dm
 
     # Dynamic Network topology
     dg = dn.DynGraph()
@@ -99,7 +99,7 @@ In the code below is shown an example of instantiation and execution of a Kertes
         dg.add_interactions_from(g.edges(), t)
 
     # Model selection
-    model = ks.DynKerteszThresholdModel(g)
+    model = dm.DynKerteszThresholdModel(g)
         
     # Model Configuration
     config = mc.Configuration()

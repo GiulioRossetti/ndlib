@@ -91,13 +91,13 @@ In the code below is shown an example of instantiation and execution of a Profil
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.epidemics.ProfileModel as pr
+    import ndlib.models.epidemics as ep
 
     # Network topology
     g = nx.erdos_renyi_graph(1000, 0.1)
 
     # Model selection
-    model = pr.ProfileModel(g)
+    model = ep.ProfileModel(g)
     config = mc.Configuration()
     config.add_model_parameter('blocked', 0)
     config.add_model_parameter('adopter_rate', 0)

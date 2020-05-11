@@ -1,5 +1,4 @@
 from ..DiffusionModel import DiffusionModel
-import networkx as nx
 import numpy as np
 
 __author__ = "Alina Sirbu"
@@ -11,13 +10,13 @@ class SznajdModel(DiffusionModel):
 
     """
 
-    def __init__(self, graph):
+    def __init__(self, graph, seed=None):
         """
              Model Constructor
 
              :param graph: A networkx graph object
          """
-        super(self.__class__, self).__init__(graph)
+        super(self.__class__, self).__init__(graph, seed)
         self.available_statuses = {
             "Susceptible": 0,
             "Infected": 1,
@@ -52,11 +51,11 @@ class SznajdModel(DiffusionModel):
         status_delta = {st: 0 for st in self.available_statuses.values()}
 
         # select a random node
-        speaker1 = list(self.graph.nodes())[np.random.randint(0, self.graph.number_of_nodes())]
+        speaker1 = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]
 
         # select a random neighbour
         neighbours = list(self.graph.neighbors(speaker1))
-        if isinstance(self.graph, nx.DiGraph):
+        if self.graph.directed:
             # add also the predecessors
             neighbours += list(self.graph.predecessors(speaker1))
 
@@ -66,7 +65,7 @@ class SznajdModel(DiffusionModel):
             # select listeners (all neighbours of two speakers)
             neighbours = list(self.graph.neighbors(speaker1)) + list(self.graph.neighbors(speaker2))
 
-            if isinstance(self.graph, nx.DiGraph):
+            if self.graph.directed:
                 # assumed if a->b then b can be influenced by a
                 # but not the other way around - the link between the speakers doesn't matter
                 neighbours = list(self.graph.successors(speaker1)) + list(self.graph.successors(speaker2))

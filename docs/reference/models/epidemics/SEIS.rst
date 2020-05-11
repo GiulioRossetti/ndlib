@@ -83,13 +83,13 @@ we set the initial set of infected nodes as 5% of the overall population, a prob
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.epidemics.SEISModel as seis
+    import ndlib.models.epidemics as ep
 
     # Network topology
     g = nx.erdos_renyi_graph(1000, 0.1)
 
     # Model selection
-    model = seis.SEISModel(g)
+    model = ep.SEISModel(g)
 
     # Model Configuration
     cfg = mc.Configuration()

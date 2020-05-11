@@ -50,7 +50,7 @@ In ``NDlib`` are implemented the following **Epidemic** models:
 
 
 ----------------
-Opinion Dinamycs
+Opinion Dynamics
 ----------------
 
 A different field related with modelling social behaviour is that of opinion dynamics.
@@ -133,7 +133,7 @@ The ``ndlib.utils`` module contains facilities that extend the simulation framew
 Visualization
 =============
 
-In order to provide an easy proxy to study diffusion phenomena and compare different configurations as well as models ``NDlib`` offers built-in visualizzation facilities.
+In order to provide an easy proxy to study diffusion phenomena and compare different configurations as well as models ``NDlib`` offers built-in visualization facilities.
 
 In particular, the following plots are made available:
 
@@ -148,6 +148,7 @@ Pyplot Viz
 
    viz/mpl/DiffusionTrend.rst
    viz/mpl/DiffusionPrevalence.rst
+   viz/mpl/OpinionEvolution.rst
 
 
 **Model Comparison Visualizations**

@@ -96,13 +96,13 @@ In the code below is shown an example of instantiation and execution of a Cognit
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.opinions.CognitiveOpDynModel as cod
+    import ndlib.models.opinions as op
 
     # Network topology
     g = nx.erdos_renyi_graph(1000, 0.1)
 
     # Model selection
-    model = cod.CognitiveOpDynModel(g)
+    model = op.CognitiveOpDynModel(g)
 
     # Model Configuration
     config = mc.Configuration()

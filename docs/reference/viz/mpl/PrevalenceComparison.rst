@@ -18,8 +18,7 @@ Below is shown an example of Diffusion Prevalence description and visualization 
 
     import networkx as nx
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.epidemics.SIRModel as sir
-    import ndlib.models.epidemics.SIModel as si
+    import ndlib.models.epidemics as ep
     from ndlib.viz.mpl.PrevalenceComparison import DiffusionPrevalenceComparison
 
 
@@ -27,7 +26,7 @@ Below is shown an example of Diffusion Prevalence description and visualization 
     g = nx.erdos_renyi_graph(1000, 0.1)
 
     # Model selection
-    model = sir.SIRModel(g)
+    model = ep.SIRModel(g)
 
     # Model Configuration
     cfg = mc.Configuration()
@@ -41,7 +40,7 @@ Below is shown an example of Diffusion Prevalence description and visualization 
     trends = model.build_trends(iterations)
 
     # 2° Model selection
-    model1 = si.SIModel(g)
+    model1 = ep.SIModel(g)
 
     # 2° Model Configuration
     cfg = mc.Configuration()
