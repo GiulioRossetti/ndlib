@@ -86,11 +86,16 @@ class SEIRModel(DiffusionModel):
                         self.progress[u] = 0
 
             elif u_status == 2:
-                if self.progress[u] < 1:
-                    self.progress[u] += self.params['model']['alpha']
-                else:
-                    actual_status[u] = 1  # Infected
-                    del self.progress[u]
+
+                # not sure whether this line is correct – to be tested
+                if eventp < 1 - np.exp(- self.actual_iteration / self.params['model']['alpha']): 
+                    actual_status[u] = 1  # Infected    
+
+                # if self.progress[u] < 1:
+                #     self.progress[u] += self.params['model']['alpha']
+                # else:
+                #     actual_status[u] = 1  # Infected
+                #     del self.progress[u]
 
             elif u_status == 1:
                 if eventp < self.params['model']['gamma']:
