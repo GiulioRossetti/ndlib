@@ -33,7 +33,7 @@ Name    Type   Value Type       Default  Mandatory  Description
 ======  =====  ===============  =======  =========  =====================
 beta    Model  float in [0, 1]           True       Infection probability
 lambda  Model  float in [0, 1]           True       Removal probability
-alpha   Model  float in [0, 1]           True       Incubation period
+alpha   Model  float in [0, 1]           True       Latent period
 ======  =====  ===============  =======  =========  =====================
 
 The initial infection status can be defined via:
@@ -77,7 +77,7 @@ Example
 -------
 
 In the code below is shown an example of instantiation and execution of an SEIS simulation on a random graph:
-we set the initial set of infected nodes as 5% of the overall population, a probability of infection of 1%, a removal probability of 0.5% and an incubation period of 5% (e.g. 20 iterations).
+we set the initial set of infected nodes as 5% of the overall population, a probability of infection of 1%, a removal probability of 0.5% and an latent period of 5% (e.g. 20 iterations).
 
 .. code-block:: python
 
