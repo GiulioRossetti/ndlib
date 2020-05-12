@@ -5,6 +5,7 @@ import past.builtins
 import future.utils
 import six
 from netdispatch import AGraph
+import tqdm
 
 __author__ = "Giulio Rossetti"
 __license__ = "BSD-2-Clause"
@@ -196,7 +197,7 @@ class DiffusionModel(object):
         :return: a list containing for each iteration a dictionary {"iteration": iteration_id, "status": dictionary_node_to_status}
         """
         system_status = []
-        for it in past.builtins.xrange(0, bunch_size):
+        for it in tqdm.tqdm(past.builtins.xrange(0, bunch_size)):
             its = self.iteration(node_status)
             system_status.append(its)
         return system_status
