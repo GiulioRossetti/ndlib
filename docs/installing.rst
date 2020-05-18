@@ -22,7 +22,7 @@ You can install the development version with
 
 .. code-block:: python
 
-    pip install git://github.com/GiulioRossetti/ndlib.git
+    pip install git+http://github.com/GiulioRossetti/ndlib.git
 
 ======================
 Installing from source
