@@ -1,6 +1,6 @@
 mock==3.0.5
 python-igraph==0.8.2
-netdispatch==0.0.3
+netdispatch==0.0.5
 sphinx_rtd_theme==0.4.3
 numpy==1.17.*
 future==0.17.*
@@ -9,3 +9,5 @@ dynetx==0.2.2
 bokeh==1.3.4
 matplotlib==3.0.*
 pytest==5.1.*
+pandas
+tqdm

@@ -23,7 +23,7 @@ class SEIRModel(DiffusionModel):
         self.parameters = {
             "model": {
                 "alpha": {
-                    "descr": "Incubation period",
+                    "descr": "Latent period",
                     "range": [0, 1],
                     "optional": False},
                 "beta": {
@@ -79,16 +79,16 @@ class SEIRModel(DiffusionModel):
                 if self.params['model']['tp_rate'] == 1:
                     if eventp < 1 - (1 - self.params['model']['beta']) ** len(infected_neighbors):
                         actual_status[u] = 2  # Exposed
-                        self.progress[u] = 0
+                        self.progress[u] =  self.actual_iteration # save time of exposure t_i
                 else:
                     if eventp < self.params['model']['beta'] * triggered:
                         actual_status[u] = 2  # Exposed
-                        self.progress[u] = 0
+                        self.progress[u] =  self.actual_iteration # save time of exposure t_i
 
             elif u_status == 2:
-                if self.progress[u] < 1:
-                    self.progress[u] += self.params['model']['alpha']
-                else:
+
+                # apply prob. of infection, after (t - t_i) 
+                if eventp < 1 - np.exp(- (self.actual_iteration - self.progress[u]) / self.params['model']['alpha']): 
                     actual_status[u] = 1  # Infected
                     del self.progress[u]
 

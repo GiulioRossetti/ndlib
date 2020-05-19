@@ -34,7 +34,7 @@ Name   Type   Value Type       Default  Mandatory  Description
 =====  =====  ===============  =======  =========  =====================
 beta   Model  float in [0, 1]           True       Infection probability
 gamma  Model  float in [0, 1]           True       Removal probability
-alpha  Model  float in [0, 1]           True       Incubation period
+alpha  Model  float in [0, 1]           True       Latent period
 =====  =====  ===============  =======  =========  =====================
 
 The initial infection status can be defined via:
