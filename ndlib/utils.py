@@ -50,7 +50,7 @@ def multi_runs(model, execution_number=1, iteration_number=50, infection_sets=No
         for x in past.builtins.xrange(0, execution_number, nprocesses):
             with closing(multiprocessing.Pool(processes=nprocesses, maxtasksperchild=10)) as pool:
 
-                tasks = [(seeds[i], copy.deepcopy(model).reset()) for _ in
+                tasks = [(seeds[i], copy.deepcopy(model).reset()) for i in
                          past.builtins.xrange(x, min(x + nprocesses, execution_number))]
                 results = [pool.apply_async(__execute, (*t, iteration_number)) for t in tasks]
 
