@@ -577,7 +577,7 @@ class NdlibTest(unittest.TestCase):
 
 
         for g in get_graph(True):
-            model = epd.ICPModel(g)
+            model = epd.ICEPModel(g)
             config = mc.Configuration()
             config.add_model_parameter('percentage_infected', 0.1)
             if isinstance(g, nx.Graph):
