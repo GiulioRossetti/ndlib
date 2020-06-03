@@ -572,6 +572,32 @@ class NdlibTest(unittest.TestCase):
             iterations = model.iteration_bunch(10, node_status=False)
             self.assertEqual(len(iterations), 10)
 
+
+    def test_ICEP(self):
+
+
+        for g in get_graph(True):
+            model = epd.ICPModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter('percentage_infected', 0.1)
+            if isinstance(g, nx.Graph):
+                node_to_com = {n: random.choice([0, 1])for n in g.nodes()}
+                for i in g.nodes():
+                    config.add_node_configuration("com", i, node_to_com[i])
+            else:
+                node_to_com = {n: random.choice([0, 1]) for n in g.vs['name']}
+                for i in g.vs['name']:
+                    config.add_node_configuration("com", i, node_to_com[i])
+
+
+            config.add_model_parameter('permeability', 0.1)
+
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
     def test_kertesz_model_predefined_blocked(self):
         for g in get_graph(True):
             model = epd.KerteszThresholdModel(g)

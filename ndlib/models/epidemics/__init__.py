@@ -16,6 +16,7 @@ from .SWIRModel import SWIRModel
 from .ThresholdModel import ThresholdModel
 from .ICEModel import ICEModel
 from .ICPModel import ICPModel
+from .ICEPModel import ICEPModel
 from .GeneralThresholdModel import GeneralThresholdModel
 from .UTLDRModel import UTLDRModel
 
@@ -35,5 +36,6 @@ __all__ = [
     'ICEModel',
     'ICPModel',
     'GeneralThresholdModel',
-    'UTLDRModel'
+    'UTLDRModel',
+    'ICEPModel'
 ]
