@@ -88,7 +88,7 @@ class SEIRModel(DiffusionModel):
             elif u_status == 2:
 
                 # apply prob. of infection, after (t - t_i) 
-                if eventp < 1 - np.exp(- (self.actual_iteration - self.progress[u]) / self.params['model']['alpha']): 
+                if eventp < 1 - np.exp(- (self.actual_iteration - self.progress[u]) * self.params['model']['alpha']): 
                     actual_status[u] = 1  # Infected
                     del self.progress[u]
 
