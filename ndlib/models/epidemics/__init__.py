@@ -19,6 +19,8 @@ from .ICPModel import ICPModel
 from .ICEPModel import ICEPModel
 from .GeneralThresholdModel import GeneralThresholdModel
 from .UTLDRModel import UTLDRModel
+from .SEIR_ct_Model import SEIRctModel
+from .SEIS_ct_Model import SEISctModel
 
 __all__ = [
     'GeneralisedThresholdModel',
@@ -37,5 +39,7 @@ __all__ = [
     'ICPModel',
     'GeneralThresholdModel',
     'UTLDRModel',
-    'ICEPModel'
+    'ICEPModel',
+    'SEIRctModel',
+    'SEISctModel'
 ]
