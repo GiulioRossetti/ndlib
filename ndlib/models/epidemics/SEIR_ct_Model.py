@@ -53,7 +53,7 @@ class SEIRctModel(DiffusionModel):
         self.clean_initial_status(self.available_statuses.values())
 
         actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
-        self.progress_I = {node: 1 for node in actual_status if actual_status[node] == 1}
+        self.progress_I = {node: 0 for node in actual_status if actual_status[node] == 1}
 
         if self.actual_iteration == 0:
             self.actual_iteration += 1
