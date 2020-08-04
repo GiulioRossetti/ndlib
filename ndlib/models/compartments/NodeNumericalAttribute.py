@@ -32,20 +32,26 @@ class NodeNumericalAttribute(Compartiment):
             else:
                 if not isinstance(self.attribute_range, int):
                     if not isinstance(self.attribute_range, float):
-                        raise ValueError("A numeric value is required to test the selected condition")
+                        if not isinstance(self.attribute_range, str):
+                            raise ValueError("A numeric value or attribute is required to test the selected condition")
         else:
             raise ValueError("The operator provided '%s' is not valid" % operator)
 
     def execute(self, node, graph, status, status_map, *args, **kwargs):
 
         val = nx.get_node_attributes(graph, self.attribute)[node]
+        testVal = self.attribute_range
+
+        if isinstance(self.attribute_range, str):
+            testVal = nx.get_node_attributes(graph, testVal)[node]
+
         p = np.random.random_sample()
 
         if self.operator == "IN":
-            condition = self.__available_operators[self.operator][0](val, self.attribute_range[0]) and \
-                        self.__available_operators[self.operator][1](val, self.attribute_range[1])
+            condition = self.__available_operators[self.operator][0](val, testVal[0]) and \
+                        self.__available_operators[self.operator][1](val, testVal[1])
         else:
-            condition = self.__available_operators[self.operator](val, self.attribute_range)
+            condition = self.__available_operators[self.operator](val, testVal)
 
         test = condition and p <= self.probability
 
