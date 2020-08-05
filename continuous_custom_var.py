@@ -1,4 +1,4 @@
-# TODO Dynamic graph, more plots, attribute updating, multiple status implementation (?), optimize speed, plotly/gephy visualization of graph
+# TODO Dynamic graph, more plots, optimize speed (?), plotly/gephy visualization of graph
 
 import networkx as nx
 import random
@@ -8,7 +8,8 @@ import numpy as np
 from ndlib.models.CompositeModel import CompositeModel
 from ndlib.models.ContinuousModel import ContinuousModel
 from ndlib.models.compartments.NodeStochastic import NodeStochastic
-from ndlib.models.compartments.NodeNumericalAttribute import NodeNumericalAttribute
+from ndlib.models.compartments.enums.NumericalType import NumericalType
+from ndlib.models.compartments.NodeNumericalVariable import NodeNumericalVariable
 
 import ndlib.models.ModelConfig as mc
 
@@ -35,7 +36,7 @@ def craving_model(node, graph, status, attributes):
     return min(current_val + craving - self_control, 1)
 
 def self_confidence_impact(node, graph, status, attributes):
-    return max(status[node]['self_confidence'] - random.uniform(0, 0.2), 0)
+    return max(status[node]['self_confidence'] - random.uniform(0.2, 0.5), 0)
 
 # Network definition
 g = nx.erdos_renyi_graph(n=10000, p=0.1)
@@ -50,8 +51,8 @@ addiction_model.add_status('addiction')
 addiction_model.add_status('self_confidence')
 
 # Compartments
-condition = NodeNumericalAttribute('self_control', 'craving', op='<')
-condition2 = NodeStochastic(0.5)
+condition = NodeNumericalVariable('self_control', var_type=NumericalType.ATTRIBUTE, value='craving', value_type=NumericalType.ATTRIBUTE, op='<')
+condition2 = NodeNumericalVariable('addiction', var_type=NumericalType.STATUS, value=1, op='==')
 
 # Rules
 addiction_model.add_rule('addiction', craving_model, condition)
