@@ -1,5 +1,9 @@
+# TODO Dynamic graph, plots, attribute updating, multiple status implementation (?), optimize speed
+
 import networkx as nx
 import random
+import matplotlib.pyplot as plt
+import numpy as np
 
 from ndlib.models.CompositeModel import CompositeModel
 from ndlib.models.ContinuousModel import ContinuousModel
@@ -21,7 +25,7 @@ def craving_model(node, graph, current_val, variable):
     return min(current_val + craving - self_control, 1)
 
 # Network definition
-g = nx.erdos_renyi_graph(n=10, p=0.1)
+g = nx.erdos_renyi_graph(n=100, p=0.1)
 
 # Extra network setup
 attr = {n: {'craving': random.random(), 'self_control': random.random()} for n in g.nodes()}
@@ -48,7 +52,23 @@ config.add_model_parameter('fraction_infected', 0.1)
 addiction_model.set_initial_status(intial_status, config)
 
 # Simulation
-iterations = addiction_model.iteration_bunch(10, node_status=True)
+iterations = addiction_model.iteration_bunch(200, node_status=True)
+
 print()
 print(iterations)
 print()
+
+### Plots / data manipulation
+# Mean status delta per iterations
+means = []
+for it in iterations:
+    deltas = list(it['status_delta'].values())
+    if len(deltas) > 0:
+        means.append(sum(deltas) / len(deltas))
+    else:
+        means.append(0)
+
+x = np.arange(0, len(iterations))
+
+plt.plot(x, means)
+plt.show()
