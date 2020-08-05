@@ -37,13 +37,13 @@ class NodeNumericalAttribute(Compartiment):
         else:
             raise ValueError("The operator provided '%s' is not valid" % operator)
 
-    def execute(self, node, graph, status, status_map, *args, **kwargs):
+    def execute(self, node, graph, status, status_map, attributes, *args, **kwargs):
 
-        val = nx.get_node_attributes(graph, self.attribute)[node]
+        val = attributes[node][self.attribute]
         testVal = self.attribute_range
 
         if isinstance(self.attribute_range, str):
-            testVal = nx.get_node_attributes(graph, testVal)[node]
+            testVal = attributes[node][testVal]
 
         p = np.random.random_sample()
 

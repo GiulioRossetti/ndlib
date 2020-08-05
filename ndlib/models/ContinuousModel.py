@@ -1,5 +1,6 @@
 from ndlib.models.DiffusionModel import DiffusionModel
 import future.utils
+import copy
 
 __author__ = 'Mathijs Maijer'
 __license__ = "BSD-2-Clause"
@@ -33,7 +34,7 @@ class ContinuousModel(DiffusionModel):
         self.compartment[self.compartment_progressive] = (status, function, rule)
         self.compartment_progressive += 1
 
-    def set_initial_status(self, initial_status_fun, configuration=None):
+    def set_initial_status(self, initial_status_funs, configuration=None):
         """
         Override behaviour of methods in class DiffusionModel.
         Overwrites initial status using given function
@@ -43,15 +44,20 @@ class ContinuousModel(DiffusionModel):
 
         # set node status
         for node in self.status:
-            self.status[node] = initial_status_fun(node, self.graph)
-        self.initial_status = self.status.copy()
+            status = {}
+            for status_fun in initial_status_funs.items():
+                status[status_fun[0]] = status_fun[1](node, self.graph)
+            self.status[node] = status
+
+        self.initial_status = copy.deepcopy(self.status)
 
     def clean_initial_status(self, valid_status=None):
         for n, s in future.utils.iteritems(self.status):
-            if s > 1:
-                self.status[n] = 1
-            elif s < 0:
-                self.status[n] = 0
+            for var_val in s.items():
+                if var_val[1] > 1:
+                    self.status[n][var_val[0]] = 1
+                elif var_val[1] < 0:
+                    self.status[n][var_val[0]] = 0
 
     def iteration(self, node_status=True):
         """
@@ -59,41 +65,44 @@ class ContinuousModel(DiffusionModel):
 
         :return: Iteration_id, Incremental node status (dictionary node->status)
         """
-        self.clean_initial_status(self.available_statuses.values())
-        actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
+        self.clean_initial_status()
+
+        # actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
+        actual_status = copy.deepcopy(self.status)
 
         if self.actual_iteration == 0:
             self.actual_iteration += 1
-            delta, node_count, status_delta = self.status_delta(actual_status)
+            delta, status_delta = self.status_delta_continuous(self.status)
             if node_status:
-                return {"iteration": 0, "status": actual_status.copy(),
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                return {"iteration": 0, "status": copy.deepcopy(self.status),
+                        "status_delta": copy.deepcopy(status_delta)}
             else:
                 return {"iteration": 0, "status": {},
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                         "status_delta": copy.deepcopy(status_delta)}
+
+        nodes_data = self.graph.nodes(data=True)
 
         for u in self.graph.nodes:
-            u_status = self.status[u]
 
             # For all rules
             for i in range(0, self.compartment_progressive):
                 # Get and test the condition
                 rule = self.compartment[i][2]
                 test = rule.execute(node=u, graph=self.graph, status=self.status,
-                                    status_map=self.available_statuses, params=self.params)
+                                    status_map=self.available_statuses, attributes=nodes_data,
+                                    params=self.params)
                 if test:
                     # Update status if test succeeds
-                    val = self.compartment[i][1](u, self.graph, u_status, self.compartment[i][0])
-                    actual_status[u] = self.available_statuses[self.compartment[i][0]] = val
-                    break
+                    val = self.compartment[i][1](u, self.graph, self.status, nodes_data)
+                    actual_status[u][self.compartment[i][0]] = val
 
-        delta, node_count, status_delta = self.status_delta_continuous(actual_status)
+        delta, status_delta = self.status_delta_continuous(actual_status)
         self.status = actual_status
         self.actual_iteration += 1
 
         if node_status:
-            return {"iteration": self.actual_iteration - 1, "status": delta.copy(),
-                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+            return {"iteration": self.actual_iteration - 1, "status": copy.deepcopy(delta),
+                    "status_delta": copy.deepcopy(status_delta)}
         else:
             return {"iteration": self.actual_iteration - 1, "status": {},
-                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                    "status_delta": copy.deepcopy(status_delta)}

@@ -324,18 +324,21 @@ class DiffusionModel(object):
                     count of actual nodes per status (dictionary status->node count),
                     delta of nodes per status w.r.t the previous configuration (dictionary status->delta)
         """
-        actual_status_count = {}
         delta = {}
         status_delta = {}
         for n, v in future.utils.iteritems(self.status):
-            if v != actual_status[n]:
-                delta[n] = actual_status[n]
-                status_delta[n] = actual_status[n] - v
+            delta[n] = {}
+            status_delta[n] = {}
+            for var, val in v.items():
+                if val != actual_status[n][var]:
+                    delta[n][var] = actual_status[n][var]
+                    status_delta[n][var] = actual_status[n][var] - val
+            if len(delta[n].values()) == 0:
+                del delta[n]
+            if len(status_delta[n].values()) == 0:
+                del status_delta[n]
 
-        values = list(actual_status.values())
-        actual_status_count = dict((l, values.count(l) ) for l in set(values))
-
-        return delta, actual_status_count, status_delta
+        return delta, status_delta
 
 
     def build_trends(self, iterations):

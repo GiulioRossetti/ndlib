@@ -1,11 +1,11 @@
 import networkx as nx
 
-from ndlib_custom.ndlib.models.CompositeModel import CompositeModel
-from ndlib_custom.ndlib.models.compartments.NodeStochastic import NodeStochastic
-import ndlib_custom.ndlib.models.ModelConfig as mc
+from ndlib.models.CompositeModel import CompositeModel
+from ndlib.models.compartments.NodeStochastic import NodeStochastic
+import ndlib.models.ModelConfig as mc
 
 from bokeh.io import show
-from ndlib_custom.ndlib.viz.bokeh.DiffusionTrend import DiffusionTrend
+from ndlib.viz.bokeh.DiffusionTrend import DiffusionTrend
 
 # Network definition
 g1 = nx.erdos_renyi_graph(n=1000, p=0.1)
@@ -37,3 +37,5 @@ trends = SIR.build_trends(iterations)
 viz = DiffusionTrend(SIR, trends)
 p = viz.plot(width=400, height=400)
 show(p)
+
+print(SIR.available_statuses)
