@@ -1,6 +1,8 @@
 from ndlib.models.DiffusionModel import DiffusionModel
 import future.utils
+import matplotlib.pyplot as plt
 import copy
+import numpy as np
 
 __author__ = 'Mathijs Maijer'
 __license__ = "BSD-2-Clause"
@@ -106,3 +108,98 @@ class ContinuousModel(DiffusionModel):
         else:
             return {"iteration": self.actual_iteration - 1, "status": {},
                     "status_delta": copy.deepcopy(status_delta)}
+
+    def get_mean_data(self, iterations, mean_type):
+        mean_changes = {}
+        for key in self.available_statuses.keys():
+            mean_changes[key] = []
+        del mean_changes['Infected'] # Todo, fix this line so that infected isn't even in available statuses
+
+        for it in iterations:
+            delta = {}
+
+            vals = list(it[mean_type].values())
+
+            for val in vals:
+                for key, v in val.items():
+                    if key not in delta.keys():
+                        delta[key] = {'v': v, 'n': 1}
+                    else:
+                        delta[key]['v'] += v
+                        delta[key]['n'] += 1
+            for key in mean_changes.keys():
+                if key not in delta.keys():
+                    delta[key] = {}
+                    delta[key]['v'] = 0
+                    delta[key]['n'] = 1
+
+            for k, v in delta.items():
+                if k not in mean_changes.keys():
+                    mean_changes[k] = []
+                mean_changes[k].append(delta[k]['v'] / delta[k]['n'])
+
+        return mean_changes
+
+    def build_full_status(self, iterations):
+        statuses = []
+        status = {'iteration': 0, 'status': {}}
+        for key, val in iterations[0]['status'].items():
+            status['status'][key] = val
+        statuses.append(status)
+        for it in iterations[1:]:
+            i = it['iteration']
+            status = copy.deepcopy(statuses[-1])
+            for node, d in it['status'].items():
+                for var, val in d.items():
+                    status['status'][node][var] = val
+                    status['iteration'] = i
+            statuses.append(status)
+
+        return statuses
+
+    def get_means(self, iterations):
+        full_status = self.build_full_status(iterations)
+        means = self.get_mean_data(full_status, 'status')
+        return means
+
+    def build_trends(self, iterations):
+        """
+        Overwrite build trends of diffusionmodel
+        """
+        means = self.get_means(iterations)
+        means_status_delta_vals = self.get_mean_data(iterations, 'status')
+        status_delta = self.get_mean_data(iterations, 'status_delta')
+
+        return {'mean_delta_status_vals': means_status_delta_vals, 'status_delta': status_delta, 'means': means}
+
+    def visualize(self, trends, n, delta=None, delta_mean=None):
+        x = np.arange(0, n)
+
+        sub_plots = 1
+        if delta:
+            sub_plots = 2 if (delta and not delta_mean) else 3
+
+        fig, axs = plt.subplots(sub_plots)
+
+        # Mean status delta per iterations
+        for status, values in trends['means'].items():
+            axs[0].plot(x, values, label=status)
+        axs[0].set_title("Mean values per variable per iteration")
+        axs[0].legend()
+
+
+        if delta:
+            for status, values in trends['status_delta'].items():
+                axs[1].plot(x, values, label=status)
+            axs[1].set_title("Mean change per variable per iteration")
+            axs[1].legend()
+
+        i = 2 if delta else 1
+
+        if delta_mean:
+            for status, values in trends['mean_delta_status_vals'].items():
+                axs[i].plot(x, values, label=status)
+            axs[i].set_title("Mean value of changed variables per iteration")
+            axs[i].legend()
+
+        plt.show()

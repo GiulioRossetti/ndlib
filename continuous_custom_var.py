@@ -2,7 +2,6 @@
 
 import networkx as nx
 import random
-import matplotlib.pyplot as plt
 import numpy as np
 
 from ndlib.models.CompositeModel import CompositeModel
@@ -66,22 +65,7 @@ addiction_model.set_initial_status(initial_status, config)
 # Simulation
 iterations = addiction_model.iteration_bunch(200, node_status=True)
 
-print()
-print(iterations)
-print()
+trends = addiction_model.build_trends(iterations)
 
 ### Plots / data manipulation
-
-# Mean status delta per iterations
-# means = []
-# for it in iterations:
-#     deltas = list(it['status_delta'].values())
-#     if len(deltas) > 0:
-#         means.append(sum(deltas) / len(deltas))
-#     else:
-#         means.append(0)
-
-# x = np.arange(0, len(iterations))
-
-# plt.plot(x, means)
-# plt.show()
+addiction_model.visualize(trends, len(iterations), delta=True)
