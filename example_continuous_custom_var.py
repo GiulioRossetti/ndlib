@@ -15,11 +15,11 @@ import ndlib.models.ModelConfig as mc
 from bokeh.io import show
 from ndlib.viz.bokeh.DiffusionTrend import DiffusionTrend
 
-def initial_addiction(node, graph):
+def initial_addiction(node, graph, status, constants):
     addiction = 0
     return addiction
 
-def initial_self_confidence(node, graph):
+def initial_self_confidence(node, graph, status, constants):
     self_confidence = 1
     return self_confidence
 
@@ -28,17 +28,17 @@ initial_status = {
     'self_confidence': initial_self_confidence
 }
 
-def craving_model(node, graph, status, attributes):
+def craving_model(node, graph, status, attributes, constants):
     current_val = status[node]['addiction']
     craving = attributes[node]['craving']
     self_control = attributes[node]['self_control']
     return min(current_val + craving - self_control, 1)
 
-def self_confidence_impact(node, graph, status, attributes):
+def self_confidence_impact(node, graph, status, attributes, constants):
     return max(status[node]['self_confidence'] - random.uniform(0.2, 0.5), 0)
 
 # Network definition
-g = nx.erdos_renyi_graph(n=10000, p=0.1)
+g = nx.erdos_renyi_graph(n=1000, p=0.1)
 
 # Extra network setup
 attr = {n: {'craving': random.random(), 'self_control': random.random()} for n in g.nodes()}

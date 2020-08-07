@@ -11,7 +11,7 @@ __email__ = "m.f.maijer@gmail.com"
 
 class ContinuousModel(DiffusionModel):
 
-    def __init__(self, graph):
+    def __init__(self, graph, constants=None, clean_status=None):
         """
              Model Constructor
              :param graph: A networkx graph object
@@ -26,6 +26,10 @@ class ContinuousModel(DiffusionModel):
         self.available_statuses = {
             "Infected": 0
         }
+
+        self.clean = True if clean_status else False
+
+        self.constants = constants
 
     def add_status(self, status_name):
         if status_name not in self.available_statuses:
@@ -44,11 +48,20 @@ class ContinuousModel(DiffusionModel):
         """
         super(ContinuousModel, self).set_initial_status(configuration)
 
+        if not isinstance(initial_status_funs, dict):
+            raise ValueError('The initial status should be a dictionary of form status (str): value (int/float/function)')
+
         # set node status
         for node in self.status:
             status = {}
             for status_fun in initial_status_funs.items():
-                status[status_fun[0]] = status_fun[1](node, self.graph)
+                if hasattr(status_fun[1], '__call__'):
+                    status[status_fun[0]] = status_fun[1](node, self.graph, status, self.constants)
+                    continue
+                if not isinstance(status_fun[1], float):
+                    if not isinstance(status_fun[1], int):
+                        raise ValueError('The initial status should be a function, integer, or float')
+                status[status_fun[0]] = status_fun[1]
             self.status[node] = status
 
         self.initial_status = copy.deepcopy(self.status)
@@ -67,7 +80,8 @@ class ContinuousModel(DiffusionModel):
 
         :return: Iteration_id, Incremental node status (dictionary node->status)
         """
-        self.clean_initial_status()
+        if self.clean:
+            self.clean_initial_status()
 
         # actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
         actual_status = copy.deepcopy(self.status)
@@ -92,10 +106,10 @@ class ContinuousModel(DiffusionModel):
                 rule = self.compartment[i][2]
                 test = rule.execute(node=u, graph=self.graph, status=self.status,
                                     status_map=self.available_statuses, attributes=nodes_data,
-                                    params=self.params)
+                                    params=self.params, constants=self.constants)
                 if test:
                     # Update status if test succeeds
-                    val = self.compartment[i][1](u, self.graph, self.status, nodes_data)
+                    val = self.compartment[i][1](u, self.graph, self.status, nodes_data, self.constants)
                     actual_status[u][self.compartment[i][0]] = val
 
         delta, status_delta = self.status_delta_continuous(actual_status)
@@ -182,10 +196,16 @@ class ContinuousModel(DiffusionModel):
         fig, axs = plt.subplots(sub_plots)
 
         # Mean status delta per iterations
-        for status, values in trends['means'].items():
-            axs[0].plot(x, values, label=status)
-        axs[0].set_title("Mean values per variable per iteration")
-        axs[0].legend()
+        if delta or delta_mean: 
+            for status, values in trends['means'].items():
+                axs[0].plot(x, values, label=status)
+            axs[0].set_title("Mean values per variable per iteration")
+            axs[0].legend()
+        else:
+            for status, values in trends['means'].items():
+                plt.plot(x, values, label=status)
+            plt.title("Mean values per variable per iteration")
+            plt.legend()
 
 
         if delta:
