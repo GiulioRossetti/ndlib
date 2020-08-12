@@ -1,4 +1,4 @@
-# TODO Dynamic graph, integrate with ndlib correctly
+# TODO Dynamic graph, integrate with ndlib correctly, plot speed optimizations for large node amount (intermediate images? / matplotlib?), write tests
 # Requirements, networkx, numpy, matplotlib, bokeh, plotly, PIL, psutil, kaleido
 
 import networkx as nx
@@ -16,8 +16,6 @@ import ndlib.models.ModelConfig as mc
 
 from bokeh.io import show
 from ndlib.viz.bokeh.DiffusionTrend import DiffusionTrend
-
-
 
 ################### MODEL SPECIFICATIONS ###################
 
@@ -70,20 +68,40 @@ def update_lambda(node, graph, status, attributes, constants):
 def update_A(node, graph, status, attributes, constants):
     return constants['q'] * status[node]['V'] + min((np.random.poisson(status[node]['lambda'])/7), constants['q']*(1 - status[node]['V']))
 
+# 50% chance of severing connections, move to random location, create new random connections
+def update_network(node, graph, status, attributes, constants):
+    sever = []
+    for n in graph.neighbors(node):
+        if random.random() < 0.5:
+            sever.append(n)
+    graph.remove_edges(node, sever)
 
+    if random.random() < 0.05:
+        pos = (random.random(), random.random())
+        graph.nodes[node]['pos'] = pos
 
+    while True:
+        new_connections = []
+        if random.random() < 0.5:
+            new_conn = random.choice(graph.nodes())
+            if new_conn not in graph.neighbors(node):
+                new_connections.append(new_conn)
+        else:
+            graph.add_edges(node, new_connections)
+            return
 
 ################### MODEL CONFIGURATION ###################
 
 # Network definition
-g = nx.random_geometric_graph(200, 0.125)
+g = nx.random_geometric_graph(2000, 0.035)
+# g = nx.random_geometric_graph(100, 0.125)
 
 # Visualization config
 visualization_config = {
     'plot_interval': 5,
     'plot_variable': 'A',
     'save_plot': True,
-    'plot_output': './animations/gg/network.gif',
+    'plot_output': './animations/network.gif',
     'plot_title': 'Self control vs craving simulation',
     'plot_annotation': 'The dynamics of addiction: Craving versus self-control, Johan Grasman, Raoul P.P.P. Grasman, Han L.J. van der Maas (2006)'
 }
@@ -99,6 +117,7 @@ craving_control_model.add_status('A')
 
 # Compartments
 condition = NodeStochastic(1)
+condition2 = NodeStochastic(0.005)
 
 # Rules
 craving_control_model.add_rule('C', update_C, condition)
@@ -107,6 +126,7 @@ craving_control_model.add_rule('E', update_E, condition)
 craving_control_model.add_rule('V', update_V, condition)
 craving_control_model.add_rule('lambda', update_lambda, condition)
 craving_control_model.add_rule('A', update_A, condition)
+craving_control_model.add_rule('network', update_network, condition2)
 
 # Configuration
 config = mc.Configuration()

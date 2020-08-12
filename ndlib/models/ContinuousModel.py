@@ -180,9 +180,12 @@ class ContinuousModel(DiffusionModel):
                                     status_map=self.available_statuses, attributes=nodes_data,
                                     params=self.params, constants=self.constants)
                 if test:
-                    # Update status if test succeeds
-                    val = self.compartment[i][1](u, self.graph, self.status, nodes_data, self.constants)
-                    actual_status[u][self.compartment[i][0]] = val
+                    # Update status or network if test succeeds
+                    if self.compartment[i][0] == 'network':
+                        self.compartment[i][1](u, self.graph, self.status, nodes_data, self.constants)
+                    else:
+                        val = self.compartment[i][1](u, self.graph, self.status, nodes_data, self.constants)
+                        actual_status[u][self.compartment[i][0]] = val
 
         delta, status_delta = self.status_delta_continuous(actual_status)
         self.status = actual_status
@@ -391,7 +394,7 @@ class ContinuousModel(DiffusionModel):
                     type="buttons",
                     buttons=[dict(label="Play",
                           method="animate",
-                          args=[None])])],
+                          args=[None, {"frame": {"duration": 500}, "transition": {"duration": 0}}])])],
                 xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
                 yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
                 ),
@@ -408,6 +411,8 @@ class ContinuousModel(DiffusionModel):
                 layout=go.Layout(
                     title=self.visualization_configuration['plot_title'],
                     titlefont_size=16,
+                    width=1920,
+                    height=1080,
                     showlegend=False,
                     hovermode='closest',
                     margin=dict(b=20,l=5,r=5,t=40),
@@ -431,3 +436,13 @@ class ContinuousModel(DiffusionModel):
             images[0].save(self.visualization_configuration['plot_output'],
                 save_all=True, append_images=images[1:], duration=500)
             print('Saved ' + self.visualization_configuration['plot_output'])
+
+    def networkx_graphing(self):
+        pos = nx.get_node_attributes(self.graph.graph, 'pos')
+        plt.figure(figsize=(12, 12))
+        nx.draw_networkx_edges(self.graph.graph, pos, alpha=0.2)
+        nx.draw_networkx_nodes(self.graph.graph, pos, node_size=20)
+        plt.xlim(-0.05, 1.05)
+        plt.ylim(-0.05, 1.05)
+        plt.axis('off')
+        plt.show()
