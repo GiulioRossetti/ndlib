@@ -1,4 +1,4 @@
-# TODO Dynamic graph, integrate with ndlib correctly, plot speed optimizations for large node amount (intermediate images? / matplotlib?), write tests
+# TODO Write tests, Add more network visualizations
 # Requirements, networkx, numpy, matplotlib, bokeh, plotly, PIL, psutil, kaleido
 
 import networkx as nx
@@ -93,15 +93,15 @@ def update_network(node, graph, status, attributes, constants):
 ################### MODEL CONFIGURATION ###################
 
 # Network definition
-g = nx.random_geometric_graph(2000, 0.035)
-# g = nx.random_geometric_graph(100, 0.125)
+# g = nx.random_geometric_graph(2000, 0.035)
+g = nx.random_geometric_graph(200, 0.125)
 
 # Visualization config
 visualization_config = {
     'plot_interval': 5,
     'plot_variable': 'A',
     'save_plot': True,
-    'plot_output': './animations/network.gif',
+    'plot_output': '../animations/c_vs_s.gif',
     'plot_title': 'Self control vs craving simulation',
     'plot_annotation': 'The dynamics of addiction: Craving versus self-control, Johan Grasman, Raoul P.P.P. Grasman, Han L.J. van der Maas (2006)'
 }
@@ -120,13 +120,13 @@ condition = NodeStochastic(1)
 condition2 = NodeStochastic(0.005)
 
 # Rules
-craving_control_model.add_rule('C', update_C, condition)
-craving_control_model.add_rule('S', update_S, condition)
-craving_control_model.add_rule('E', update_E, condition)
-craving_control_model.add_rule('V', update_V, condition)
-craving_control_model.add_rule('lambda', update_lambda, condition)
-craving_control_model.add_rule('A', update_A, condition)
-craving_control_model.add_rule('network', update_network, condition2)
+craving_control_model.add_rule('C', update_C, condition, [0])
+craving_control_model.add_rule('S', update_S, condition, [0])
+craving_control_model.add_rule('E', update_E, condition, [0])
+craving_control_model.add_rule('V', update_V, condition, [0])
+craving_control_model.add_rule('lambda', update_lambda, condition, [0])
+craving_control_model.add_rule('A', update_A, condition, [0])
+# craving_control_model.add_rule('network', update_network, condition2)
 
 # Configuration
 config = mc.Configuration()

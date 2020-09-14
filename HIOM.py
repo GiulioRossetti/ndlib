@@ -1,0 +1,129 @@
+# TODO Write tests
+# Requirements, networkx, numpy, matplotlib, bokeh, plotly, PIL, psutil, kaleido
+
+import networkx as nx
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+
+from ndlib.models.CompositeModel import CompositeModel
+from ndlib.models.ContinuousModel import ContinuousModel
+from ndlib.models.compartments.NodeStochastic import NodeStochastic
+from ndlib.models.compartments.enums.NumericalType import NumericalType
+from ndlib.models.compartments.NodeNumericalVariable import NodeNumericalVariable
+
+import ndlib.models.ModelConfig as mc
+
+from bokeh.io import show
+from ndlib.viz.bokeh.DiffusionTrend import DiffusionTrend
+
+################### MODEL SPECIFICATIONS ###################
+
+constants = {
+    'N': 500,
+    'dt': 0.01,
+    'A_min': -0.5,
+    'A_star': 1,
+    's_O': 0.01,
+    's_I': 0,
+    'd_A': 0,
+    'p': 1,
+    'r_min': 0,
+    't_O': np.inf,
+}
+
+def initial_I(node, graph, status, constants):
+    return np.random.normal(0, 0.3)
+
+def initial_O(node, graph, status, constants):
+    return np.random.normal(0, 0.3)
+
+initial_status = {
+    'I': initial_I,
+    'O': initial_O,
+    'A': 1
+}
+
+def update_I(node, graph, status, attributes, constants):
+    nb = np.random.choice(graph.neighbors(node))
+    if abs(status[node]['O'] - status[nb]['O']) > constants['t_O']:
+        return status[node]['I'] # Do nothing
+    else:
+        # Update information
+        r = constants['r_min'] + (1 - constants['r_min']) / (1 + np.exp(-1 * constants['p'] * (status[node]['A'] - status[nb]['A'])))
+        inf = r * status[node]['I'] + (1-r) * status[nb]['I'] + np.random.normal(0, constants['s_I'])
+
+        # Update attention
+        status[node]['A'] = status[node]['A'] + constants['d_A'] * (2 * constants['A_star'] - status[node]['A'])
+        status[nb]['A'] = status[nb]['A'] + constants['d_A'] * (2 * constants['A_star'] - status[nb]['A'])
+
+        return inf
+
+    return # eq 7 + eq 6
+
+def update_A(node, graph, status, attributes, constants):
+    return status[node]['A'] - 2 * constants['d_A'] * status[node]['A']/len(graph.nodes)
+
+def update_O(node, graph, status, attributes, constants):
+    # stoch_cusp(N,opinion,attention+min_attention,information,s_O,maxwell_convention)
+    noise = np.random.normal(0, constants['s_O'])
+    x = status[node]['O'] - constants['dt'] * (status[node]['O']**3 - (status[node]['A'] + constants['A_min']) * status[node]['O'] - status[node]['I']) + noise
+    return x
+
+def sample_attention_weighted(graph, status):
+    probs = []
+    A = [stat['A'] for stat in list(status.values())]
+    factor = 1.0/sum(A)
+    for a in A:
+        probs.append(a * factor)
+    return np.random.choice(graph.nodes, size=1, replace=False, p=probs)
+
+schemes = [sample_attention_weighted, lambda graph, status: graph.nodes]
+
+################### MODEL CONFIGURATION ###################
+
+# Network definition
+g = nx.watts_strogatz_graph(400, 2, 0.02)
+
+# Visualization config
+visualization_config = {
+    'layout': nx.drawing.fruchterman_reingold_layout,
+    'plot_interval': 100,
+    'plot_variable': 'O',
+    'cmin': -1,
+    'color_scale': 'RdBu',
+    'save_plot': True,
+    'plot_output': '../animations/HIOM.gif',
+    'plot_title': 'HIERARCHICAL ISING OPINION MODEL',
+    'plot_annotation': 'The polarization within and across individuals: the hierarchical Ising opinion model, Han L. J. van der Maas (2020)'
+}
+
+# Model definition
+HIOM = ContinuousModel(g, constants=constants, visualization_configuration=visualization_config, iteration_schemes=schemes)
+HIOM.add_status('I')
+HIOM.add_status('A')
+HIOM.add_status('O')
+
+# Compartments
+condition = NodeStochastic(1)
+
+# Rules
+HIOM.add_rule('I', update_I, condition, [0])
+HIOM.add_rule('A', update_A, condition, [1])
+HIOM.add_rule('O', update_O, condition, [1])
+
+# Configuration
+config = mc.Configuration()
+config.add_model_parameter('fraction_infected', 0.1)
+HIOM.set_initial_status(initial_status, config)
+
+
+################### SIMULATION ###################
+
+# Simulation
+iterations = HIOM.iteration_bunch(5000, node_status=True)
+trends = HIOM.build_trends(iterations)
+
+################### VISUALIZATION ###################
+
+HIOM.visualize()

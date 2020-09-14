@@ -3,6 +3,7 @@ import future.utils
 import os
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+import networkx as nx
 from plotly.subplots import make_subplots
 import copy
 import numpy as np
@@ -16,7 +17,7 @@ __email__ = "m.f.maijer@gmail.com"
 
 class ContinuousModel(DiffusionModel):
 
-    def __init__(self, graph, constants=None, clean_status=None, visualization_configuration=None):
+    def __init__(self, graph, constants=None, clean_status=None, visualization_configuration=None, iteration_schemes=None):
         """
              Model Constructor
              :param graph: A networkx graph object
@@ -35,6 +36,11 @@ class ContinuousModel(DiffusionModel):
         self.clean = True if clean_status else False
 
         self.constants = constants
+
+        if iteration_schemes:
+            self.iteration_schemes = iteration_schemes
+        else:
+            self.iteration_schemes = [lambda graph, status: graph.nodes]
 
         if visualization_configuration:
             self.configure_visualization(visualization_configuration)
@@ -99,14 +105,21 @@ class ContinuousModel(DiffusionModel):
                     raise ValueError('Color scale must be a string')
             else:
                 self.visualization_configuration['color_scale'] = 'YlGnBu'
+            if 'pos' not in self.graph.nodes[0].keys():
+                if 'layout' in vis_keys:
+                    pos = self.visualization_configuration['layout'](self.graph.graph)
+                else:
+                    pos = nx.drawing.kamada_kawai_layout(self.graph.graph)
+                positions = {key: {'pos': location} for key, location in pos.items()}
+                nx.set_node_attributes(self.graph, positions)
 
     def add_status(self, status_name):
         if status_name not in self.available_statuses:
             self.available_statuses[status_name] = self.status_progressive
             self.status_progressive += 1
 
-    def add_rule(self, status, function, rule):
-        self.compartment[self.compartment_progressive] = (status, function, rule)
+    def add_rule(self, status, function, rule, schemes=[0]):
+        self.compartment[self.compartment_progressive] = (status, function, rule, schemes)
         self.compartment_progressive += 1
 
     def set_initial_status(self, initial_status_funs, configuration=None):
@@ -170,22 +183,24 @@ class ContinuousModel(DiffusionModel):
 
         nodes_data = self.graph.nodes(data=True)
 
-        for u in self.graph.nodes:
-
-            # For all rules
-            for i in range(0, self.compartment_progressive):
-                # Get and test the condition
-                rule = self.compartment[i][2]
-                test = rule.execute(node=u, graph=self.graph, status=self.status,
-                                    status_map=self.available_statuses, attributes=nodes_data,
-                                    params=self.params, constants=self.constants)
-                if test:
-                    # Update status or network if test succeeds
-                    if self.compartment[i][0] == 'network':
-                        self.compartment[i][1](u, self.graph, self.status, nodes_data, self.constants)
-                    else:
-                        val = self.compartment[i][1](u, self.graph, self.status, nodes_data, self.constants)
-                        actual_status[u][self.compartment[i][0]] = val
+        for i, scheme in enumerate(self.iteration_schemes):
+            nodes = scheme(self.graph, self.status)
+            for u in nodes:
+                # For all rules
+                for j in range(0, self.compartment_progressive):
+                    if i in self.compartment[j][3]:
+                        # Get and test the condition
+                        rule = self.compartment[j][2]
+                        test = rule.execute(node=u, graph=self.graph, status=self.status,
+                                            status_map=self.available_statuses, attributes=nodes_data,
+                                            params=self.params, constants=self.constants)
+                        if test:
+                            # Update status or network if test succeeds
+                            if self.compartment[j][0] == 'network':
+                                self.compartment[j][1](u, self.graph, self.status, nodes_data, self.constants)
+                            else:
+                                val = self.compartment[j][1](u, self.graph, self.status, nodes_data, self.constants)
+                                actual_status[u][self.compartment[j][0]] = val
 
         delta, status_delta = self.status_delta_continuous(actual_status)
         self.status = actual_status
@@ -336,7 +351,7 @@ class ContinuousModel(DiffusionModel):
                 #'Reds' | 'Blues' | 'Picnic' | 'Rainbow' | 'Portland' | 'Jet' |
                 #'Hot' | 'Blackbody' | 'Earth' | 'Electric' | 'Viridis' |
                 colorscale=self.visualization_configuration['color_scale'],
-                reversescale=True,
+                reversescale=False,
                 color=[],
                 size=10,
                 cmin=self.visualization_configuration['cmin'],
