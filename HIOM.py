@@ -1,6 +1,3 @@
-# TODO Write tests
-# Requirements, networkx, numpy, matplotlib, bokeh, plotly, PIL, psutil, kaleido
-
 import networkx as nx
 import random
 import numpy as np
@@ -20,7 +17,6 @@ from ndlib.viz.bokeh.DiffusionTrend import DiffusionTrend
 ################### MODEL SPECIFICATIONS ###################
 
 constants = {
-    'N': 500,
     'dt': 0.01,
     'A_min': -0.5,
     'A_star': 1,
@@ -36,7 +32,7 @@ def initial_I(node, graph, status, constants):
     return np.random.normal(0, 0.3)
 
 def initial_O(node, graph, status, constants):
-    return np.random.normal(0, 0.3)
+    return np.random.normal(0, 0.2)
 
 initial_status = {
     'I': initial_I,
@@ -70,6 +66,12 @@ def update_O(node, graph, status, attributes, constants):
     x = status[node]['O'] - constants['dt'] * (status[node]['O']**3 - (status[node]['A'] + constants['A_min']) * status[node]['O'] - status[node]['I']) + noise
     return x
 
+def shrink_I(node, graph, status, attributes, constants):
+    return status[node]['I'] * 0.999
+
+def shrink_A(node, graph, status, attributes, constants):
+    return status[node]['A'] * 0.999
+
 def sample_attention_weighted(graph, status):
     probs = []
     A = [stat['A'] for stat in list(status.values())]
@@ -78,7 +80,26 @@ def sample_attention_weighted(graph, status):
         probs.append(a * factor)
     return np.random.choice(graph.nodes, size=1, replace=False, p=probs)
 
-schemes = [sample_attention_weighted, lambda graph, status: graph.nodes]
+schemes = [
+    {
+        'name': 'random agent',
+        'function': sample_attention_weighted,
+    },
+    {
+        'name': 'all',
+        'function': lambda graph, status: graph.nodes,
+    },
+    {
+        'name': 'shrink I',
+        'function': lambda graph, status: graph.nodes,
+        'lower': 5000
+    },
+    {
+        'name': 'shrink A',
+        'function': lambda graph, status: graph.nodes,
+        'lower': 10000
+    },
+]
 
 ################### MODEL CONFIGURATION ###################
 
@@ -88,7 +109,7 @@ g = nx.watts_strogatz_graph(400, 2, 0.02)
 # Visualization config
 visualization_config = {
     'layout': nx.drawing.fruchterman_reingold_layout,
-    'plot_interval': 100,
+    'plot_interval': 1000,
     'plot_variable': 'O',
     'cmin': -1,
     'color_scale': 'RdBu',
@@ -99,7 +120,7 @@ visualization_config = {
 }
 
 # Model definition
-HIOM = ContinuousModel(g, constants=constants, visualization_configuration=visualization_config, iteration_schemes=schemes)
+HIOM = ContinuousModel(g, constants=constants, visualization_configuration=visualization_config, iteration_schemes=schemes, save_file='../data/hiom.npy')
 HIOM.add_status('I')
 HIOM.add_status('A')
 HIOM.add_status('O')
@@ -108,9 +129,11 @@ HIOM.add_status('O')
 condition = NodeStochastic(1)
 
 # Rules
-HIOM.add_rule('I', update_I, condition, [0])
-HIOM.add_rule('A', update_A, condition, [1])
-HIOM.add_rule('O', update_O, condition, [1])
+HIOM.add_rule('I', update_I, condition, ['random agent'])
+HIOM.add_rule('A', update_A, condition, ['all'])
+HIOM.add_rule('O', update_O, condition, ['all'])
+HIOM.add_rule('I', shrink_I, condition, ['shrink I'])
+HIOM.add_rule('A', shrink_A, condition, ['shrink A'])
 
 # Configuration
 config = mc.Configuration()
@@ -121,9 +144,13 @@ HIOM.set_initial_status(initial_status, config)
 ################### SIMULATION ###################
 
 # Simulation
-iterations = HIOM.iteration_bunch(5000, node_status=True)
-trends = HIOM.build_trends(iterations)
+# iterations = HIOM.iteration_bunch(15000, node_status=True)
+# trends = HIOM.build_trends(iterations)
+# HIOM.plot(trends, len(iterations), delta=True)
+# HIOM.plot_bars(iterations)
+
+HIOM.plot_bars(np.load('../data/hiom.npy', allow_pickle=True))
 
 ################### VISUALIZATION ###################
 
-HIOM.visualize()
+# HIOM.visualize()

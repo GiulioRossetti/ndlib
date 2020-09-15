@@ -1,7 +1,9 @@
+# TODO Write tests, fix visualization logic, assert save_file
+# Requirements, networkx, numpy, matplotlib, bokeh, plotly, PIL, psutil, kaleido
+
 from ndlib.models.DiffusionModel import DiffusionModel
 import future.utils
 import os
-import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import networkx as nx
 from plotly.subplots import make_subplots
@@ -10,6 +12,11 @@ import numpy as np
 from PIL import Image
 import io
 
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import matplotlib.path as path
+import matplotlib.animation as animation
+
 __author__ = 'Mathijs Maijer'
 __license__ = "BSD-2-Clause"
 __email__ = "m.f.maijer@gmail.com"
@@ -17,7 +24,7 @@ __email__ = "m.f.maijer@gmail.com"
 
 class ContinuousModel(DiffusionModel):
 
-    def __init__(self, graph, constants=None, clean_status=None, visualization_configuration=None, iteration_schemes=None):
+    def __init__(self, graph, constants=None, clean_status=None, visualization_configuration=None, iteration_schemes=None, save_file=None):
         """
              Model Constructor
              :param graph: A networkx graph object
@@ -40,12 +47,15 @@ class ContinuousModel(DiffusionModel):
         if iteration_schemes:
             self.iteration_schemes = iteration_schemes
         else:
-            self.iteration_schemes = [lambda graph, status: graph.nodes]
+            self.iteration_schemes = [{'name': '', 'function': lambda graph, status: graph.nodes}]
 
         if visualization_configuration:
             self.configure_visualization(visualization_configuration)
         else:
             self.visualization_configuration = None
+
+        self.save_file = save_file
+
 
     def configure_visualization(self, visualization_configuration):
         if visualization_configuration:
@@ -118,7 +128,7 @@ class ContinuousModel(DiffusionModel):
             self.available_statuses[status_name] = self.status_progressive
             self.status_progressive += 1
 
-    def add_rule(self, status, function, rule, schemes=[0]):
+    def add_rule(self, status, function, rule, schemes=['']):
         self.compartment[self.compartment_progressive] = (status, function, rule, schemes)
         self.compartment_progressive += 1
 
@@ -183,24 +193,30 @@ class ContinuousModel(DiffusionModel):
 
         nodes_data = self.graph.nodes(data=True)
 
-        for i, scheme in enumerate(self.iteration_schemes):
-            nodes = scheme(self.graph, self.status)
+        for scheme in self.iteration_schemes:
+
+            if 'lower' in scheme and scheme['lower'] > self.actual_iteration:
+                continue
+            if 'upper' in scheme and scheme['upper'] < self.actual_iteration:
+                continue
+
+            nodes = scheme['function'](self.graph, self.status)
             for u in nodes:
                 # For all rules
-                for j in range(0, self.compartment_progressive):
-                    if i in self.compartment[j][3]:
+                for i in range(0, self.compartment_progressive):
+                    if scheme['name'] in self.compartment[i][3]:
                         # Get and test the condition
-                        rule = self.compartment[j][2]
+                        rule = self.compartment[i][2]
                         test = rule.execute(node=u, graph=self.graph, status=self.status,
                                             status_map=self.available_statuses, attributes=nodes_data,
                                             params=self.params, constants=self.constants)
                         if test:
                             # Update status or network if test succeeds
-                            if self.compartment[j][0] == 'network':
-                                self.compartment[j][1](u, self.graph, self.status, nodes_data, self.constants)
+                            if self.compartment[i][0] == 'network':
+                                self.compartment[i][1](u, self.graph, self.status, nodes_data, self.constants)
                             else:
-                                val = self.compartment[j][1](u, self.graph, self.status, nodes_data, self.constants)
-                                actual_status[u][self.compartment[j][0]] = val
+                                val = self.compartment[i][1](u, self.graph, self.status, nodes_data, self.constants)
+                                actual_status[u][self.compartment[i][0]] = val
 
         delta, status_delta = self.status_delta_continuous(actual_status)
         self.status = actual_status
@@ -212,6 +228,13 @@ class ContinuousModel(DiffusionModel):
         else:
             return {"iteration": self.actual_iteration - 1, "status": {},
                     "status_delta": copy.deepcopy(status_delta)}
+
+    def iteration_bunch(self, bunch_size, node_status=True):
+        iterations = super().iteration_bunch(bunch_size, node_status)
+        if self.save_file:
+            np.save(self.save_file, iterations)
+            print('Saved ' + self.save_file)
+        return iterations
 
     def get_mean_data(self, iterations, mean_type):
         mean_changes = {}
@@ -311,6 +334,58 @@ class ContinuousModel(DiffusionModel):
                 axs[i].plot(x, values, label=status)
             axs[i].set_title("Mean value of changed variables per iteration")
             axs[i].legend()
+
+        plt.show()
+
+    def create_frames(self, iterations):
+        status = self.build_full_status(iterations)
+        statuses = list(self.available_statuses.keys())
+        statuses.remove('Infected')
+        frames = {key: [] for key in statuses}
+
+        for i in range(len(status)):
+            if i % self.visualization_configuration['plot_interval'] == 0:
+                status_list = {key: [] for key in statuses}
+                for node in status[i]['status'].keys():
+                    vals = status[i]['status'][node]
+                    for key in statuses:
+                        status_list[key].append(vals[key])
+
+                for key in statuses:
+                    frames[key].append(status_list[key])
+        return frames
+
+    def plot_bars(self, iterations):
+        frames = self.create_frames(iterations)
+
+        statuses = list(self.available_statuses.keys())
+        statuses.remove('Infected')
+
+        n_status = len(statuses)
+
+        fig, axis = plt.subplots(1, n_status, figsize=(12,6))
+
+        n = int(len(iterations)/self.visualization_configuration['plot_interval'])
+
+        cm = plt.cm.get_cmap('RdYlBu_r')
+
+        def updateData(curr):
+            if curr <=2: return
+            for ax in axis:
+                ax.clear()
+
+            for i, ax in enumerate(axis):
+                n, bins, patches = ax.hist(frames[statuses[i]][curr], range=[-1, 1], density=1, bins=25)
+                bin_centers = 0.5 * (bins[:-1] + bins[1:])
+                col = bin_centers - min(bin_centers)
+                col /= max(col)
+                for c, p in zip(col, patches):
+                    plt.setp(p, 'facecolor', cm(c))
+                ax.set_title(statuses[i])
+                ax.get_xaxis().set_ticks([])
+                ax.get_yaxis().set_ticks([])
+
+        simulation = animation.FuncAnimation(fig, updateData, n, interval=200, repeat=True)
 
         plt.show()
 

@@ -107,7 +107,7 @@ visualization_config = {
 }
 
 # Model definition
-craving_control_model = ContinuousModel(g, constants=constants, visualization_configuration=visualization_config)
+craving_control_model = ContinuousModel(g, constants=constants, visualization_configuration=visualization_config, save_file='../data/c_vs_s.npy')
 craving_control_model.add_status('C')
 craving_control_model.add_status('S')
 craving_control_model.add_status('E')
@@ -120,12 +120,12 @@ condition = NodeStochastic(1)
 condition2 = NodeStochastic(0.005)
 
 # Rules
-craving_control_model.add_rule('C', update_C, condition, [0])
-craving_control_model.add_rule('S', update_S, condition, [0])
-craving_control_model.add_rule('E', update_E, condition, [0])
-craving_control_model.add_rule('V', update_V, condition, [0])
-craving_control_model.add_rule('lambda', update_lambda, condition, [0])
-craving_control_model.add_rule('A', update_A, condition, [0])
+craving_control_model.add_rule('C', update_C, condition)
+craving_control_model.add_rule('S', update_S, condition)
+craving_control_model.add_rule('E', update_E, condition)
+craving_control_model.add_rule('V', update_V, condition)
+craving_control_model.add_rule('lambda', update_lambda, condition)
+craving_control_model.add_rule('A', update_A, condition)
 # craving_control_model.add_rule('network', update_network, condition2)
 
 # Configuration
@@ -133,17 +133,12 @@ config = mc.Configuration()
 config.add_model_parameter('fraction_infected', 0.1)
 craving_control_model.set_initial_status(initial_status, config)
 
-
-
-
 ################### SIMULATION ###################
 
 # Simulation
 iterations = craving_control_model.iteration_bunch(100, node_status=True)
 trends = craving_control_model.build_trends(iterations)
-
-
-
+craving_control_model.plot_bars(iterations)
 
 ################### VISUALIZATION ###################
 
