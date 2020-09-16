@@ -55,13 +55,12 @@ def update_I(node, graph, status, attributes, constants):
 
         return inf
 
-    return # eq 7 + eq 6
+    return
 
 def update_A(node, graph, status, attributes, constants):
     return status[node]['A'] - 2 * constants['d_A'] * status[node]['A']/len(graph.nodes)
 
 def update_O(node, graph, status, attributes, constants):
-    # stoch_cusp(N,opinion,attention+min_attention,information,s_O,maxwell_convention)
     noise = np.random.normal(0, constants['s_O'])
     x = status[node]['O'] - constants['dt'] * (status[node]['O']**3 - (status[node]['A'] + constants['A_min']) * status[node]['O'] - status[node]['I']) + noise
     return x
@@ -108,19 +107,21 @@ g = nx.watts_strogatz_graph(400, 2, 0.02)
 
 # Visualization config
 visualization_config = {
-    'layout': nx.drawing.fruchterman_reingold_layout,
-    'plot_interval': 1000,
+    'layout': 'fr',
+    'plot_interval': 100,
     'plot_variable': 'O',
+    'variable_limits': {
+        'A': [0, 1]
+    },
     'cmin': -1,
+    'cmax': 1,
     'color_scale': 'RdBu',
-    'save_plot': True,
-    'plot_output': '../animations/HIOM.gif',
+    'plot_output': '../animations/HIOM_less.gif',
     'plot_title': 'HIERARCHICAL ISING OPINION MODEL',
-    'plot_annotation': 'The polarization within and across individuals: the hierarchical Ising opinion model, Han L. J. van der Maas (2020)'
 }
 
 # Model definition
-HIOM = ContinuousModel(g, constants=constants, visualization_configuration=visualization_config, iteration_schemes=schemes, save_file='../data/hiom.npy')
+HIOM = ContinuousModel(g, constants=constants, iteration_schemes=schemes)
 HIOM.add_status('I')
 HIOM.add_status('A')
 HIOM.add_status('O')
@@ -139,18 +140,18 @@ HIOM.add_rule('A', shrink_A, condition, ['shrink A'])
 config = mc.Configuration()
 config.add_model_parameter('fraction_infected', 0.1)
 HIOM.set_initial_status(initial_status, config)
-
+HIOM.configure_visualization(visualization_config)
 
 ################### SIMULATION ###################
 
 # Simulation
-# iterations = HIOM.iteration_bunch(15000, node_status=True)
+iterations = HIOM.iteration_bunch(15000, node_status=True)
 # trends = HIOM.build_trends(iterations)
-# HIOM.plot(trends, len(iterations), delta=True)
-# HIOM.plot_bars(iterations)
-
-HIOM.plot_bars(np.load('../data/hiom.npy', allow_pickle=True))
 
 ################### VISUALIZATION ###################
 
-# HIOM.visualize()
+# HIOM.plot(trends, len(iterations), delta=True)
+HIOM.visualize(iterations)
+
+
+# HIOM.visualize(np.load('../data/hiom.npy', allow_pickle=True))

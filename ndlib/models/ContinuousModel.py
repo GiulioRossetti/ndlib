@@ -1,5 +1,5 @@
 # TODO Write tests, fix visualization logic, assert save_file
-# Requirements, networkx, numpy, matplotlib, bokeh, plotly, PIL, psutil, kaleido
+# Requirements, networkx, numpy, matplotlib, PIL, pyintergraph
 
 from ndlib.models.DiffusionModel import DiffusionModel
 import future.utils
@@ -12,9 +12,11 @@ import numpy as np
 from PIL import Image
 import io
 
+import pyintergraph
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.path as path
+import matplotlib as mpl
 import matplotlib.animation as animation
 
 __author__ = 'Mathijs Maijer'
@@ -24,7 +26,7 @@ __email__ = "m.f.maijer@gmail.com"
 
 class ContinuousModel(DiffusionModel):
 
-    def __init__(self, graph, constants=None, clean_status=None, visualization_configuration=None, iteration_schemes=None, save_file=None):
+    def __init__(self, graph, constants=None, clean_status=None, iteration_schemes=None, save_file=None):
         """
              Model Constructor
              :param graph: A networkx graph object
@@ -49,12 +51,11 @@ class ContinuousModel(DiffusionModel):
         else:
             self.iteration_schemes = [{'name': '', 'function': lambda graph, status: graph.nodes}]
 
-        if visualization_configuration:
-            self.configure_visualization(visualization_configuration)
-        else:
-            self.visualization_configuration = None
+        self.visualization_configuration = None
 
         self.save_file = save_file
+
+        self.full_status = None
 
 
     def configure_visualization(self, visualization_configuration):
@@ -76,14 +77,6 @@ class ContinuousModel(DiffusionModel):
                     raise ValueError('Plot variable must be a string')
             else:
                 self.visualization_configuration['plot_variable'] = None
-
-            self.visualization_configuration['save_plot'] = True if self.visualization_configuration['save_plot'] else False
-            if self.visualization_configuration['save_plot']:
-                if 'plot_output' not in vis_keys:
-                    self.visualization_configuration['plot_output'] = './visualization/network.gif'
-                elif not isinstance(self.visualization_configuration['plot_output'], str):
-                    raise ValueError('plot_output must be a string')
-                # Todo create regex for plot output
 
             if 'plot_title' in self.visualization_configuration.keys():
                 if not isinstance(self.visualization_configuration['plot_title'], str):
@@ -114,14 +107,29 @@ class ContinuousModel(DiffusionModel):
                 if not isinstance(self.visualization_configuration['color_scale'], str):
                     raise ValueError('Color scale must be a string')
             else:
-                self.visualization_configuration['color_scale'] = 'YlGnBu'
+                self.visualization_configuration['color_scale'] = 'RdBu'
             if 'pos' not in self.graph.nodes[0].keys():
                 if 'layout' in vis_keys:
-                    pos = self.visualization_configuration['layout'](self.graph.graph)
+                    if self.visualization_configuration['layout'] == 'fr':
+                        Graph = pyintergraph.InterGraph.from_networkx(self.graph.graph)
+                        G = Graph.to_igraph()
+                        layout = G.layout_fruchterman_reingold(niter=500)
+                        positions = {node: {'pos': location} for node, location in enumerate(layout)}
+                    else:
+                        pos = nx.drawing.kamada_kawai_layout(self.graph.graph)
+                        positions = {key: {'pos': location} for key, location in pos.items()}
                 else:
                     pos = nx.drawing.kamada_kawai_layout(self.graph.graph)
-                positions = {key: {'pos': location} for key, location in pos.items()}
+                    positions = {key: {'pos': location} for key, location in pos.items()}
+
                 nx.set_node_attributes(self.graph, positions)
+
+            if 'variable_limits' not in vis_keys:
+                self.visualization_configuration['variable_limits'] = {key: [-1, 1] for key in list(self.available_statuses.keys())}
+            else:
+                for key in list(self.available_statuses.keys()):
+                    if key not in list(self.visualization_configuration['variable_limits'].keys()):
+                        self.visualization_configuration['variable_limits'][key] = [-1, 1]
 
     def add_status(self, status_name):
         if status_name not in self.available_statuses:
@@ -177,9 +185,6 @@ class ContinuousModel(DiffusionModel):
 
         # actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
         actual_status = copy.deepcopy(self.status)
-
-        if self.visualization_configuration and self.actual_iteration % self.visualization_configuration['plot_interval'] == 0:
-            self.plot_graph()
 
         if self.actual_iteration == 0:
             self.actual_iteration += 1
@@ -285,8 +290,8 @@ class ContinuousModel(DiffusionModel):
         return statuses
 
     def get_means(self, iterations):
-        full_status = self.build_full_status(iterations)
-        means = self.get_mean_data(full_status, 'status')
+        self.full_status = self.build_full_status(iterations)
+        means = self.get_mean_data(self.full_status, 'status')
         return means
 
     def build_trends(self, iterations):
@@ -338,201 +343,93 @@ class ContinuousModel(DiffusionModel):
         plt.show()
 
     def create_frames(self, iterations):
-        status = self.build_full_status(iterations)
+        if not self.full_status:
+            self.full_status = self.build_full_status(iterations)
         statuses = list(self.available_statuses.keys())
         statuses.remove('Infected')
-        frames = {key: [] for key in statuses}
-
-        for i in range(len(status)):
+        histo_frames = {key: [] for key in statuses}
+        node_colors = []
+        for i in range(len(self.full_status)):
             if i % self.visualization_configuration['plot_interval'] == 0:
                 status_list = {key: [] for key in statuses}
-                for node in status[i]['status'].keys():
-                    vals = status[i]['status'][node]
+                for node in self.full_status[i]['status'].keys():
+                    vals = self.full_status[i]['status'][node]
                     for key in statuses:
                         status_list[key].append(vals[key])
 
                 for key in statuses:
-                    frames[key].append(status_list[key])
-        return frames
+                    histo_frames[key].append(status_list[key])
+                node_colors.append([self.full_status[i]['status'][node][self.visualization_configuration['plot_variable']] for node in self.graph.nodes])
 
-    def plot_bars(self, iterations):
-        frames = self.create_frames(iterations)
+        return (histo_frames, node_colors)
+
+    def visualize(self, iterations):
+        (histo_frames, node_colors) = self.create_frames(iterations)
 
         statuses = list(self.available_statuses.keys())
         statuses.remove('Infected')
 
         n_status = len(statuses)
 
-        fig, axis = plt.subplots(1, n_status, figsize=(12,6))
+        fig = plt.figure(figsize=(10,9), constrained_layout=True)
+        gs = fig.add_gridspec(6, n_status)
+
+        network = fig.add_subplot(gs[:-1, :])
+
+        axis = []
+
+        for i in range(n_status):
+            ax = fig.add_subplot(gs[-1, i])
+            ax.set_title(statuses[i])
+            ax.get_xaxis().set_ticks([])
+            ax.get_yaxis().set_ticks([])
+            axis.append(ax)
 
         n = int(len(iterations)/self.visualization_configuration['plot_interval'])
 
-        cm = plt.cm.get_cmap('RdYlBu_r')
+        cm = plt.cm.get_cmap(self.visualization_configuration['color_scale'])
+        vmin = self.visualization_configuration['variable_limits'][self.visualization_configuration['plot_variable']][0]
+        vmax = self.visualization_configuration['variable_limits'][self.visualization_configuration['plot_variable']][1]
 
         def updateData(curr):
-            if curr <=2: return
+            # if curr <=2: return
+            # Clean previous graphs
+            network.clear()
             for ax in axis:
                 ax.clear()
 
+            # Plot all variable histograms
             for i, ax in enumerate(axis):
-                n, bins, patches = ax.hist(frames[statuses[i]][curr], range=[-1, 1], density=1, bins=25)
+                n, bins, patches = ax.hist(histo_frames[statuses[i]][curr], range=self.visualization_configuration['variable_limits'][statuses[i]], density=1, bins=25, edgecolor='black')
                 bin_centers = 0.5 * (bins[:-1] + bins[1:])
                 col = bin_centers - min(bin_centers)
                 col /= max(col)
                 for c, p in zip(col, patches):
                     plt.setp(p, 'facecolor', cm(c))
                 ax.set_title(statuses[i])
+                # ax.set_ylim([0, len(self.graph.nodes)])
                 ax.get_xaxis().set_ticks([])
                 ax.get_yaxis().set_ticks([])
 
-        simulation = animation.FuncAnimation(fig, updateData, n, interval=200, repeat=True)
+            # Plot network
+            pos = nx.get_node_attributes(self.graph.graph, 'pos')
+            nx.draw_networkx_edges(self.graph.graph, pos, alpha=0.2, ax=network)
+            nc = nx.draw_networkx_nodes(self.graph.graph, pos, nodelist=self.graph.nodes, node_color=node_colors[curr], vmin=vmin, vmax=vmax, cmap=cm, node_size=50, ax=network)
+            nc.set_edgecolor('black')
+            network.get_xaxis().set_ticks([])
+            network.get_yaxis().set_ticks([])
+            network.set_title('Iteration: ' + str(curr * self.visualization_configuration['plot_interval']))
 
+        simulation = animation.FuncAnimation(fig, updateData, n, interval=30, repeat=True)
+
+        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+        sm = plt.cm.ScalarMappable(cmap=cm, norm=norm)
+        sm.set_array([])
+        fig.colorbar(sm, ax=network)
+        fig.suptitle(self.visualization_configuration['plot_title'], fontsize=16)
         plt.show()
 
-    def plot_graph(self):
-        edge_x = []
-        edge_y = []
-        for edge in self.graph.edges():
-            x0, y0 = self.graph.nodes[edge[0]]['pos']
-            x1, y1 = self.graph.nodes[edge[1]]['pos']
-            edge_x.append(x0)
-            edge_x.append(x1)
-            edge_x.append(None)
-            edge_y.append(y0)
-            edge_y.append(y1)
-            edge_y.append(None)
-
-        edge_trace = go.Scatter(
-            x=edge_x, y=edge_y,
-            line=dict(width=0.5, color='#888'),
-            hoverinfo='none',
-            mode='lines')
-
-        node_x = []
-        node_y = []
-        for node in self.graph.nodes():
-            x, y = self.graph.nodes[node]['pos']
-            node_x.append(x)
-            node_y.append(y)
-
-        node_trace = go.Scatter(
-            x=node_x, y=node_y,
-            mode='markers',
-            hoverinfo='text',
-            marker=dict(
-                showscale=True,
-                # colorscale options
-                #'Greys' | 'YlGnBu' | 'Greens' | 'YlOrRd' | 'Bluered' | 'RdBu' |
-                #'Reds' | 'Blues' | 'Picnic' | 'Rainbow' | 'Portland' | 'Jet' |
-                #'Hot' | 'Blackbody' | 'Earth' | 'Electric' | 'Viridis' |
-                colorscale=self.visualization_configuration['color_scale'],
-                reversescale=False,
-                color=[],
-                size=10,
-                cmin=self.visualization_configuration['cmin'],
-                cmax=self.visualization_configuration['cmax'],
-                colorbar=dict(
-                    thickness=15,
-                    title=self.visualization_configuration['plot_variable'],
-                    xanchor='left',
-                    titleside='right',
-                ),
-                line_width=2))
-
-        node_value = []
-        node_text = []
-
-        if self.visualization_configuration['plot_variable']:
-            for node in self.graph.nodes():
-                value = self.status[node][self.visualization_configuration['plot_variable']]
-                node_value.append(value)
-                node_text.append(self.visualization_configuration['plot_variable'] + ': ' + str(value))
-        else:
-            for node in self.graph.nodes():
-                n_neighbors = len(self.graph.neighbors(node))
-                node_value.append(n_neighbors)
-                node_text.append('# of connections: ' + str(n_neighbors))
-
-        node_trace.marker.color = node_value
-        node_trace.text = node_text
-
-        self.visualizations.append([edge_trace, node_trace])
-
-    def visualize(self):
-        if not self.visualization_configuration:
-            print('Visualization stopped because no configuration is defined')
-            return
-        self.plot_graph() # Also save last network state
-
-        frames = []
-        for v in self.visualizations:
-            frames.append(go.Frame(data=[v[0], v[1]]))
-
-        fig = go.Figure(data=[self.visualizations[0][0], self.visualizations[0][1]],
-             layout=go.Layout(
-                title=self.visualization_configuration['plot_title'],
-                titlefont_size=16,
-                showlegend=False,
-                hovermode='closest',
-                margin=dict(b=20,l=5,r=5,t=40),
-                annotations=[ dict(
-                    text=self.visualization_configuration['plot_annotation'],
-                    showarrow=False,
-                    xref="paper", yref="paper",
-                    x=0.005, y=-0.002 ) ],
-                updatemenus=[dict(
-                    type="buttons",
-                    buttons=[dict(label="Play",
-                          method="animate",
-                          args=[None, {"frame": {"duration": 500}, "transition": {"duration": 0}}])])],
-                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
-                ),
-                frames=frames
-            )
-
-        fig.show()
-
-        if self.visualization_configuration['save_plot']:
-            # Create byte images
-            images = []
-            for i, f in enumerate(self.visualizations):
-                fig = go.Figure(data=[self.visualizations[i][0], self.visualizations[i][1]],
-                layout=go.Layout(
-                    title=self.visualization_configuration['plot_title'],
-                    titlefont_size=16,
-                    width=1920,
-                    height=1080,
-                    showlegend=False,
-                    hovermode='closest',
-                    margin=dict(b=20,l=5,r=5,t=40),
-                    annotations=[ dict(
-                        text=self.visualization_configuration['plot_annotation'],
-                        showarrow=False,
-                        xref="paper", yref="paper",
-                        x=0.005, y=-0.002 ) ])
-                ).to_image(format="png")
-
-                images.append(Image.open(io.BytesIO(fig)))
-            # Create gif of byte image array
-
-            split_dir = self.visualization_configuration['plot_output'].split('/')
-            path = '/'.join(split_dir[0:-1])
-            filename = split_dir[-1]
-
-            if not os.path.exists(path):
-                os.makedirs(path)
-
-            images[0].save(self.visualization_configuration['plot_output'],
-                save_all=True, append_images=images[1:], duration=500)
-            print('Saved ' + self.visualization_configuration['plot_output'])
-
-    def networkx_graphing(self):
-        pos = nx.get_node_attributes(self.graph.graph, 'pos')
-        plt.figure(figsize=(12, 12))
-        nx.draw_networkx_edges(self.graph.graph, pos, alpha=0.2)
-        nx.draw_networkx_nodes(self.graph.graph, pos, node_size=20)
-        plt.xlim(-0.05, 1.05)
-        plt.ylim(-0.05, 1.05)
-        plt.axis('off')
-        plt.show()
+        if 'plot_output' in self.visualization_configuration.keys():
+            writergif = animation.PillowWriter(fps=5)
+            simulation.save(self.visualization_configuration['plot_output'], writer=writergif)
+            print('Saved: ' + self.visualization_configuration['plot_output'])

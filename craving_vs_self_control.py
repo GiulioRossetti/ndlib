@@ -68,28 +68,6 @@ def update_lambda(node, graph, status, attributes, constants):
 def update_A(node, graph, status, attributes, constants):
     return constants['q'] * status[node]['V'] + min((np.random.poisson(status[node]['lambda'])/7), constants['q']*(1 - status[node]['V']))
 
-# 50% chance of severing connections, move to random location, create new random connections
-def update_network(node, graph, status, attributes, constants):
-    sever = []
-    for n in graph.neighbors(node):
-        if random.random() < 0.5:
-            sever.append(n)
-    graph.remove_edges(node, sever)
-
-    if random.random() < 0.05:
-        pos = (random.random(), random.random())
-        graph.nodes[node]['pos'] = pos
-
-    while True:
-        new_connections = []
-        if random.random() < 0.5:
-            new_conn = random.choice(graph.nodes())
-            if new_conn not in graph.neighbors(node):
-                new_connections.append(new_conn)
-        else:
-            graph.add_edges(node, new_connections)
-            return
-
 ################### MODEL CONFIGURATION ###################
 
 # Network definition
@@ -98,16 +76,18 @@ g = nx.random_geometric_graph(200, 0.125)
 
 # Visualization config
 visualization_config = {
-    'plot_interval': 5,
+    'plot_interval': 1,
     'plot_variable': 'A',
-    'save_plot': True,
-    'plot_output': '../animations/c_vs_s.gif',
+    'variable_limits': {
+        'A': [0, 0.8],
+        'lambda': [0.5, 1.5]
+    },
+    'plot_output': '../animations/c_vs_s_slow.gif',
     'plot_title': 'Self control vs craving simulation',
-    'plot_annotation': 'The dynamics of addiction: Craving versus self-control, Johan Grasman, Raoul P.P.P. Grasman, Han L.J. van der Maas (2006)'
 }
 
 # Model definition
-craving_control_model = ContinuousModel(g, constants=constants, visualization_configuration=visualization_config, save_file='../data/c_vs_s.npy')
+craving_control_model = ContinuousModel(g, constants=constants, save_file='../data/c_vs_s.npy')
 craving_control_model.add_status('C')
 craving_control_model.add_status('S')
 craving_control_model.add_status('E')
@@ -117,7 +97,6 @@ craving_control_model.add_status('A')
 
 # Compartments
 condition = NodeStochastic(1)
-condition2 = NodeStochastic(0.005)
 
 # Rules
 craving_control_model.add_rule('C', update_C, condition)
@@ -126,23 +105,22 @@ craving_control_model.add_rule('E', update_E, condition)
 craving_control_model.add_rule('V', update_V, condition)
 craving_control_model.add_rule('lambda', update_lambda, condition)
 craving_control_model.add_rule('A', update_A, condition)
-# craving_control_model.add_rule('network', update_network, condition2)
 
 # Configuration
 config = mc.Configuration()
 config.add_model_parameter('fraction_infected', 0.1)
 craving_control_model.set_initial_status(initial_status, config)
+craving_control_model.configure_visualization(visualization_config)
 
 ################### SIMULATION ###################
 
 # Simulation
 iterations = craving_control_model.iteration_bunch(100, node_status=True)
 trends = craving_control_model.build_trends(iterations)
-craving_control_model.plot_bars(iterations)
 
 ################### VISUALIZATION ###################
 
-# craving_control_model.plot(trends, len(iterations), delta=True)
+craving_control_model.plot(trends, len(iterations), delta=True)
 
 x = np.arange(0, len(iterations))
 plt.figure()
@@ -164,4 +142,4 @@ plt.legend()
 
 plt.show()
 
-craving_control_model.visualize()
+craving_control_model.visualize(iterations)
