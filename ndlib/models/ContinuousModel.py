@@ -1,5 +1,5 @@
-# TODO Write tests, fix visualization logic, assert save_file
-# Requirements, networkx, numpy, matplotlib, PIL, pyintergraph
+# TODO Write tests, fix visualization logic (overwrite vs update), assert save_file
+# Requirements, networkx, numpy, matplotlib, PIL, pyintergraph, tqdm
 
 from ndlib.models.DiffusionModel import DiffusionModel
 import future.utils
@@ -31,7 +31,7 @@ class ContinuousModel(DiffusionModel):
              Model Constructor
              :param graph: A networkx graph object
          """
-        super(self.__class__, self).__init__(graph)
+        super(ContinuousModel, self).__init__(graph)
         self.compartment = {}
         self.compartment_progressive = 0
         self.status_progressive = 0
@@ -60,7 +60,6 @@ class ContinuousModel(DiffusionModel):
 
     def configure_visualization(self, visualization_configuration):
         if visualization_configuration:
-            self.visualizations = []
             self.visualization_configuration = visualization_configuration
             vis_keys = visualization_configuration.keys()
             if 'plot_interval' in vis_keys:
@@ -71,7 +70,11 @@ class ContinuousModel(DiffusionModel):
                     raise ValueError('plot_interval must be a positive integer')
             else:
                 raise ValueError('plot_interval must be included for visualization')
-
+            if 'show_plot' in vis_keys:
+                if not isinstance(visualization_configuration['show_plot'], bool):
+                    raise ValueError('show_plot must be a boolean')
+            else:
+                self.visualization_configuration['show_plot'] = True
             if 'plot_variable' in vis_keys:
                 if not isinstance(visualization_configuration['plot_variable'], str):
                     raise ValueError('Plot variable must be a string')
@@ -196,7 +199,7 @@ class ContinuousModel(DiffusionModel):
                 return {"iteration": 0, "status": {},
                          "status_delta": copy.deepcopy(status_delta)}
 
-        nodes_data = self.graph.nodes(data=True)
+        nodes_data = self.graph.nodes
 
         for scheme in self.iteration_schemes:
 
@@ -311,7 +314,7 @@ class ContinuousModel(DiffusionModel):
         if delta:
             sub_plots = 2 if (delta and not delta_mean) else 3
 
-        fig, axs = plt.subplots(sub_plots)
+        _, axs = plt.subplots(sub_plots)
 
         # Mean status delta per iterations
         if delta or delta_mean:
@@ -392,7 +395,6 @@ class ContinuousModel(DiffusionModel):
         vmax = self.visualization_configuration['variable_limits'][self.visualization_configuration['plot_variable']][1]
 
         def updateData(curr):
-            # if curr <=2: return
             # Clean previous graphs
             network.clear()
             for ax in axis:
@@ -400,7 +402,7 @@ class ContinuousModel(DiffusionModel):
 
             # Plot all variable histograms
             for i, ax in enumerate(axis):
-                n, bins, patches = ax.hist(histo_frames[statuses[i]][curr], range=self.visualization_configuration['variable_limits'][statuses[i]], density=1, bins=25, edgecolor='black')
+                _, bins, patches = ax.hist(histo_frames[statuses[i]][curr], range=self.visualization_configuration['variable_limits'][statuses[i]], density=1, bins=25, edgecolor='black')
                 bin_centers = 0.5 * (bins[:-1] + bins[1:])
                 col = bin_centers - min(bin_centers)
                 col /= max(col)
@@ -427,9 +429,14 @@ class ContinuousModel(DiffusionModel):
         sm.set_array([])
         fig.colorbar(sm, ax=network)
         fig.suptitle(self.visualization_configuration['plot_title'], fontsize=16)
-        plt.show()
+        
+        if self.visualization_configuration['show_plot']:
+            plt.show()
 
         if 'plot_output' in self.visualization_configuration.keys():
-            writergif = animation.PillowWriter(fps=5)
-            simulation.save(self.visualization_configuration['plot_output'], writer=writergif)
-            print('Saved: ' + self.visualization_configuration['plot_output'])
+            self.save_plot(simulation)
+
+    def save_plot(self, simulation):
+        writergif = animation.PillowWriter(fps=5)
+        simulation.save(self.visualization_configuration['plot_output'], writer=writergif)
+        print('Saved: ' + self.visualization_configuration['plot_output'])

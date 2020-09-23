@@ -3,16 +3,10 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ndlib.models.CompositeModel import CompositeModel
 from ndlib.models.ContinuousModel import ContinuousModel
 from ndlib.models.compartments.NodeStochastic import NodeStochastic
-from ndlib.models.compartments.enums.NumericalType import NumericalType
-from ndlib.models.compartments.NodeNumericalVariable import NodeNumericalVariable
 
 import ndlib.models.ModelConfig as mc
-
-from bokeh.io import show
-from ndlib.viz.bokeh.DiffusionTrend import DiffusionTrend
 
 ################### MODEL SPECIFICATIONS ###################
 

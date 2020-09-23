@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ndlib.models.ContinuousModel import ContinuousModel
+from ndlib.models.ContinuousModelRunner import ContinuousModelRunner
 from ndlib.models.compartments.NodeStochastic import NodeStochastic
 
 import ndlib.models.ModelConfig as mc
@@ -62,19 +63,17 @@ def update_A(node, graph, status, attributes, constants):
 ################### MODEL CONFIGURATION ###################
 
 # Network definition
-# g = nx.random_geometric_graph(2000, 0.035)
 g = nx.random_geometric_graph(200, 0.125)
 
 # Visualization config
 visualization_config = {
-    'plot_interval': 2,
+    'plot_interval': 10,
     'plot_variable': 'A',
     'variable_limits': {
         'A': [0, 0.8],
         'lambda': [0.5, 1.5]
     },
     'show_plot': True,
-    'plot_output': '../animations/c_vs_s.gif',
     'plot_title': 'Self control vs craving simulation',
 }
 
@@ -101,36 +100,17 @@ craving_control_model.add_rule('A', update_A, condition)
 # Configuration
 config = mc.Configuration()
 craving_control_model.set_initial_status(initial_status, config)
+craving_control_model.set_initial_status(initial_status, config)
 craving_control_model.configure_visualization(visualization_config)
 
 ################### SIMULATION ###################
 
 # Simulation
-iterations = craving_control_model.iteration_bunch(100, node_status=True)
-trends = craving_control_model.build_trends(iterations)
+runner = ContinuousModelRunner(craving_control_model, config, 10, [100], [initial_status])
+results = runner.run()
 
 ################### VISUALIZATION ###################
 
-craving_control_model.plot(trends, len(iterations), delta=True)
-
-x = np.arange(0, len(iterations))
-plt.figure()
-
-plt.subplot(221)
-plt.plot(x, trends['means']['E'], label='E')
-plt.plot(x, trends['means']['lambda'], label='lambda')
-plt.legend()
-
-plt.subplot(222)
-plt.plot(x, trends['means']['A'], label='A')
-plt.plot(x, trends['means']['C'], label='C')
-plt.legend()
-
-plt.subplot(223)
-plt.plot(x, trends['means']['S'], label='S')
-plt.plot(x, trends['means']['V'], label='V')
-plt.legend()
-
-plt.show()
-
-craving_control_model.visualize(iterations)
+for iterations in results:
+    trends = craving_control_model.build_trends(iterations)
+    craving_control_model.plot(trends, len(iterations), delta=True)
