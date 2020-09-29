@@ -1,4 +1,4 @@
-# TODO Write tests, fix visualization logic (overwrite vs update), assert save_file
+# TODO Write tests, fix visualization logic (overwrite vs update), assert save_file, add more visualization layout options
 # Requirements, networkx, numpy, matplotlib, PIL, pyintergraph, tqdm
 
 from ndlib.models.DiffusionModel import DiffusionModel
@@ -28,8 +28,14 @@ class ContinuousModel(DiffusionModel):
 
     def __init__(self, graph, constants=None, clean_status=None, iteration_schemes=None, save_file=None):
         """
-             Model Constructor
-             :param graph: A networkx graph object
+        Model Constructor
+
+        :param graph: A networkx graph object
+        :param constants: dictionary containing state name as key and float or function returning a float as value
+        :param clean_status: boolean indicating whether to set all status values between 0 and 1
+        :param iteration_schemes: list of dictionaries for each scheme
+            containing a name, function(graph, status), and optional lower and upper bound keys
+        :param save_file: string indicating path and file name to save the iterations output to
          """
         super(ContinuousModel, self).__init__(graph)
         self.compartment = {}
@@ -59,7 +65,13 @@ class ContinuousModel(DiffusionModel):
 
 
     def configure_visualization(self, visualization_configuration):
+        """
+        Configure and assert all visualization configuration parameters
+
+        :param visualization_configuration: dictionary containing all visualization options
+        """
         if visualization_configuration:
+            print('Configuring visualization...')
             self.visualization_configuration = visualization_configuration
             vis_keys = visualization_configuration.keys()
             if 'plot_interval' in vis_keys:
@@ -119,10 +131,10 @@ class ContinuousModel(DiffusionModel):
                         layout = G.layout_fruchterman_reingold(niter=500)
                         positions = {node: {'pos': location} for node, location in enumerate(layout)}
                     else:
-                        pos = nx.drawing.kamada_kawai_layout(self.graph.graph)
+                        pos = nx.drawing.spring_layout(self.graph.graph)
                         positions = {key: {'pos': location} for key, location in pos.items()}
                 else:
-                    pos = nx.drawing.kamada_kawai_layout(self.graph.graph)
+                    pos = nx.drawing.spring_layout(self.graph.graph)
                     positions = {key: {'pos': location} for key, location in pos.items()}
 
                 nx.set_node_attributes(self.graph, positions)
@@ -133,13 +145,34 @@ class ContinuousModel(DiffusionModel):
                 for key in list(self.available_statuses.keys()):
                     if key not in list(self.visualization_configuration['variable_limits'].keys()):
                         self.visualization_configuration['variable_limits'][key] = [-1, 1]
+            if 'animation_interval' not in vis_keys:
+                self.visualization_configuration['animation_interval'] = 30
+            else:
+                if not isinstance(self.visualization_configuration['animation_interval'], int):
+                    raise ValueError('animation interval must be an integer')
+            print('Done configuring the visualization')
+        else:
+            raise Exception('Provide a visualization configuration when using this function')
 
     def add_status(self, status_name):
+        """
+        Add a status/state to the model
+        """
         if status_name not in self.available_statuses:
             self.available_statuses[status_name] = self.status_progressive
             self.status_progressive += 1
 
     def add_rule(self, status, function, rule, schemes=['']):
+        """
+        Add a rule to the model
+
+        :param status: string indicating the status
+        :param function: A function that updates the status value
+            it receives the parameters: node, graph, status, attributes, constants
+        :param rule: A condition that should be true before the status is updated
+        :param schemes: A list of strings matching the names of the schemes in which the rule should be assessed
+            If no schemes are provided, the default scheme '' is used, which is assessed for every iteration
+        """
         self.compartment[self.compartment_progressive] = (status, function, rule, schemes)
         self.compartment_progressive += 1
 
@@ -170,6 +203,9 @@ class ContinuousModel(DiffusionModel):
         self.initial_status = copy.deepcopy(self.status)
 
     def clean_initial_status(self, valid_status=None):
+        """
+        For every status, set it to 0 if negative, or to 1 if > 1
+        """
         for n, s in future.utils.iteritems(self.status):
             for var_val in s.items():
                 if var_val[1] > 1:
@@ -238,6 +274,14 @@ class ContinuousModel(DiffusionModel):
                     "status_delta": copy.deepcopy(status_delta)}
 
     def iteration_bunch(self, bunch_size, node_status=True):
+        """
+        Execute bunch_size of model iterations and save the result if save_file is set
+
+        :param bunch_size: integer number of iterations to execute
+        :param node_status: boolean indicating whether to keep the statuses of the nodes
+
+        :return: list of outputs for every iteration
+        """
         iterations = super().iteration_bunch(bunch_size, node_status)
         if self.save_file:
             np.save(self.save_file, iterations)
@@ -245,6 +289,16 @@ class ContinuousModel(DiffusionModel):
         return iterations
 
     def get_mean_data(self, iterations, mean_type):
+        """
+        Create a dictionary with statuses as keys, and a list of average value per iteration as value
+
+        :param iterations: iterations output from iteration_bunch
+        :param mean_type: A string containing the type to get the average data from
+            Should be 'status' or 'status_delta'
+
+        :return: Dictionary containing all statuses as keys, 
+            and as value a list of the average values of all nodes for that status per iteration
+        """
         mean_changes = {}
         for key in self.available_statuses.keys():
             mean_changes[key] = []
@@ -276,6 +330,14 @@ class ContinuousModel(DiffusionModel):
         return mean_changes
 
     def build_full_status(self, iterations):
+        """
+        Create a list with objects that have all the nodes with their statuses per iteration
+
+        :param iterations: iterations output from iteration_bunch
+
+        :return: a list of status objects that contain an iteration key with its number as value and a status key
+            the status value contains per node all its states as keys with the corresponding state values
+        """
         statuses = []
         status = {'iteration': 0, 'status': {}}
         for key, val in iterations[0]['status'].items():
@@ -293,6 +355,14 @@ class ContinuousModel(DiffusionModel):
         return statuses
 
     def get_means(self, iterations):
+        """
+        Create a full status and get the mean data for the status key
+
+        :param iterations: iterations output from iteration_bunch
+
+        :return: Dictionary containing all statuses as keys, 
+            and as value a list of the average values of all nodes for the states per iteration
+        """
         self.full_status = self.build_full_status(iterations)
         means = self.get_mean_data(self.full_status, 'status')
         return means
@@ -308,6 +378,14 @@ class ContinuousModel(DiffusionModel):
         return {'mean_delta_status_vals': means_status_delta_vals, 'status_delta': status_delta, 'means': means}
 
     def plot(self, trends, n, delta=None, delta_mean=None):
+        """
+        Create and show different plots of the trends
+
+        :param trends: output from the build_trends function
+        :param n: integer amount of iterations to show
+        :param delta: boolean indicating whether to show the mean change per variable per iteration
+        :param delta_mean: boolean indicating whether to show the mean value of changed variables per iteration
+        """
         x = np.arange(0, n)
 
         sub_plots = 1
@@ -346,6 +424,18 @@ class ContinuousModel(DiffusionModel):
         plt.show()
 
     def create_frames(self, iterations):
+        """
+        Create frames every plot_interval iterations
+            by creating a dictionary that contains a list of all node values for a status key per iteration
+
+        :param iterations: iterations output from iteration_bunch
+
+        :return: tuple of a status value dictionary and a list of lists of node colors,
+            the dictionary has a status as key and as value a list of lists, the first dimension corresponds with the iteration,
+            the second dimension is a list that contains all the different node status values for that iteration,
+            the node_colors list first dimension corresponds with the iteration,
+            and the second dimension is a list of lists where each index holds the color value of the node at that index
+        """
         if not self.full_status:
             self.full_status = self.build_full_status(iterations)
         statuses = list(self.available_statuses.keys())
@@ -367,6 +457,20 @@ class ContinuousModel(DiffusionModel):
         return (histo_frames, node_colors)
 
     def visualize(self, iterations):
+        """
+        Visualize the network and color the nodes using a status
+        Show histograms of the other statuses beneath the graph
+        All visualization options are specified in the visualization_configuration variable
+        If show_plot is set to True in the configuration, the visualization will be shown dynamically
+        If plot_output is set in the configuration, an animation will be saved
+
+        Currently the graphs are cleared and then completely redrawn, a good optimization would be to only update the changed values
+
+        :param iterations: iterations output from iteration_bunch
+        """
+        if not self.visualization_configuration:
+            raise Exception("Specify a visualization configuration before you visualize the model")
+
         (histo_frames, node_colors) = self.create_frames(iterations)
 
         statuses = list(self.available_statuses.keys())
@@ -422,14 +526,14 @@ class ContinuousModel(DiffusionModel):
             network.get_yaxis().set_ticks([])
             network.set_title('Iteration: ' + str(curr * self.visualization_configuration['plot_interval']))
 
-        simulation = animation.FuncAnimation(fig, updateData, n, interval=30, repeat=True)
+        simulation = animation.FuncAnimation(fig, updateData, n, interval=self.visualization_configuration['animation_interval'], repeat=True)
 
         norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
         sm = plt.cm.ScalarMappable(cmap=cm, norm=norm)
         sm.set_array([])
         fig.colorbar(sm, ax=network)
         fig.suptitle(self.visualization_configuration['plot_title'], fontsize=16)
-        
+
         if self.visualization_configuration['show_plot']:
             plt.show()
 
@@ -437,6 +541,12 @@ class ContinuousModel(DiffusionModel):
             self.save_plot(simulation)
 
     def save_plot(self, simulation):
+        """
+        Save the plot to a file specified in plot_output int he visualization configuration
+        The file is generated using the writer from the pillow library
+
+        :param simulation: Output of the matplotlib animation.FuncAnimation function
+        """
         writergif = animation.PillowWriter(fps=5)
         simulation.save(self.visualization_configuration['plot_output'], writer=writergif)
         print('Saved: ' + self.visualization_configuration['plot_output'])

@@ -106,6 +106,7 @@ craving_control_model.configure_visualization(visualization_config)
 ################### SIMULATION ###################
 
 # Simulation
+# N, iterations_list, initial_statuses, constants_list
 runner = ContinuousModelRunner(craving_control_model, config, 10, [100], [initial_status])
 results = runner.run()
 

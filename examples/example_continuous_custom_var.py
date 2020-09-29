@@ -1,5 +1,6 @@
 # TODO Dynamic graph, more plots, optimize speed (?), plotly/gephy visualization of graph
-
+import sys
+sys.path.append("..")
 import networkx as nx
 import random
 import numpy as np
@@ -44,6 +45,15 @@ g = nx.erdos_renyi_graph(n=1000, p=0.1)
 attr = {n: {'craving': random.random(), 'self_control': random.random()} for n in g.nodes()}
 nx.set_node_attributes(g, attr)
 
+# Visualization config
+visualization_config = {
+    'plot_interval': 10,
+    'plot_variable': 'addiction',
+    'show_plot': True,
+    'plot_title': 'Example model',
+    'animation_interval': 500
+}
+
 # Model definition
 addiction_model = ContinuousModel(g)
 addiction_model.add_status('addiction')
@@ -59,13 +69,14 @@ addiction_model.add_rule('self_confidence', self_confidence_impact, condition2)
 
 # Configuration
 config = mc.Configuration()
-config.add_model_parameter('fraction_infected', 0.1)
 addiction_model.set_initial_status(initial_status, config)
+addiction_model.configure_visualization(visualization_config)
 
 # Simulation
 iterations = addiction_model.iteration_bunch(200, node_status=True)
 
 trends = addiction_model.build_trends(iterations)
+addiction_model.plot(trends, len(iterations), delta=True)
 
 ### Plots / data manipulation
-addiction_model.visualize(trends, len(iterations), delta=True)
+addiction_model.visualize(iterations)
