@@ -1,4 +1,6 @@
-# TODO Write tests, fix visualization logic (overwrite vs update), assert save_file, add more visualization layout options
+# TODO Write tests, fix visualization logic (overwrite vs update), 
+# assert save_file, add more visualization layout options, add sensitivity analysis, 
+# write documentation, add history span for states?
 # Requirements, networkx, numpy, matplotlib, PIL, pyintergraph, tqdm
 
 from ndlib.models.DiffusionModel import DiffusionModel
@@ -273,16 +275,23 @@ class ContinuousModel(DiffusionModel):
             return {"iteration": self.actual_iteration - 1, "status": {},
                     "status_delta": copy.deepcopy(status_delta)}
 
-    def iteration_bunch(self, bunch_size, node_status=True):
+    def iteration_bunch(self, bunch_size, node_status=True, tqdm=True):
         """
         Execute bunch_size of model iterations and save the result if save_file is set
 
         :param bunch_size: integer number of iterations to execute
         :param node_status: boolean indicating whether to keep the statuses of the nodes
+        :param tqdm: boolean indicating whether to use tqdm to show the estimated duration
 
         :return: list of outputs for every iteration
         """
-        iterations = super().iteration_bunch(bunch_size, node_status)
+        if tqdm:
+            iterations = super().iteration_bunch(bunch_size, node_status)
+        else:
+            iterations = []
+            for _ in range(bunch_size):
+                iterations.append(self.iteration(node_status))
+
         if self.save_file:
             np.save(self.save_file, iterations)
             print('Saved ' + self.save_file)
@@ -361,7 +370,7 @@ class ContinuousModel(DiffusionModel):
         :param iterations: iterations output from iteration_bunch
 
         :return: Dictionary containing all statuses as keys, 
-            and as value a list of the average values of all nodes for the states per iteration
+            and as value a list of the average value over all nodes for that state per iteration
         """
         self.full_status = self.build_full_status(iterations)
         means = self.get_mean_data(self.full_status, 'status')

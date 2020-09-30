@@ -1,4 +1,3 @@
-# TODO Dynamic graph, more plots, optimize speed (?), plotly/gephy visualization of graph
 import sys
 sys.path.append("..")
 import networkx as nx

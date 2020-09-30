@@ -3,6 +3,9 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 
+import sys
+sys.path.append("..")
+
 from ndlib.models.ContinuousModel import ContinuousModel
 from ndlib.models.ContinuousModelRunner import ContinuousModelRunner
 from ndlib.models.compartments.NodeStochastic import NodeStochastic
@@ -100,18 +103,20 @@ craving_control_model.add_rule('A', update_A, condition)
 # Configuration
 config = mc.Configuration()
 craving_control_model.set_initial_status(initial_status, config)
-craving_control_model.set_initial_status(initial_status, config)
-craving_control_model.configure_visualization(visualization_config)
+# craving_control_model.configure_visualization(visualization_config)
 
 ################### SIMULATION ###################
 
 # Simulation
-# N, iterations_list, initial_statuses, constants_list
-runner = ContinuousModelRunner(craving_control_model, config, 10, [100], [initial_status])
-results = runner.run()
+runner = ContinuousModelRunner(craving_control_model, config)
+
+# results = runner.run(10, [100], [initial_status])
+
+analysis = runner.analyze_sensitivity(initial_status, {'q': (0.5, 1), 'b': (0.25, 0.75), 'd': (0.0, 0.4)}, 5, 50)
+print(analysis)
 
 ################### VISUALIZATION ###################
 
-for iterations in results:
-    trends = craving_control_model.build_trends(iterations)
-    craving_control_model.plot(trends, len(iterations), delta=True)
+# for iterations in results:
+#     trends = craving_control_model.build_trends(iterations)
+#     craving_control_model.plot(trends, len(iterations), delta=True)
