@@ -113,7 +113,7 @@ visualization_config = {
     'cmin': -1,
     'cmax': 1,
     'color_scale': 'RdBu',
-    'plot_output': '../animations/HIOM_less.gif',
+    # 'plot_output': '../animations/HIOM_less.gif',
     'plot_title': 'HIERARCHICAL ISING OPINION MODEL',
 }
 
@@ -135,7 +135,6 @@ HIOM.add_rule('A', shrink_A, condition, ['shrink A'])
 
 # Configuration
 config = mc.Configuration()
-config.add_model_parameter('fraction_infected', 0.1)
 HIOM.set_initial_status(initial_status, config)
 HIOM.configure_visualization(visualization_config)
 
@@ -143,12 +142,9 @@ HIOM.configure_visualization(visualization_config)
 
 # Simulation
 iterations = HIOM.iteration_bunch(15000, node_status=True)
-# trends = HIOM.build_trends(iterations)
+trends = HIOM.build_trends(iterations)
 
 ################### VISUALIZATION ###################
 
-# HIOM.plot(trends, len(iterations), delta=True)
-HIOM.visualize(iterations)
-
-
-# HIOM.visualize(np.load('../data/hiom.npy', allow_pickle=True))
+HIOM.plot(trends, len(iterations), delta=True)
+# HIOM.visualize(iterations)

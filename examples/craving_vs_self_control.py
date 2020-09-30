@@ -1,3 +1,5 @@
+import sys
+sys.path.append("..")
 import networkx as nx
 import random
 import numpy as np
@@ -76,8 +78,8 @@ visualization_config = {
         'A': [0, 0.8],
         'lambda': [0.5, 1.5]
     },
-    'show_plot': True,
-    'plot_output': '../animations/c_vs_s.gif',
+    'show_plot': False,
+    'plot_output': '../../animations/c_vs_s.gif',
     'plot_title': 'Self control vs craving simulation',
 }
 

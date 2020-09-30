@@ -12,7 +12,7 @@ __email__ = "m.f.maijer@gmail.com"
 class NodeNumericalVariable(Compartiment):
 
     def __init__(self, var, var_type=None, value=None, value_type=None, op=None, probability=1, **kwargs):
-        super(self.__class__, self).__init__(kwargs)
+        super(NodeNumericalVariable, self).__init__(kwargs)
         self.__available_operators = {"==": operator.__eq__, "<": operator.__lt__,
                                       ">": operator.__gt__, "<=": operator.__le__,
                                       ">=": operator.__ge__, "!=": operator.__ne__,
@@ -51,18 +51,24 @@ class NodeNumericalVariable(Compartiment):
         else:
             raise ValueError("The operator provided '%s' is not valid" % operator)
 
-    def execute(self, node, graph, status, status_map, attributes, *args, **kwargs):
+    def execute(self, node, graph, status, status_map, attributes=None, *args, **kwargs):
         if self.variable_type == NumericalType.STATUS:
             val = status[node][self.variable]
         elif self.variable_type == NumericalType.ATTRIBUTE:
-            val = attributes[node][self.variable]
+            if attributes:
+                val = attributes[node][self.variable]
+            else:
+                val = nx.get_node_attributes(graph, self.variable)[node]
 
         testVal = self.value
 
         if self.value_type == NumericalType.STATUS:
             testVal = status[node][self.value]
         elif self.value_type == NumericalType.ATTRIBUTE:
-            testVal = attributes[node][self.value]
+            if attributes:
+                testVal = attributes[node][self.value]
+            else:
+                testVal = nx.get_node_attributes(graph, self.value)[node]
 
         p = np.random.random_sample()
 

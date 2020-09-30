@@ -38,7 +38,7 @@ class ContinuousModelRunner(object):
         :param iterations: amount of iterations to run the model per sample
         :param second_order: bool indicating whether to include second order indices
 
-        :return: a Python dict with the keys "S1", "S2", "ST", "S1_conf", "S2_conf", and "ST_conf"
+        :return: a Python dict mapping state to a dictionary with the keys "S1", "S2", "ST", "S1_conf", "S2_conf", and "ST_conf"
         """
         if not self.model.constants:
             raise Exception('Please add constants when initializing the model to perform sensitivity analysis on')

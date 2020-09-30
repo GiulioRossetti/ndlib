@@ -1,20 +1,18 @@
 # TODO Write tests, fix visualization logic (overwrite vs update), 
-# assert save_file, add more visualization layout options, add sensitivity analysis, 
-# write documentation, add history span for states?
+# assert save_file and create directory, add more visualization layout options, add sensitivity analysis options, 
+# write documentation, add history span for states?, deal with unused/optional imports,
+# Parallel execution for multi runner, numpy implementation instead of networkx nodes
 # Requirements, networkx, numpy, matplotlib, PIL, pyintergraph, tqdm
 
 from ndlib.models.DiffusionModel import DiffusionModel
 import future.utils
 import os
-import plotly.graph_objects as go
 import networkx as nx
 from plotly.subplots import make_subplots
 import copy
 import numpy as np
-from PIL import Image
 import io
 
-import pyintergraph
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.path as path
@@ -99,7 +97,7 @@ class ContinuousModel(DiffusionModel):
                 if not isinstance(self.visualization_configuration['plot_title'], str):
                     raise ValueError('Plot name must be a string')
             else:
-                vis_var = self.visualization_configuration['plot_variable'] if self.visualization_configuration['plot_variable'] else '# Neighbours'
+                vis_var = self.visualization_configuration['plot_variable']
                 self.visualization_configuration['plot_title'] = 'Network simulation of ' + vis_var
 
             if 'plot_annotation' in vis_keys:
@@ -128,6 +126,7 @@ class ContinuousModel(DiffusionModel):
             if 'pos' not in self.graph.nodes[0].keys():
                 if 'layout' in vis_keys:
                     if self.visualization_configuration['layout'] == 'fr':
+                        import pyintergraph
                         Graph = pyintergraph.InterGraph.from_networkx(self.graph.graph)
                         G = Graph.to_igraph()
                         layout = G.layout_fruchterman_reingold(niter=500)
@@ -556,6 +555,7 @@ class ContinuousModel(DiffusionModel):
 
         :param simulation: Output of the matplotlib animation.FuncAnimation function
         """
+        from PIL import Image
         writergif = animation.PillowWriter(fps=5)
         simulation.save(self.visualization_configuration['plot_output'], writer=writergif)
         print('Saved: ' + self.visualization_configuration['plot_output'])
