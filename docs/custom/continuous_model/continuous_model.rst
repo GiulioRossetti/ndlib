@@ -2,6 +2,10 @@
 Continuous Model
 ================
 
+.. Warning::
+
+    ``ContinuousModel`` requires python3
+
 The composite model only supports discrete states, but more advanced custom models might require continuous states and more options.
 The general manner of creating a model remains the same as the ``CompositeModel``, but it allows for configuration by adding (optional) extra steps.
 
@@ -220,7 +224,7 @@ Because no scheme has been added to the second rule, it will be evaluated and ex
 		}
 	]
 
-	model = ContinuousModel(g)
+	model = ContinuousModel(g, iteration_schemes=schemes)
 
 	model.add_status('status_1')
 	model.add_status('status_2')

@@ -1,6 +1,6 @@
 # TODO Write tests, fix visualization logic (overwrite vs update), 
 # assert save_file and create directory, add more visualization layout options, add sensitivity analysis options, 
-# write documentation, add history span for states?, deal with unused/optional imports,
+# add history span for states?, check unused/optional imports,
 # Parallel execution for multi runner, numpy implementation instead of networkx nodes
 # Requirements, networkx, numpy, matplotlib, PIL, pyintergraph, tqdm
 
@@ -54,6 +54,7 @@ class ContinuousModel(DiffusionModel):
 
         if iteration_schemes:
             self.iteration_schemes = iteration_schemes
+            self.iteration_schemes.append({'name': '', 'function': lambda graph, status: graph.nodes})
         else:
             self.iteration_schemes = [{'name': '', 'function': lambda graph, status: graph.nodes}]
 
