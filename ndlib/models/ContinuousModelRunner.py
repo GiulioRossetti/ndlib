@@ -1,3 +1,7 @@
+# TODO
+# - Parallel execution
+# - Add sensitivity analysis options
+
 from SALib.sample import saltelli
 from SALib.analyze import sobol
 from ndlib.models.compartments.enums.SAType import SAType

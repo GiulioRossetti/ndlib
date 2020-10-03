@@ -1,8 +1,6 @@
 # TODO
-# - Parallel execution for multi runner,
 # - Fix visualization logic (overwrite vs update),
 # - numpy matrix implementation instead of networkx nodes/dict
-# - Add sensitivity analysis options,
 # Requirements, networkx, numpy, matplotlib, PIL, pyintergraph, python-igraph, tqdm
 
 from ndlib.models.DiffusionModel import DiffusionModel
@@ -567,6 +565,13 @@ class ContinuousModel(DiffusionModel):
 
         :param simulation: Output of the matplotlib animation.FuncAnimation function
         """
+        print('Saving plot at: ' + self.visualization_configuration['plot_output'] + ' ...')
+        split = self.visualization_configuration['plot_output'].split('/')
+        file_name = split[-1]
+        file_path = self.visualization_configuration['plot_output'].replace(file_name, '')
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
+
         from PIL import Image
         writergif = animation.PillowWriter(fps=5)
         simulation.save(self.visualization_configuration['plot_output'], writer=writergif)
