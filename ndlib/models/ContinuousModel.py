@@ -75,74 +75,12 @@ class ContinuousModel(DiffusionModel):
             print('Configuring visualization...')
             self.visualization_configuration = visualization_configuration
             vis_keys = visualization_configuration.keys()
-            if 'plot_interval' in vis_keys:
-                if isinstance(visualization_configuration['plot_interval'], int):
-                    if visualization_configuration['plot_interval'] <= 0:
-                        raise ValueError('plot_interval must be a positive integer')
-                else:
-                    raise ValueError('plot_interval must be a positive integer')
-            else:
-                raise ValueError('plot_interval must be included for visualization')
-            if 'show_plot' in vis_keys:
-                if not isinstance(visualization_configuration['show_plot'], bool):
-                    raise ValueError('show_plot must be a boolean')
-            else:
-                self.visualization_configuration['show_plot'] = True
-            if 'plot_variable' in vis_keys:
-                if not isinstance(visualization_configuration['plot_variable'], str):
-                    raise ValueError('Plot variable must be a string')
-            else:
-                self.visualization_configuration['plot_variable'] = None
 
-            if 'plot_title' in self.visualization_configuration.keys():
-                if not isinstance(self.visualization_configuration['plot_title'], str):
-                    raise ValueError('Plot name must be a string')
-            else:
-                vis_var = self.visualization_configuration['plot_variable']
-                self.visualization_configuration['plot_title'] = 'Network simulation of ' + vis_var
+            self.validate_plot_config(visualization_configuration, vis_keys)
+            self.validate_color_config(vis_keys)
 
-            if 'plot_annotation' in vis_keys:
-                if not isinstance(self.visualization_configuration['plot_annotation'], str):
-                    raise ValueError('Plot annotation must be a string')
-            else:
-                self.visualization_configuration['plot_annotation'] = None
-
-            if 'cmin' in vis_keys:
-                if not isinstance(self.visualization_configuration['cmin'], int):
-                    raise ValueError('cmin must be an integer')
-            else:
-                self.visualization_configuration['cmin'] = 0
-
-            if 'cmax' in vis_keys:
-                if not isinstance(self.visualization_configuration['cmax'], int):
-                    raise ValueError('cmax must be an integer')
-            else:
-                self.visualization_configuration['cmax'] = 1
-
-            if 'color_scale' in vis_keys:
-                if not isinstance(self.visualization_configuration['color_scale'], str):
-                    raise ValueError('Color scale must be a string')
-            else:
-                self.visualization_configuration['color_scale'] = 'RdBu'
             if 'pos' not in self.graph.nodes[0].keys():
-                if 'layout' in vis_keys:
-                    if self.visualization_configuration['layout'] == 'fr':
-                        import pyintergraph
-                        Graph = pyintergraph.InterGraph.from_networkx(self.graph.graph)
-                        G = Graph.to_igraph()
-                        layout = G.layout_fruchterman_reingold(niter=500)
-                        positions = {node: {'pos': location} for node, location in enumerate(layout)}
-                    else:
-                        if 'layout_params' in vis_keys:
-                            pos = self.visualization_configuration['layout'](self.graph.graph, **self.visualization_configuration['layout_params'])
-                        else:
-                            pos = self.visualization_configuration['layout'](self.graph.graph)
-                        positions = {key: {'pos': location} for key, location in pos.items()}
-                else:
-                    pos = nx.drawing.spring_layout(self.graph.graph)
-                    positions = {key: {'pos': location} for key, location in pos.items()}
-
-                nx.set_node_attributes(self.graph, positions)
+                self.configure_layout(vis_keys)
 
             if 'variable_limits' not in vis_keys:
                 self.visualization_configuration['variable_limits'] = {key: [-1, 1] for key in list(self.available_statuses.keys())}
@@ -158,6 +96,78 @@ class ContinuousModel(DiffusionModel):
             print('Done configuring the visualization')
         else:
             raise Exception('Provide a visualization configuration when using this function')
+
+    def configure_layout(self, vis_keys):
+        if 'layout' in vis_keys:
+            if self.visualization_configuration['layout'] == 'fr':
+                import pyintergraph
+                Graph = pyintergraph.InterGraph.from_networkx(self.graph.graph)
+                G = Graph.to_igraph()
+                layout = G.layout_fruchterman_reingold(niter=500)
+                positions = {node: {'pos': location} for node, location in enumerate(layout)}
+            else:
+                if 'layout_params' in vis_keys:
+                    pos = self.visualization_configuration['layout'](self.graph.graph, **self.visualization_configuration['layout_params'])
+                else:
+                    pos = self.visualization_configuration['layout'](self.graph.graph)
+                positions = {key: {'pos': location} for key, location in pos.items()}
+        else:
+            pos = nx.drawing.spring_layout(self.graph.graph)
+            positions = {key: {'pos': location} for key, location in pos.items()}
+
+        nx.set_node_attributes(self.graph, positions)
+
+    def validate_plot_config(self, visualization_configuration, vis_keys):
+        if 'plot_interval' in vis_keys:
+            if isinstance(visualization_configuration['plot_interval'], int):
+                if visualization_configuration['plot_interval'] <= 0:
+                    raise ValueError('plot_interval must be a positive integer')
+            else:
+                raise ValueError('plot_interval must be a positive integer')
+        else:
+            raise ValueError('plot_interval must be included for visualization')
+        if 'show_plot' in vis_keys:
+            if not isinstance(visualization_configuration['show_plot'], bool):
+                raise ValueError('show_plot must be a boolean')
+        else:
+            self.visualization_configuration['show_plot'] = True
+        if 'plot_variable' in vis_keys:
+            if not isinstance(visualization_configuration['plot_variable'], str):
+                raise ValueError('Plot variable must be a string')
+        else:
+            self.visualization_configuration['plot_variable'] = None
+
+        if 'plot_title' in self.visualization_configuration.keys():
+            if not isinstance(self.visualization_configuration['plot_title'], str):
+                raise ValueError('Plot name must be a string')
+        else:
+            vis_var = self.visualization_configuration['plot_variable']
+            self.visualization_configuration['plot_title'] = 'Network simulation of ' + vis_var
+
+        if 'plot_annotation' in vis_keys:
+            if not isinstance(self.visualization_configuration['plot_annotation'], str):
+                raise ValueError('Plot annotation must be a string')
+        else:
+            self.visualization_configuration['plot_annotation'] = None
+
+    def validate_color_config(self, vis_keys):
+        if 'cmin' in vis_keys:
+            if not isinstance(self.visualization_configuration['cmin'], int):
+                raise ValueError('cmin must be an integer')
+        else:
+            self.visualization_configuration['cmin'] = 0
+
+        if 'cmax' in vis_keys:
+            if not isinstance(self.visualization_configuration['cmax'], int):
+                raise ValueError('cmax must be an integer')
+        else:
+            self.visualization_configuration['cmax'] = 1
+
+        if 'color_scale' in vis_keys:
+            if not isinstance(self.visualization_configuration['color_scale'], str):
+                raise ValueError('Color scale must be a string')
+        else:
+            self.visualization_configuration['color_scale'] = 'RdBu'
 
     def add_status(self, status_name):
         """
