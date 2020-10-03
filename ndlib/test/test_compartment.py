@@ -306,16 +306,16 @@ class NdlibCompartmentsTest(unittest.TestCase):
         self.assertEqual(len(iterations), 10)
         
         with self.assertRaises(ValueError):
-            c = cpm.NodeNumericalVariable(5, var_type=NumericalType.ATTRIBUTE, value=0, op='==')
-            c = cpm.NodeNumericalVariable('even', value=0, op='==')
-            c = cpm.NodeNumericalVariable('even', var_type=3, value=0, value_type=3, op='==')
-            c = cpm.NodeNumericalVariable(var_type=NumericalType.ATTRIBUTE, value=0, op='==')
-            c = cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=0)
-            c = cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=0, op='IN')
-            c = cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=['a', 3], op='IN')
-            c = cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=[3, 'a'], op='IN')
-            c = cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=[5, 3], op='IN')
-            c = cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=[5, 3], op='IN')
+            cpm.NodeNumericalVariable(5, var_type=NumericalType.ATTRIBUTE, value=0, op='==')
+            cpm.NodeNumericalVariable('even', value=0, op='==')
+            cpm.NodeNumericalVariable('even', var_type=3, value=0, value_type=3, op='==')
+            cpm.NodeNumericalVariable(None, var_type=NumericalType.ATTRIBUTE, value=0, op='==')
+            cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=0)
+            cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=0, op='IN')
+            cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=['a', 3], op='IN')
+            cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=[3, 'a'], op='IN')
+            cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=[5, 3], op='IN')
+            cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=[5, 3], op='IN')
 
     def test_edge_num_attribute(self):
 

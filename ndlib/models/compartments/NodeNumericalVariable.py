@@ -41,7 +41,7 @@ class NodeNumericalVariable(Compartiment):
                 if not isinstance(self.value, list) or self.value[1] < self.value[0]:
                     raise ValueError("A range list is required to test IN condition")
             else:
-                if self.value_type == None:
+                if self.value_type is None:
                     if not isinstance(self.value, int):
                         if not isinstance(self.value, float):
                             raise ValueError("When no value type is defined, the value should be numerical")

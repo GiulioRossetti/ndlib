@@ -18,7 +18,7 @@ __all__ = [
     'NodeThreshold',
     'NodeCategoricalAttribute',
     'NodeNumericalAttribute',
-    'NodeNumericalVariable'
+    'NodeNumericalVariable',
     'EdgeStochastic',
     'EdgeCategoricalAttribute',
     'EdgeNumericalAttribute',

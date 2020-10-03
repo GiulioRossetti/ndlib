@@ -6,7 +6,6 @@ import networkx as nx
 import numpy as np
 import ndlib.models.ModelConfig as mc
 import ndlib.models.ContinuousModel as gc
-import ndlib.models.ContinuousModelRunner as gcr
 import ndlib.models.compartments as cpm
 from ndlib.models.compartments.enums.NumericalType import NumericalType
 
@@ -76,7 +75,8 @@ class NdlibContinuousModelTest(unittest.TestCase):
         model.add_status('status1')
         model.add_status('status2')
 
-        self.assertTrue('status1' in model.available_statuses.keys() and 'status2' in model.available_statuses.keys())
+        self.assertIn('status1', model.available_statuses.keys())
+        self.assertIn('status2', model.available_statuses.keys())
 
     def test_initial_values(self):
         def initial_status_1(node, graph, status, constants):
