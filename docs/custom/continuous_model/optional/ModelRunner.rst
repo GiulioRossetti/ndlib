@@ -52,7 +52,6 @@ Example:
     initial_status = {
         'status_1': initial_status_1,
         'status_2': initial_status_2,
-        'status_3': 2
     }
 
     model = ContinuousModel(g)
@@ -78,7 +77,7 @@ Example:
     model.set_initial_status(initial_status, config)
 
     # Simulation
-    runner = ContinuousModelRunner(craving_control_model, config)
+    runner = ContinuousModelRunner(model, config)
     # Simulate the model 10 times with 100 iterations
     results = runner.run(10, [100], [initial_status])
 
@@ -142,7 +141,6 @@ Example:
     initial_status = {
         'status_1': initial_status_1,
         'status_2': initial_status_2,
-        'status_3': 2
     }
 
     model = ContinuousModel(g, constants=constants)

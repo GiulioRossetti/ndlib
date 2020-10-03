@@ -25,6 +25,9 @@ class NodeNumericalVariable(Compartiment):
         self.probability = probability
         self.operator = op
 
+        self.validate()
+
+    def validate(self):
         if not isinstance(self.variable, str):
             raise ValueError("The variable should be a string pointing to an attribute or status")
         if self.variable_type is None:
@@ -38,7 +41,10 @@ class NodeNumericalVariable(Compartiment):
 
         if self.operator is not None and self.operator in self.__available_operators:
             if self.operator == "IN":
-                if not isinstance(self.value, list) or self.value[1] < self.value[0]:
+                if not isinstance(self.value, list) or \
+                    not (isinstance(self.value[0], int) or isinstance(self.value[0], float)) or \
+                    not (isinstance(self.value[1], int) or isinstance(self.value[1], float)) \
+                    or self.value[1] < self.value[0]:
                     raise ValueError("A range list is required to test IN condition")
             else:
                 if self.value_type is None:

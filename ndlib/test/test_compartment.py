@@ -304,17 +304,26 @@ class NdlibCompartmentsTest(unittest.TestCase):
         model.set_initial_status(config)
         iterations = model.iteration_bunch(10)
         self.assertEqual(len(iterations), 10)
-        
+
         with self.assertRaises(ValueError):
             cpm.NodeNumericalVariable(5, var_type=NumericalType.ATTRIBUTE, value=0, op='==')
+        with self.assertRaises(ValueError):
             cpm.NodeNumericalVariable('even', value=0, op='==')
+        with self.assertRaises(ValueError):
             cpm.NodeNumericalVariable('even', var_type=3, value=0, value_type=3, op='==')
+        with self.assertRaises(ValueError):
             cpm.NodeNumericalVariable(None, var_type=NumericalType.ATTRIBUTE, value=0, op='==')
+        with self.assertRaises(ValueError):
             cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=0)
+        with self.assertRaises(ValueError):
             cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=0, op='IN')
+        with self.assertRaises(ValueError):
             cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=['a', 3], op='IN')
+        with self.assertRaises(ValueError):
             cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=[3, 'a'], op='IN')
+        with self.assertRaises(ValueError):
             cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=[5, 3], op='IN')
+        with self.assertRaises(ValueError):
             cpm.NodeNumericalVariable('even', var_type=NumericalType.ATTRIBUTE, value=[5, 3], op='IN')
 
     def test_edge_num_attribute(self):
