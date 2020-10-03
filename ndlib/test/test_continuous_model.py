@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import unittest
+import os
 import networkx as nx
 import numpy as np
 import ndlib.models.ModelConfig as mc
@@ -55,7 +56,7 @@ class NdlibContinuousModelTest(unittest.TestCase):
         addiction_model.set_initial_status(initial_status, config)
 
         # Simulation
-        iterations = addiction_model.iteration_bunch(50, node_status=True)
+        iterations = addiction_model.iteration_bunch(50, node_status=True, tqdm=False)
         self.assertEqual(len(iterations), 50)
 
     def test_constants(self):
@@ -175,3 +176,36 @@ class NdlibContinuousModelTest(unittest.TestCase):
             'upper': 200
         } in model.iteration_schemes)
 
+    def test_save_file(self):
+        def update(node, graph, status, attributes, constants):
+            return 0
+
+        initial_status = {
+            'status': 0
+        }
+
+        # Network definition
+        g = nx.erdos_renyi_graph(n=10, p=0.5)
+
+        # Model definition
+        path = './test_output/'
+        output_path = path + 'file'
+        model = gc.ContinuousModel(g, save_file=output_path)
+        model.add_status('status')
+
+        # Compartments
+        condition = cpm.NodeStochastic(1)
+
+        # Rules
+        model.add_rule('status_1', update, condition)
+
+        # Configuration
+        config = mc.Configuration()
+        model.set_initial_status(initial_status, config)
+
+        # Simulation
+        iterations = model.iteration_bunch(10, node_status=True, tqdm=False)
+        self.assertEqual(len(iterations), 10)
+        self.assertTrue(os.path.isfile(output_path + '.npy'))
+        os.remove(output_path + '.npy')
+        os.rmdir(path)

@@ -1,5 +1,6 @@
 from SALib.sample import saltelli
 from SALib.analyze import sobol
+from ndlib.models.compartments.enums.SAType import SAType
 import numpy as np
 
 class ContinuousModelRunner(object):
@@ -27,11 +28,12 @@ class ContinuousModelRunner(object):
 
         return results
 
-    def analyze_sensitivity(self, initial_status, bounds, n, iterations, second_order=True):
+    def analyze_sensitivity(self, sa_type, initial_status, bounds, n, iterations, second_order=True):
         """
         Compute the sensitivity indices for the constants of the model using sobol
         Samples are generated using a Saltelli sampler
 
+        :param sa_type: SAType indicating the metric for the sensitivity analysis, possible values
         :param initial_status: a dictionary with as key a state and as value, a number or function indicating the intial value for this state
         :param bounds: a dictionary with a constant name as key and a tuple (lower bound, upper bound) as value
         :param n: integer indicating the n for the function: N∗(2D+2) which is used to determine the amount of samples
@@ -42,6 +44,8 @@ class ContinuousModelRunner(object):
         """
         if not self.model.constants:
             raise Exception('Please add constants when initializing the model to perform sensitivity analysis on')
+        if not isinstance(sa_type, SAType):
+            raise ValueError('Please use a SAType enum value for sa_type')
 
         problem = {
             'num_vars': len(bounds.keys()),
@@ -66,23 +70,40 @@ class ContinuousModelRunner(object):
             outputs.append(self.model.iteration_bunch(iterations, node_status=self.node_status, tqdm=False))
 
         # Parse the outputs for every simulation (TODO: Optimize)
+        print('Parsing outputs...')
         states = list(self.model.available_statuses.keys())
         states.remove('Infected')
-        averages = { 
+        val_dict = {
             var: np.array([]) for var in states
         }
-
-        print('Parsing outputs...')
-        for output in outputs:
-            # Get the average value of all the nodes for every status at the last iteration of the simulation
-            means = self.model.get_means(output)
-            for status in averages.keys():
-                averages[status] = np.append(averages[status], means[status][-1])
+        values = self.parse_outputs(sa_type, outputs, val_dict)
 
         print('Running sensitivity analysis...')
         # Perform the sobol analysis seperately for every status
         analysis = {
-            var: sobol.analyze(problem, averages[var]) for var in states
+            var: sobol.analyze(problem, values[var]) for var in states
         }
 
         return analysis
+
+    def parse_outputs(self, sa_type, outputs, val_dict):
+        mapping = {
+            SAType.MEAN: self.mean_outputs
+        }
+        return mapping[sa_type](outputs, val_dict)
+
+    def mean_outputs(self, outputs, val_dict):
+        for output in outputs:
+            # Get the average value of all the nodes for every status at the last iteration of the simulation
+            means = self.model.get_means(output)
+            for status in val_dict.keys():
+                val_dict[status] = np.append(val_dict[status], means[status][-1])
+        return val_dict
+
+    def variance_outputs(self, outputs, val_dict):
+        for output in outputs:
+            # Get the average value of all the nodes for every status at the last iteration of the simulation
+            means = self.model.get_means(output)
+            for status in val_dict.keys():
+                val_dict[status] = np.append(val_dict[status], means[status][-1])
+        return val_dict

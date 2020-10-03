@@ -1,21 +1,19 @@
-# TODO Write tests, fix visualization logic (overwrite vs update), 
-# assert save_file and create directory, add more visualization layout options, add sensitivity analysis options, 
-# add history span for states?, check unused/optional imports,
-# Parallel execution for multi runner, numpy implementation instead of networkx nodes
-# Requirements, networkx, numpy, matplotlib, PIL, pyintergraph, tqdm
+# TODO
+# - Parallel execution for multi runner,
+# - Fix visualization logic (overwrite vs update),
+# - numpy matrix implementation instead of networkx nodes/dict
+# - Add sensitivity analysis options,
+# Requirements, networkx, numpy, matplotlib, PIL, pyintergraph, python-igraph, tqdm
 
 from ndlib.models.DiffusionModel import DiffusionModel
 import future.utils
 import os
 import networkx as nx
-from plotly.subplots import make_subplots
 import copy
 import numpy as np
-import io
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import matplotlib.path as path
 import matplotlib as mpl
 import matplotlib.animation as animation
 
@@ -60,10 +58,15 @@ class ContinuousModel(DiffusionModel):
 
         self.visualization_configuration = None
 
-        self.save_file = save_file
+        if save_file:
+            if isinstance(save_file, str):
+                self.save_file = save_file
+            else:
+                raise ValueError('save_file should be a string indicating path/and/filename')
+        else:
+            self.save_file = None
 
         self.full_status = None
-
 
     def configure_visualization(self, visualization_configuration):
         """
@@ -133,7 +136,10 @@ class ContinuousModel(DiffusionModel):
                         layout = G.layout_fruchterman_reingold(niter=500)
                         positions = {node: {'pos': location} for node, location in enumerate(layout)}
                     else:
-                        pos = nx.drawing.spring_layout(self.graph.graph)
+                        if 'layout_params' in vis_keys:
+                            pos = self.visualization_configuration['layout'](self.graph.graph, **self.visualization_configuration['layout_params'])
+                        else:
+                            pos = self.visualization_configuration['layout'](self.graph.graph)
                         positions = {key: {'pos': location} for key, location in pos.items()}
                 else:
                     pos = nx.drawing.spring_layout(self.graph.graph)
@@ -293,6 +299,11 @@ class ContinuousModel(DiffusionModel):
                 iterations.append(self.iteration(node_status))
 
         if self.save_file:
+            split = self.save_file.split('/')
+            file_name = split[-1]
+            file_path = self.save_file.replace(file_name, '')
+            if not os.path.exists(file_path):
+                os.makedirs(file_path)
             np.save(self.save_file, iterations)
             print('Saved ' + self.save_file)
         return iterations
@@ -305,7 +316,7 @@ class ContinuousModel(DiffusionModel):
         :param mean_type: A string containing the type to get the average data from
             Should be 'status' or 'status_delta'
 
-        :return: Dictionary containing all statuses as keys, 
+        :return: Dictionary containing all statuses as keys,
             and as value a list of the average values of all nodes for that status per iteration
         """
         mean_changes = {}
@@ -369,7 +380,7 @@ class ContinuousModel(DiffusionModel):
 
         :param iterations: iterations output from iteration_bunch
 
-        :return: Dictionary containing all statuses as keys, 
+        :return: Dictionary containing all statuses as keys,
             and as value a list of the average value over all nodes for that state per iteration
         """
         self.full_status = self.build_full_status(iterations)

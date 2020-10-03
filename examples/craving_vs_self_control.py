@@ -1,12 +1,9 @@
 import sys
 sys.path.append("..")
+
 import networkx as nx
-import random
 import numpy as np
 import matplotlib.pyplot as plt
-
-import sys
-sys.path.append("..")
 
 from ndlib.models.ContinuousModel import ContinuousModel
 from ndlib.models.compartments.NodeStochastic import NodeStochastic

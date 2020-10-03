@@ -1,12 +1,11 @@
 import sys
 sys.path.append("..")
+
 import networkx as nx
 import random
 import numpy as np
 
-from ndlib.models.CompositeModel import CompositeModel
 from ndlib.models.ContinuousModel import ContinuousModel
-from ndlib.models.compartments.NodeStochastic import NodeStochastic
 from ndlib.models.compartments.enums.NumericalType import NumericalType
 from ndlib.models.compartments.NodeNumericalVariable import NodeNumericalVariable
 

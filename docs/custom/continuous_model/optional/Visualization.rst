@@ -25,9 +25,9 @@ To configure and enable visualization, a configuration dictionary should be crea
 
 It should hold the following key -> value mappings:
 
-==================  ===============  =====================================  =========  ==============================================================
+==================  ===============  =====================================  =========  =================================================================
 Key (string)        Value Type       Default                                Mandatory  Description
-==================  ===============  =====================================  =========  ==============================================================
+==================  ===============  =====================================  =========  =================================================================
 plot_interval       number                                                  True       How many iterations should be between each plot
 plot_variable       string                                                  True       The state to use as node color
 show_plot           boolean          True                                   False      Whether a plot should be shown
@@ -38,9 +38,10 @@ cmin                number           0                                      Fals
 cmax                number           0                                      False      The maximum color to display in the colorbar
 color_scale         string           RdBu                                   False      Matplotlib colorscale colors to use
 layout              string|function  nx.drawing.spring_layout               False      Name of the networkx layout to use
+layout_params       dictionary                                              False      Arguments to pass to layout function, takes argument name as key
 variable_limits     dictionary       {state: [-1, 1] for state in states}   False      Dictionary mapping state name to a list with min and max value
 animation_interval  integer          30                                     False      Amount of miliseconds between each frame
-==================  ===============  =====================================  =========  ==============================================================
+==================  ===============  =====================================  =========  =================================================================
 
 When the configuration dictionary has been initialized and the model has been initialized, it can be added to the model using the function ``configure_visualization(visualization_dictionary)``.
 
@@ -51,9 +52,15 @@ When the configuration dictionary has been initialized and the model has been in
 
     The ``layout`` key currently supports some igraph layouts as well, but it requires the igraph and pyintergraph libraries installed.
 
-    The following values are supported:
+    The following igraph layouts are supported:
 
 	- ``fr``: Creates an igraph layout using the fruchterman reingold algorithm
+
+    It is possible to include any function, that takes the graph as argument and returns a dictionary of positions keyed by node, 
+    just like how the networkx.drawing._layout functions work. This means all networkx layout functions can be included as layout value.
+
+    If you wish to pass any specific arguments to the function included as layout, this can be done using the layout_params key. 
+    Simply map it to a dict that has the parameter name as key and the desired value as value.
 
 
 Example:

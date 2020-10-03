@@ -88,23 +88,31 @@ Sensitivity Analysis
 
 Another important part of analysing a model is sensitivity analysis. 
 Custom analysis can be done using the run function, but an integrated SALib version is included 
-and can be ran using the ``analyze_sensitivity(initial_status, bounds, n, iterations, second_order=True)`` function.
+and can be ran using the ``analyze_sensitivity(sa_type, initial_status, bounds, n, iterations, second_order=True)`` function.
 
 It requires the following parameters:
 
-==============  ===================================  =======  =========  =============================================================================
+==============  ===================================  =======  =========  ==============================================================================
 parameters      Value Type                           Default  Mandatory  Description
-==============  ===================================  =======  =========  =============================================================================
+==============  ===================================  =======  =========  ==============================================================================
+sa_type         SAType                                        True       SAType enumerated value indicating what metric to use for sensitivity analysis
 initial_status  dictionary                                    True       A dictionary containing the initial status per state
 bounds          dictionary{status => (lower, upper)           True       A dictionary mapping a status string to a tuple in the form of [lower, upper]
 n               integer                                       True       The amount of samples to get from the SALib saltelli sampler
 iterations      integer                                       True       A list containing `constants` dictionaries to use per simulation
 second_order    boolean                              True     False      Boolean indicating whether to include second order indices
-==============  ===================================  =======  =========  =============================================================================
+==============  ===================================  =======  =========  ==============================================================================
 
 At the moment, after every simulation, the mean value for a state is taken over all the nodes, which is seen as one output for the model.
 After running the analysis, a dictionary is returned, mapping a state to a dictionary with the keys "S1", "S2", "ST", "S1_conf", "S2_conf", and "ST_conf" 
 which is acquired by using ``sobol.analyze()`` from SALib.
+
+.. note::
+
+    Currently, the following sensitivity analysis metrics can be passed for the sa_type parameter (use the SAType enum):
+
+    - SAType.MEAN
+
 
 Example:
 
@@ -115,6 +123,7 @@ Example:
     from ndlib.models.ContinuousModel import ContinuousModel
     from ndlib.models.ContinuousModelRunner import ContinuousModelRunner
     from ndlib.models.compartments.NodeStochastic import NodeStochastic
+    from ndlib.models.compartments.enums.SAType import SAType
     import ndlib.models.ModelConfig as mc
 
     g = nx.erdos_renyi_graph(n=1000, p=0.1)
@@ -160,5 +169,5 @@ Example:
 
     # Simulation
     runner = ContinuousModelRunner(model, config)
-    analysis = runner.analyze_sensitivity(initial_status, {'constant_1': (0, 1), 'constant_2': (-1, 1)}, 100, 50)
+    analysis = runner.analyze_sensitivity(SAType.MEAN, initial_status, {'constant_1': (0, 1), 'constant_2': (-1, 1)}, 100, 50)
 

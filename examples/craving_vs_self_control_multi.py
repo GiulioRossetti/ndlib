@@ -1,14 +1,13 @@
-import networkx as nx
-import random
-import numpy as np
-import matplotlib.pyplot as plt
-
 import sys
 sys.path.append("..")
+
+import networkx as nx
+import numpy as np
 
 from ndlib.models.ContinuousModel import ContinuousModel
 from ndlib.models.ContinuousModelRunner import ContinuousModelRunner
 from ndlib.models.compartments.NodeStochastic import NodeStochastic
+from ndlib.models.compartments.enums.SAType import SAType
 
 import ndlib.models.ModelConfig as mc
 
@@ -112,7 +111,7 @@ runner = ContinuousModelRunner(craving_control_model, config)
 
 # results = runner.run(10, [100], [initial_status])
 
-analysis = runner.analyze_sensitivity(initial_status, {'q': (0.5, 1), 'b': (0.25, 0.75), 'd': (0.0, 0.4)}, 5, 50)
+analysis = runner.analyze_sensitivity(SAType.MEAN, initial_status, {'q': (0.5, 1), 'b': (0.25, 0.75), 'd': (0.0, 0.4)}, 1, 50)
 print(analysis)
 
 ################### VISUALIZATION ###################
