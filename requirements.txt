@@ -11,3 +11,7 @@ matplotlib==3.0.*
 pytest==5.1.*
 pandas
 tqdm
+salib>=1.3
+pillow
+pyintergraph
+python-igraph

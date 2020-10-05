@@ -15,6 +15,7 @@ __author__ = 'Mathijs Maijer'
 __license__ = "BSD-2-Clause"
 __email__ = "m.f.maijer@gmail.com"
 
+
 class NdlibContinuousModelTest(unittest.TestCase):
     def test_bare_model(self):
         def initial_addiction(node, graph, status, constants):

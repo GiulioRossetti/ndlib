@@ -7,6 +7,7 @@ from SALib.analyze import sobol
 from ndlib.models.compartments.enums.SAType import SAType
 import numpy as np
 
+
 class ContinuousModelRunner(object):
     def __init__(self, ContinuousModel, config, node_status=True):
         self.model = ContinuousModel

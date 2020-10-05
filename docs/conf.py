@@ -25,7 +25,7 @@ class Mock(MagicMock):
 
 
 MOCK_MODULES = ['ipython', 'pygtk', 'gtk', 'gobject', 'argparse', 'matplotlib', 'matplotlib.pyplot', 'numpy', 'pandas', 'dynetx', 'networkx',
-                'scipy']
+                'scipy', 'salib', 'pillow', 'pyintergraph', 'python-igraph']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 html_theme = "sphinx_rtd_theme"
