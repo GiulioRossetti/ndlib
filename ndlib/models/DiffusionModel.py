@@ -135,7 +135,7 @@ class DiffusionModel(object):
         for param, node_to_value in future.utils.iteritems(nodes_cfg):
             if len(node_to_value) < len(self.graph.nodes):
                 raise ConfigurationException({"message": "Not all nodes have a configuration specified"})
-            
+
             self.params['nodes'][param] = node_to_value
 
         edges_cfg = configuration.get_edges_configuration()
@@ -305,13 +305,41 @@ class DiffusionModel(object):
             if v != actual_status[n]:
                 delta[n] = actual_status[n]
 
-        for st in self.available_statuses.values():
+        for st in list(self.available_statuses.values()):
             actual_status_count[st] = len([x for x in actual_status if actual_status[x] == st])
             old_status_count[st] = len([x for x in self.status if self.status[x] == st])
 
         status_delta = {st: actual_status_count[st] - old_status_count[st] for st in actual_status_count}
 
         return delta, actual_status_count, status_delta
+
+    def status_delta_continuous(self, actual_status):
+        """
+        Compute the point-to-point variations for each status w.r.t. the previous system configuration
+
+        Should be used for continuous statuses instead of discrete values
+
+        :param actual_status: the actual simulation status
+        :return: nodes that have changed their statuses (dictionary status->nodes),
+                    count of actual nodes per status (dictionary status->node count),
+                    delta of nodes per status w.r.t the previous configuration (dictionary status->delta)
+        """
+        delta = {}
+        status_delta = {}
+        for n, v in future.utils.iteritems(self.status):
+            delta[n] = {}
+            status_delta[n] = {}
+            for var, val in v.items():
+                if val != actual_status[n][var]:
+                    delta[n][var] = actual_status[n][var]
+                    status_delta[n][var] = actual_status[n][var] - val
+            if len(delta[n].values()) == 0:
+                del delta[n]
+            if len(status_delta[n].values()) == 0:
+                del status_delta[n]
+
+        return delta, status_delta
+
 
     def build_trends(self, iterations):
         """

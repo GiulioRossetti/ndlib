@@ -8,7 +8,7 @@ The Profile model assumes that the diffusion process is only apparent; each node
 
 In this scenario the peer pressure is completely ruled out from the overall model: it is not important how many of its neighbors have adopted a specific behaviour, if the node does not like it, it will not change its interests. 
 
-Each node has its own profile describing how many it is likely to accept a behaviour similar to the one that is currently spreading. 
+Each node has its own profile describing how likely it is to accept a behaviour similar to the one that is currently spreading.
 
 The diffusion process starts from a set of nodes that have already adopted a given behaviour S:
 
@@ -85,7 +85,7 @@ Execute Simulation
 Example
 -------
 
-In the code below is shown an example of instantiation and execution of a Profile model simulation on a random graph: we set the initial infected node set to the 10% of the overall population and assign a profile of 0.25 to all the nodes.
+In the code below is shown an example of instantiation and execution of a Profile model simulation on a random graph: we set the initial infected node set to the 10% of the overall population and assign a profile of 0.15 to all the nodes.
 
 .. code-block:: python
 

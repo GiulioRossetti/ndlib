@@ -6,8 +6,6 @@
 [![Documentation Status](https://readthedocs.org/projects/ndlib/badge/?version=latest)](http://ndlib.readthedocs.io/en/latest/?badge=latest)
 [![Updates](https://pyup.io/repos/github/GiulioRossetti/ndlib/shield.svg)](https://pyup.io/repos/github/GiulioRossetti/ndlib/)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/GiulioRossetti/ndlib.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/GiulioRossetti/ndlib/context:python)
-[![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/ndlib_nx/community?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FGiulioRossetti%2Fndlib.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FGiulioRossetti%2Fndlib?ref=badge_shield)
 [![DOI](https://zenodo.org/badge/59556819.svg)](https://zenodo.org/badge/latestdoi/59556819)
 [![PyPI download month](https://img.shields.io/pypi/dm/ndlib.svg?color=blue&style=plastic)](https://pypi.python.org/pypi/ndlib/)
 
@@ -70,6 +68,3 @@ Do you want to be part of the NDlib community to discuss enhancements, desiderat
 
 We are a welcoming community... just follow the [Code of Conduct](https://github.com/GiulioRossetti/ndlib/blob/master/.github/CODE_OF_CONDUCT.md).
 
-
-## License
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FGiulioRossetti%2Fndlib.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FGiulioRossetti%2Fndlib?ref=badge_large)
