@@ -6,6 +6,7 @@ from .NodeStochastic import NodeStochastic
 from .NodeThreshold import NodeThreshold
 from .NodeCategoricalAttribute import NodeCategoricalAttribute
 from .NodeNumericalAttribute import NodeNumericalAttribute
+from .NodeNumericalVariable import NodeNumericalVariable
 from .EdgeStochastic import EdgeStochastic
 from .EdgeCategoricalAttribute import EdgeCategoricalAttribute
 from .EdgeNumericalAttribute import EdgeNumericalAttribute
@@ -17,6 +18,7 @@ __all__ = [
     'NodeThreshold',
     'NodeCategoricalAttribute',
     'NodeNumericalAttribute',
+    'NodeNumericalVariable',
     'EdgeStochastic',
     'EdgeCategoricalAttribute',
     'EdgeNumericalAttribute',

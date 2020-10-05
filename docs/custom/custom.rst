@@ -21,12 +21,15 @@ The last step of such process can be easily decomposed into atomic operations th
 
 .. note::
 
-    ``NDlib`` exposes two classes for defining custom diffusion models:
+    ``NDlib`` exposes three classes for defining custom diffusion models:
 
-    - ``CompositeModel`` describes diffusion models for static networks
-    - ``DynamicCompositeModel`` describes diffusion models for dynamic networks
+	- ``CompositeModel`` describes diffusion models for static networks
 
-    To avoid redundant documentation, here we will discuss only the former class, the latter behaving alike.
+	- ``DynamicCompositeModel`` describes diffusion models for dynamic networks
+
+	- ``ContinuousModel`` describes diffusion models with continuous states for static and dynamic networks
+
+    To avoid redundant documentation, here we will discuss only the former class, the second behaving alike. The ``ContinuousModel`` class will have a seperate section due to its extra complexity.
 
 ============
 Compartments
@@ -52,6 +55,7 @@ They model stochastic events as well as deterministic ones.
    compartments/NodeStochastic.rst
    compartments/NodeCategoricalAttribute.rst
    compartments/NodeNumericalAttribute.rst
+   compartments/NodeNumericalVariable.rst
    compartments/NodeThreshold.rst
 
 -----------------
@@ -147,3 +151,16 @@ SIR
 	# Simulation execution
 	model.set_initial_status(config)
 	iterations = model.iteration_bunch(5)
+
+
+=======================
+Using continuous states
+=======================
+
+The composite model only supports discrete states, but more advanced custom models might require continuous states and more options.
+If continuous states are required, it might be better to use the continous model implementation.
+
+.. toctree::
+   :maxdepth: 2
+
+   continuous_model/continuous_model.rst

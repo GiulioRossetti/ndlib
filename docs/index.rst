@@ -7,7 +7,7 @@ NDlib - Network Diffusion Library
 
 ================ =================== ==================  ==========  ===============
    **Date**      **Python Versions**   **Main Author**   **GitHub**      **pypl**
-|date|                   3.x         `Giulio Rossetti`_  `Source`_   `Distribution`_
+|date|                 >=3.6         `Giulio Rossetti`_  `Source`_   `Distribution`_
 ================ =================== ==================  ==========  ===============
 
 
@@ -35,6 +35,7 @@ NDlib Dev Team
 `Letizia Milli`_        Epidemic Models
 `Alina Sirbu`_          Opinion Dynamics Model
 `Salvatore Rinzivillo`_ Visual Platform
+`Mathijs Maijer`_       Continuous Model
 ======================= ============================
 
 
@@ -59,5 +60,6 @@ NDlib Dev Team
 .. _`Letizia Milli`: https://github.com/letiziam
 .. _`Alina Sirbu`: https://github.com/alinasirbu
 .. _`Salvatore Rinzivillo`: https://github.com/rinziv
+.. _`Mathijs Maijer`: https://github.com/Tensaiz
 .. _`Source`: https://github.com/GiulioRossetti/ndlib
 .. _`Distribution`: https://pypi.python.org/pypi/ndlib
