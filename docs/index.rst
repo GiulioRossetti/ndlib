@@ -7,7 +7,7 @@ NDlib - Network Diffusion Library
 
 ================ =================== ==================  ==========  ===============
    **Date**      **Python Versions**   **Main Author**   **GitHub**      **pypl**
-|date|                   3.x         `Giulio Rossetti`_  `Source`_   `Distribution`_
+|date|                 >=3.6         `Giulio Rossetti`_  `Source`_   `Distribution`_
 ================ =================== ==================  ==========  ===============
 
 

@@ -14,3 +14,4 @@ tqdm
 salib>=1.3
 pillow
 pyintergraph
+six

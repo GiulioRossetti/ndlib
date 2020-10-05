@@ -17,6 +17,7 @@ __email__ = "m.f.maijer@gmail.com"
 
 
 class NdlibContinuousModelTest(unittest.TestCase):
+
     def test_bare_model(self):
         def initial_addiction(node, graph, status, constants):
             addiction = 0
@@ -116,10 +117,10 @@ class NdlibContinuousModelTest(unittest.TestCase):
 
         # Update functions
         def update_1(node, graph, status, attributes, constants):
-                return status[node]['status_2'] + 0.1
+            return status[node]['status_2'] + 0.1
 
         def update_2(node, graph, status, attributes, constants):
-                return status[node]['status_1'] + 0.5
+            return status[node]['status_1'] + 0.5
 
         # Rules
         model.add_rule('status_1', update_1, condition)
@@ -138,7 +139,7 @@ class NdlibContinuousModelTest(unittest.TestCase):
                 status_1 = [stat['status_1'] for stat in list(status.values())]
                 factor = 1.0/sum(status_1)
                 for s in status_1:
-                        probs.append(s * factor)
+                    probs.append(s * factor)
                 return np.random.choice(graph.nodes, size=1, replace=False, p=probs)
 
         schemes = [
