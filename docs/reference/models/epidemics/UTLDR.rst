@@ -42,7 +42,7 @@ Susceptible                                  0
 Infected                                     1
 Exposed		                                 2
 Recovered                                    3
-Id Exposed                                   4
+Identified Exposed                           4
 Hospitalized Mild conditions                 5
 Hospitalized in ICU                          6
 Hospitalized in Severe conditions (not ICU)  7
