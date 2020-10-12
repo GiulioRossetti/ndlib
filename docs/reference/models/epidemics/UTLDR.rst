@@ -140,6 +140,7 @@ In the code below is shown an example of instantiation and execution of an UTLDR
 .. code-block:: python
 
     import networkx as nx
+    import numpy as np
     import ndlib.models.ModelConfig as mc
     import ndlib.models.epidemics as epd
 
