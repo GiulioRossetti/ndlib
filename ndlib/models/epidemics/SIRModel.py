@@ -49,6 +49,7 @@ class SIRModel(DiffusionModel):
             "edges": {},
         }
 
+        self.active = []
         self.name = "SIR"
 
     def iteration(self, node_status=True):
@@ -60,6 +61,7 @@ class SIRModel(DiffusionModel):
         self.clean_initial_status(self.available_statuses.values())
 
         actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
+        self.active = [node for node, nstatus in future.utils.iteritems(self.status) if nstatus != self.available_statuses['Susceptible']]
 
         if self.actual_iteration == 0:
             self.actual_iteration += 1
@@ -71,26 +73,22 @@ class SIRModel(DiffusionModel):
                 return {"iteration": 0, "status": {},
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
-        for u in self.graph.nodes:
+        for u in self.active:
 
             u_status = self.status[u]
-            eventp = np.random.random_sample()
-            neighbors = self.graph.neighbors(u)
-            if self.graph.directed:
-                neighbors = self.graph.predecessors(u)
-
-            if u_status == 0:
-                infected_neighbors = [v for v in neighbors if self.status[v] == 1]
-                triggered = 1 if len(infected_neighbors) > 0 else 0
-
-                if self.params['model']['tp_rate'] == 1:
-                    if eventp < 1 - (1 - self.params['model']['beta']) ** len(infected_neighbors):
-                        actual_status[u] = 1
-                else:
-                    if eventp < self.params['model']['beta'] * triggered:
-                        actual_status[u] = 1
                         
-            elif u_status == 1:
+            if u_status == 1:
+
+                if self.graph.directed:
+                    susceptible_neighbors = [v for v in self.graph.successors(u) if self.status[v] == 0]
+                else:
+                    susceptible_neighbors = [v for v in self.graph.neighbors(u) if self.status[v] == 0]
+                for v in susceptible_neighbors:
+                    eventp = np.random.random_sample()
+                    if eventp < self.params['model']['beta']:
+                        actual_status[v] = 1
+
+                eventp = np.random.random_sample()
                 if eventp < self.params['model']['gamma']:
                     actual_status[u] = 2
 

@@ -6,7 +6,7 @@ import networkx as nx
 import numpy as np
 import past.builtins
 import ndlib.models.ModelConfig as mc
-import ndlib.models.DynamicCompostiteModel as gc
+import ndlib.models.DynamicCompositeModel as gc
 import ndlib.models.compartments as cpm
 
 __author__ = 'Giulio Rossetti'

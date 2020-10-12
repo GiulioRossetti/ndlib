@@ -265,6 +265,30 @@ class NdlibTest(unittest.TestCase):
             iterations = model.iteration_bunch(10, node_status=False)
             self.assertEqual(len(iterations), 10)
 
+    def test_seirct_model(self):
+
+        for g in get_graph(True):
+            model = epd.SEIRctModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter('beta', 0.5)
+            config.add_model_parameter('gamma', 0.2)
+            config.add_model_parameter('alpha', 0.05)
+            config.add_model_parameter("fraction_infected", 0.1)
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+
+        for g in get_directed_graph(True):
+            model = epd.SEIRctModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter('beta', 0.5)
+            config.add_model_parameter('gamma', 0.8)
+            config.add_model_parameter('alpha', 0.5)
+            config.add_model_parameter("fraction_infected", 0.1)
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
     def test_swir_model(self):
         for g in get_graph(True):
             model = epd.SWIRModel(g)
@@ -291,6 +315,29 @@ class NdlibTest(unittest.TestCase):
 
         for g in get_directed_graph(True):
             model = epd.SEISModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter('beta', 0.5)
+            config.add_model_parameter('lambda', 0.8)
+            config.add_model_parameter('alpha', 0.5)
+            config.add_model_parameter("fraction_infected", 0.1)
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
+    def test_seis_model(self):
+        for g in get_graph(True):
+            model = epd.SEISctModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter('beta', 0.5)
+            config.add_model_parameter('lambda', 0.2)
+            config.add_model_parameter('alpha', 0.05)
+            config.add_model_parameter("fraction_infected", 0.1)
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+
+        for g in get_directed_graph(True):
+            model = epd.SEISctModel(g)
             config = mc.Configuration()
             config.add_model_parameter('beta', 0.5)
             config.add_model_parameter('lambda', 0.8)

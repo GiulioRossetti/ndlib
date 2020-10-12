@@ -1,5 +1,5 @@
 *********
-SEIR (DT)
+SEIR (CT)
 *********
 
  
@@ -9,7 +9,7 @@ The model is instantiated on a graph having a non-empty set of infected nodes.
 
 SEIR assumes that if, during a generic iteration, a susceptible node comes into contact with an infected one, it becomes infected after an exposition period with probability beta, than it can switch to removed with probability gamma (the only transition allowed are S→E→I→R).
 
-This implementation assumes discrete time dynamics for the E->I  and I->R transitions.
+This implementation assumes continuous time dynamics for the E->I and I->R transitions.
 
 --------
 Statuses
@@ -54,24 +54,24 @@ The following class methods are made available to configure, describe and execut
 ^^^^^^^^^
 Configure
 ^^^^^^^^^
-.. autoclass:: ndlib.models.epidemics.SEIRModel.SEIRModel
-.. automethod:: ndlib.models.epidemics.SEIRModel.SEIRModel.__init__(graph)
+.. autoclass:: ndlib.models.epidemics.SEIR_ct_Model.SEIRctModel
+.. automethod:: ndlib.models.epidemics.SEIR_ct_Model.SEIRctModel.__init__(graph)
 
-.. automethod:: ndlib.models.epidemics.SEIRModel.SEIRModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.epidemics.SEIRModel.SEIRModel.reset(self)
+.. automethod:: ndlib.models.epidemics.SEIR_ct_Model.SEIRctModel.set_initial_status(self, configuration)
+.. automethod:: ndlib.models.epidemics.SEIR_ct_Model.SEIRctModel.reset(self)
 
 ^^^^^^^^
 Describe
 ^^^^^^^^
 
-.. automethod:: ndlib.models.epidemics.SEIRModel.SEIRModel.get_info(self)
-.. automethod:: ndlib.models.epidemics.SEIRModel.SEIRModel.get_status_map(self)
+.. automethod:: ndlib.models.epidemics.SEIR_ct_Model.SEIRctModel.get_info(self)
+.. automethod:: ndlib.models.epidemics.SEIR_ct_Model.SEIRctModel.get_status_map(self)
 
 ^^^^^^^^^^^^^^^^^^
 Execute Simulation
 ^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.epidemics.SEIRModel.SEIRModel.iteration(self)
-.. automethod:: ndlib.models.epidemics.SEIRModel.SEIRModel.iteration_bunch(self, bunch_size)
+.. automethod:: ndlib.models.epidemics.SEIR_ct_Model.SEIRctModel.iteration(self)
+.. automethod:: ndlib.models.epidemics.SEIR_ct_Model.SEIRctModel.iteration_bunch(self, bunch_size)
 
 
 -------
@@ -90,7 +90,7 @@ In the code below is shown an example of instantiation and execution of an SEIR 
     g = nx.erdos_renyi_graph(1000, 0.1)
 
     # Model selection
-    model = ep.SEIRModel(g)
+    model = ep.SEIRctModel(g)
 
     # Model Configuration
     cfg = mc.Configuration()
