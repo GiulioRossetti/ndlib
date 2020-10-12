@@ -1,5 +1,5 @@
 *********
-SEIS (DT)
+SEIS (CT)
 *********
 
 
@@ -9,7 +9,7 @@ The model is instantiated on a graph having a non-empty set of infected nodes.
 
 SEIS assumes that if, during a generic iteration, a susceptible node comes into contact with an infected one, it becomes infected after an exposition period with probability beta, than it can switch back to susceptible with probability lambda (the only transition allowed are S→E→I→S).
 
-This implementation assumes discrete time dynamics for the E->I  and I->S transitions.
+This implementation assumes continuous time dynamics for the E->I  and I->S transitions.
 
 --------
 Statuses
@@ -53,24 +53,24 @@ The following class methods are made available to configure, describe and execut
 ^^^^^^^^^
 Configure
 ^^^^^^^^^
-.. autoclass:: ndlib.models.epidemics.SEISModel.SEISModel
-.. automethod:: ndlib.models.epidemics.SEISModel.SEISModel.__init__(graph)
+.. autoclass:: ndlib.models.epidemics.SEIS_ct_Model.SEISctModel
+.. automethod:: ndlib.models.epidemics.SEIS_ct_Model.SEISctModel.__init__(graph)
 
-.. automethod:: ndlib.models.epidemics.SEISModel.SEISModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.epidemics.SEISModel.SEISModel.reset(self)
+.. automethod:: ndlib.models.epidemics.SEIS_ct_Model.SEISctModel.set_initial_status(self, configuration)
+.. automethod:: ndlib.models.epidemics.SEIS_ct_Model.SEISctModel.reset(self)
 
 ^^^^^^^^
 Describe
 ^^^^^^^^
 
-.. automethod:: ndlib.models.epidemics.SEISModel.SEISModel.get_info(self)
-.. automethod:: ndlib.models.epidemics.SEISModel.SEISModel.get_status_map(self)
+.. automethod:: ndlib.models.epidemics.SEIS_ct_Model.SEISctModel.get_info(self)
+.. automethod:: ndlib.models.epidemics.SEIS_ct_Model.SEISctModel.get_status_map(self)
 
 ^^^^^^^^^^^^^^^^^^
 Execute Simulation
 ^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.epidemics.SEISModel.SEISModel.iteration(self)
-.. automethod:: ndlib.models.epidemics.SEISModel.SEISModel.iteration_bunch(self, bunch_size)
+.. automethod:: ndlib.models.epidemics.SEIS_ct_Model.SEISctModel.iteration(self)
+.. automethod:: ndlib.models.epidemics.SEIS_ct_Model.SEISctModel.iteration_bunch(self, bunch_size)
 
 
 -------
@@ -90,7 +90,7 @@ we set the initial set of infected nodes as 5% of the overall population, a prob
     g = nx.erdos_renyi_graph(1000, 0.1)
 
     # Model selection
-    model = ep.SEISModel(g)
+    model = ep.SEISctModel(g)
 
     # Model Configuration
     cfg = mc.Configuration()
