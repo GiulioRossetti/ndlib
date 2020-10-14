@@ -50,6 +50,9 @@ In ``NDlib`` are implemented the following **Epidemic** models:
    models/epidemics/Profile.rst
    models/epidemics/ProfileThreshold.rst
    models/epidemics/UTLDR.rst
+   models/epidemics/ICEP.rst
+   models/epidemics/ICP.rst
+   models/epidemics/ICE.rst
 
 
 ----------------

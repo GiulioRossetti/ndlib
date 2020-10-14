@@ -37,7 +37,13 @@ class ICEPModel(DiffusionModel):
                 }
             },
             "nodes": {},
-            "edges": {},
+            "edges": {
+                "threshold": {
+                    "descr": "Edge threshold",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0.1}
+            },
         }
 
         self.name = "Community Permeability"
@@ -61,15 +67,17 @@ class ICEPModel(DiffusionModel):
                 return {"iteration": 0, "status": {},
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
+        edge_embeddedness = {}
         for u in self.graph.nodes:
             if self.status[u] != 1:
                 continue
 
-            neighbors = list(self.graph.neighbors(u))  # neighbors and successors (in DiGraph) produce the same result
-            same_community_neighbors = [n for n in neighbors if
-                                        self.params['nodes']['com'][u] == self.params['nodes']['com'][n]]
+            edge_embeddedness[u] = {}
 
-            # Standard threshold
+            neighbors = list(self.graph.neighbors(u))  # neighbors and successors (in DiGraph) produce the same result
+
+
+              # Standard threshold
             if len(neighbors) > 0:
                 threshold = 1.0/len(neighbors)
 
@@ -77,8 +85,16 @@ class ICEPModel(DiffusionModel):
                     if actual_status[v] == 0:
                         key = (u, v)
 
+                        same_community_neighbors = 0
+                        neighbors_v = list(self.graph.neighbors(v))
+                        for neighbor in neighbors_v:
+                            if neighbor in neighbors and self.params['nodes']['com'][neighbor] == self.params['nodes']['com'][u]:
+                                same_community_neighbors += 1
+                        edge_embeddedness[u][v] = float(same_community_neighbors) / float(
+                            len(neighbors) + len(neighbors_v) - same_community_neighbors)
+
                         if self.params['nodes']['com'][u] == self.params['nodes']['com'][v]:  # within same community
-                            threshold = float(len(same_community_neighbors))/len(neighbors)  # Embedness
+                            threshold = edge_embeddedness[u][v]  # Embedness
 
                         else:  # across communities
                             p = self.params['model']['permeability']
