@@ -2,6 +2,7 @@ from ndlib.models.DiffusionModel import DiffusionModel
 import numpy as np
 import future.utils
 from collections import defaultdict
+import tqdm
 
 __author__ = ["Alina Sirbu", "Giulio Rossetti"]
 __email__ = ["alina.sirbu@unipi.it", "giulio.rossetti@isti.cnr.it"]
@@ -178,3 +179,34 @@ class AlgorithmicBiasModel(DiffusionModel):
         else:
             return {"iteration": self.actual_iteration - 1, "status": {},
                     "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+
+    def steady_state(self, max_iterations, nsteady=1000, sensibility=0.00001, node_status=True):
+        """
+        Execute a bunch of model iterations
+
+        :param max_iterations: the maximum number of iterations to execute
+        :param nsteady: number of required stable states
+        :param sensibility: sensibility check for a steady state
+        :param node_status: if the incremental node status has to be returned.
+
+        :return: a list containing for each iteration a dictionary {"iteration": iteration_id, "status": dictionary_node_to_status}
+        """
+        system_status = []
+        steady_it = 0
+        for it in tqdm.tqdm(range(0, max_iterations)):
+            its = self.iteration(node_status)
+
+            if it > 0:
+                old = np.array(list(system_status[-1]['status'].values()))
+                actual = np.array(list(its['status'].values()))
+                res = np.abs(old-actual)
+                if np.all((res < sensibility)):
+                    steady_it += 1
+                else:
+                    steady_it = 0
+
+            system_status.append(its)
+            if steady_it == nsteady:
+                return system_status[:-nsteady]
+
+        return system_status
