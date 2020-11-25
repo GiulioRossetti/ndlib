@@ -3,8 +3,8 @@ import numpy as np
 import future.utils
 from collections import defaultdict
 
-__author__ = "Alina Sirbu"
-__email__ = "alina.sirbu@unipi.it"
+__author__ = ["Alina Sirbu", "Giulio Rossetti"]
+__email__ = ["alina.sirbu@unipi.it", "giulio.rossetti@isti.cnr.it"]
 
 
 class AlgorithmicBiasModel(DiffusionModel):
