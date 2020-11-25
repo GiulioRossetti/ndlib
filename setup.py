@@ -14,7 +14,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 
 setup(name='ndlib',
-      version='5.1.0',
+      version='5.1.1',
       license='BSD-Clause-2',
       description='Network Diffusion Library',
       url='https://github.com/GiulioRossetti/ndlib',

@@ -19,9 +19,9 @@ __email__ = "giulio.rossetti@gmail.com"
 
 def get_graph(er=False):
     if not er:
-        g = nx.complete_graph(100)
+        g = nx.complete_graph(250)
     else:
-        g = nx.erdos_renyi_graph(1000, 0.1)
+        g = nx.erdos_renyi_graph(250, 0.1)
     gi = ig.Graph(directed=False)
     gi.add_vertices(list(g.nodes()))
     gi.add_edges(list(g.edges()))
@@ -129,16 +129,14 @@ class NdlibTest(unittest.TestCase):
 
     def test_algorithmic_bias_model(self):
 
-        for g in get_graph():
+        for g in get_graph(er=True):
             model = opn.AlgorithmicBiasModel(g, seed=0)
             config = mc.Configuration()
             config.add_model_parameter("epsilon", 0.32)
             config.add_model_parameter("gamma", 1)
             model.set_initial_status(config)
-            iterations = model.iteration_bunch(10)
-            self.assertEqual(len(iterations), 10)
-            iterations = model.iteration_bunch(10, node_status=False)
-            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(100, node_status=False)
+            self.assertEqual(len(iterations), 100)
 
     def test_voter_model(self):
         for g in get_graph():
@@ -161,7 +159,6 @@ class NdlibTest(unittest.TestCase):
             self.assertEqual(len(iterations), 10)
             iterations = model.iteration_bunch(10, node_status=False)
             self.assertEqual(len(iterations), 10)
-
 
         for g in get_directed_graph():
             model = opn.SznajdModel(g)
