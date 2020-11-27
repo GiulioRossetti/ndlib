@@ -187,17 +187,18 @@ class DiffusionModel(object):
             if s not in valid_status:
                 self.status[n] = 0
 
-    def iteration_bunch(self, bunch_size, node_status=True):
+    def iteration_bunch(self, bunch_size, node_status=True, progress_bar=False):
         """
         Execute a bunch of model iterations
 
         :param bunch_size: the number of iterations to execute
         :param node_status: if the incremental node status has to be returned.
+        :param progress_bar: whether to display a progress bar, default False
 
         :return: a list containing for each iteration a dictionary {"iteration": iteration_id, "status": dictionary_node_to_status}
         """
         system_status = []
-        for it in tqdm.tqdm(past.builtins.xrange(0, bunch_size)):
+        for it in tqdm.tqdm(past.builtins.xrange(0, bunch_size), disable=not progress_bar):
             its = self.iteration(node_status)
             system_status.append(its)
         return system_status

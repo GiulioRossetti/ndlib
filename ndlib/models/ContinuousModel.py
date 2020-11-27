@@ -288,22 +288,17 @@ class ContinuousModel(DiffusionModel):
             return {"iteration": self.actual_iteration - 1, "status": {},
                     "status_delta": copy.deepcopy(status_delta)}
 
-    def iteration_bunch(self, bunch_size, node_status=True, tqdm=True):
+    def iteration_bunch(self, bunch_size, node_status=True, progress_bar=False):
         """
         Execute bunch_size of model iterations and save the result if save_file is set
 
         :param bunch_size: integer number of iterations to execute
         :param node_status: boolean indicating whether to keep the statuses of the nodes
-        :param tqdm: boolean indicating whether to use tqdm to show the estimated duration
+        :param progress_bar: boolean indicating whether to use tqdm to show the estimated duration
 
         :return: list of outputs for every iteration
         """
-        if tqdm:
-            iterations = super().iteration_bunch(bunch_size, node_status)
-        else:
-            iterations = []
-            for _ in range(bunch_size):
-                iterations.append(self.iteration(node_status))
+        iterations = super().iteration_bunch(bunch_size, node_status, progress_bar=progress_bar)
 
         if self.save_file:
             split = self.save_file.split('/')

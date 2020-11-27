@@ -59,7 +59,7 @@ class NdlibContinuousModelTest(unittest.TestCase):
         addiction_model.set_initial_status(initial_status, config)
 
         # Simulation
-        iterations = addiction_model.iteration_bunch(50, node_status=True, tqdm=False)
+        iterations = addiction_model.iteration_bunch(50, node_status=True, progress_bar=False)
         self.assertEqual(len(iterations), 50)
 
     def test_constants(self):
@@ -210,7 +210,7 @@ class NdlibContinuousModelTest(unittest.TestCase):
         model.set_initial_status(initial_status, config)
 
         # Simulation
-        iterations = model.iteration_bunch(10, node_status=True, tqdm=False)
+        iterations = model.iteration_bunch(10, node_status=True, progress_bar=False)
         self.assertEqual(len(iterations), 10)
         self.assertTrue(os.path.isfile(output_path + '.npy'))
         os.remove(output_path + '.npy')

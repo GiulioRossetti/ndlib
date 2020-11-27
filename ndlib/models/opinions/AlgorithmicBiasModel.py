@@ -180,7 +180,7 @@ class AlgorithmicBiasModel(DiffusionModel):
             return {"iteration": self.actual_iteration - 1, "status": {},
                     "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
-    def steady_state(self, max_iterations, nsteady=1000, sensibility=0.00001, node_status=True):
+    def steady_state(self, max_iterations, nsteady=1000, sensibility=0.00001, node_status=True, progress_bar=False):
         """
         Execute a bunch of model iterations
 
@@ -188,12 +188,13 @@ class AlgorithmicBiasModel(DiffusionModel):
         :param nsteady: number of required stable states
         :param sensibility: sensibility check for a steady state
         :param node_status: if the incremental node status has to be returned.
+        :param progress_bar: whether to display a progress bar, default False
 
         :return: a list containing for each iteration a dictionary {"iteration": iteration_id, "status": dictionary_node_to_status}
         """
         system_status = []
         steady_it = 0
-        for it in tqdm.tqdm(range(0, max_iterations)):
+        for it in tqdm.tqdm(range(0, max_iterations), disable=not progress_bar):
             its = self.iteration(node_status)
 
             if it > 0:

@@ -21,7 +21,7 @@ def get_graph(er=False):
     if not er:
         g = nx.complete_graph(100)
     else:
-        g = nx.erdos_renyi_graph(1000, 0.1)
+        g = nx.erdos_renyi_graph(100, 0.1)
     gi = ig.Graph(directed=False)
     gi.add_vertices(list(g.nodes()))
     gi.add_edges(list(g.edges()))
@@ -137,10 +137,10 @@ class NdlibTest(unittest.TestCase):
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
             self.assertEqual(len(iterations), 10)
-            iterations = model.iteration_bunch(100, node_status=False)
-            self.assertEqual(len(iterations), 100)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
 
-            _ = model.steady_state(max_iterations=100)
+            _ = model.steady_state(max_iterations=10000)
 
     def test_voter_model(self):
         for g in get_graph():

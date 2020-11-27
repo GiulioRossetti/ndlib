@@ -72,7 +72,7 @@ class ContinuousModelRunner(object):
                 self.model.constants[name] = param_values[i,j]
             # Set intial values
             self.model.set_initial_status(initial_status, self.config)
-            outputs.append(self.model.iteration_bunch(iterations, node_status=self.node_status, tqdm=False))
+            outputs.append(self.model.iteration_bunch(iterations, node_status=self.node_status, progress_bar=False))
 
         # Parse the outputs for every simulation (TODO: Optimize)
         print('Parsing outputs...')
