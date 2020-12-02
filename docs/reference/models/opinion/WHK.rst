@@ -72,8 +72,6 @@ Execute Simulation
 .. automethod:: ndlib.models.opinions.WHKModel.WHKModel.iteration(self)
 .. automethod:: ndlib.models.opinions.WHKModel.WHKModel.iteration_bunch(self, bunch_size)
 
-
-
 -------
 Example
 -------

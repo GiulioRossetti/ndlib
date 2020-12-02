@@ -96,7 +96,6 @@ Execute Simulation
 .. automethod:: ndlib.models.opinions.ARWHKModel.ARWHKModel.iteration(self)
 .. automethod:: ndlib.models.opinions.ARWHKModel.ARWHKModel.iteration_bunch(self, bunch_size)
 
-
 -------
 Example
 -------
