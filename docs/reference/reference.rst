@@ -87,6 +87,9 @@ In ``NDlib`` are implemented the following **Opinion Dynamics** models:
    models/opinion/Snajzd.rst
    models/opinion/COD.rst
    models/opinion/AlgorithmicBias.rst
+   models/opinion/ARWHK.rst
+   models/opinion/WHK.rst
+
 
 
 ----------------------
