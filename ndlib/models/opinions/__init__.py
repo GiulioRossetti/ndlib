@@ -12,6 +12,9 @@ from .MajorityRuleModel import MajorityRuleModel
 from .QVoterModel import QVoterModel
 from .SznajdModel import SznajdModel
 from .VoterModel import VoterModel
+from .WHKModel import WHKModel
+from .ARWHKModel import ARWHKModel
+
 
 __all__ = [
     'AlgorithmicBiasModel',
@@ -20,4 +23,6 @@ __all__ = [
     'QVoterModel',
     'SznajdModel',
     'VoterModel',
+    'WHKModel',
+    'ARWHKModel',
 ]
