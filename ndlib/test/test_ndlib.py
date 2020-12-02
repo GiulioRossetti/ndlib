@@ -217,6 +217,64 @@ class NdlibTest(unittest.TestCase):
             iterations = model.iteration_bunch(10, node_status=False)
             self.assertEqual(len(iterations), 10)
 
+
+    def test_whk_model(self):
+        for g in get_graph():
+            model = opn.WHKModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter("epsilon", 0.32)
+            weight = 0.2
+            if isinstance(g, nx.Graph):
+                edges = g.edges
+            else:
+                edges = [(g.vs[e.tuple[0]]['name'], g.vs[e.tuple[1]]['name']) for e in g.es]
+
+            for e in edges:
+                config.add_edge_configuration("weight", e, weight)
+
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
+
+    def test_arwhk_model(self):
+        for g in get_graph():
+            model = opn.ARWHKModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter("epsilon", 0.32)
+            config.add_model_parameter("perc_stubborness", 0.2)
+            config.add_model_parameter("option_for_stubbornness", 1)
+            config.add_model_parameter("similarity", 1)
+
+            weight = 0.2
+            if isinstance(g, nx.Graph):
+                edges = g.edges
+                nodes = g.nodes
+            else:
+                edges = [(g.vs[e.tuple[0]]['name'], g.vs[e.tuple[1]]['name']) for e in g.es]
+                nodes = g.vs['name']
+
+
+            for e in edges:
+                config.add_edge_configuration("weight", e, weight)
+
+            for node in nodes:
+                i = 0
+                vector = []
+                while i < 6:
+                    vector.append(np.random.randint(2))
+                    i += 1
+                config.add_node_configuration("vector", node, vector)
+
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
+
     def test_si_model(self):
         for g in get_graph(True):
             model = epd.SIModel(g)
