@@ -72,6 +72,7 @@ Methods
 
 The following class methods are made available to configure, describe and execute the simulation:
 
+
 ^^^^^^^^^
 Configure
 ^^^^^^^^^
@@ -94,6 +95,7 @@ Execute Simulation
 ^^^^^^^^^^^^^^^^^^
 .. automethod:: ndlib.models.opinions.ARWHKModel.ARWHKModel.iteration(self)
 .. automethod:: ndlib.models.opinions.ARWHKModel.ARWHKModel.iteration_bunch(self, bunch_size)
+
 
 -------
 Example
@@ -140,5 +142,4 @@ and a weight equal 0.2 to all the edges.
     iterations = model.iteration_bunch(20)
 
 
-.. [#] C. Toccaceli, L. Milli and G. Rossetti. “Opinion Dynamic modeling of Fake News
-Perception,” in Proceedings of International Conference on Complex Networks and Their Applications, 2020.
+.. [#] C. Toccaceli, L. Milli and G. Rossetti. “Opinion Dynamic modeling of Fake News Perception,” in Proceedings of International Conference on Complex Networks and Their Applications, 2020.

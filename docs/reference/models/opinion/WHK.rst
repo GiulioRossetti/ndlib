@@ -72,6 +72,8 @@ Execute Simulation
 .. automethod:: ndlib.models.opinions.WHKModel.WHKModel.iteration(self)
 .. automethod:: ndlib.models.opinions.WHKModel.WHKModel.iteration_bunch(self, bunch_size)
 
+
+
 -------
 Example
 -------
@@ -114,5 +116,4 @@ assign an epsilon value of 0.32 and a weight equal 0.2 to all the edges.
     iterations = model.iteration_bunch(20)
 
 
-.. [#] C. Toccaceli, L. Milli and G. Rossetti. “Opinion Dynamic modeling of Fake News
-Perception,” in Proceedings of International Conference on Complex Networks and Their Applications, 2020.
+.. [#] C. Toccaceli, L. Milli and G. Rossetti. “Opinion Dynamic modeling of Fake News Perception,” in Proceedings of International Conference on Complex Networks and Their Applications, 2020.
