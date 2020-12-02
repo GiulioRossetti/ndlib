@@ -24,7 +24,7 @@ class Mock(MagicMock):
         return MagicMock()
 
 
-MOCK_MODULES = ['ipython', 'pygtk', 'gtk', 'gobject', 'argparse', 'matplotlib', 'matplotlib.pyplot', 'numpy', 'pandas', 'dynetx', 'networkx',
+MOCK_MODULES = ['ipython', 'pygtk', 'gtk', 'gobject', 'sklearn.metrics', 'argparse', 'matplotlib', 'matplotlib.pyplot', 'numpy', 'pandas', 'dynetx', 'networkx',
                 'scipy', 'salib', 'pillow', 'pyintergraph', 'python-igraph']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
