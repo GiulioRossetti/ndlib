@@ -9,7 +9,7 @@ __author__ = ["Alina Sirbu", "Giulio Rossetti", "Valentina Pansanella"]
 __email__ = ["alina.sirbu@unipi.it", "giulio.rossetti@isti.cnr.it", "valentina.pansanella@sns.it"]
 
 
-class AlgorithmicBias(DiffusionModel):
+class AlgorithmicBiasModel(DiffusionModel):
     """
     Model Parameters to be specified via ModelConfig
 
@@ -63,7 +63,7 @@ class AlgorithmicBias(DiffusionModel):
         Override behaviour of methods in class DiffusionModel.
         Overwrites initial status using random real values.
         """
-        super(AlgorithmicBiasValentinaModel, self).set_initial_status(configuration)
+        super(AlgorithmicBiasModel, self).set_initial_status(configuration)
 
         # set node status
         for node in self.status:

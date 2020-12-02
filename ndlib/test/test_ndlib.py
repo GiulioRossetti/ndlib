@@ -25,7 +25,7 @@ def get_graph(er=False):
     gi = ig.Graph(directed=False)
     gi.add_vertices(list(g.nodes()))
     gi.add_edges(list(g.edges()))
-    gs = [g, gi]
+    gs = [gi, g]
     return gs
 
 
@@ -140,7 +140,7 @@ class NdlibTest(unittest.TestCase):
             iterations = model.iteration_bunch(10, node_status=False)
             self.assertEqual(len(iterations), 10)
 
-            _ = model.steady_state(max_iterations=10000)
+            _ = model.steady_state(max_iterations=100)
 
     def test_voter_model(self):
         for g in get_graph():
@@ -217,7 +217,6 @@ class NdlibTest(unittest.TestCase):
             iterations = model.iteration_bunch(10, node_status=False)
             self.assertEqual(len(iterations), 10)
 
-
     def test_whk_model(self):
         for g in get_graph():
             model = opn.WHKModel(g)
@@ -233,11 +232,8 @@ class NdlibTest(unittest.TestCase):
                 config.add_edge_configuration("weight", e, weight)
 
             model.set_initial_status(config)
-            iterations = model.iteration_bunch(10)
-            self.assertEqual(len(iterations), 10)
-            iterations = model.iteration_bunch(10, node_status=False)
-            self.assertEqual(len(iterations), 10)
-
+            iterations = model.iteration_bunch(3)
+            self.assertEqual(len(iterations), 3)
 
     def test_arwhk_model(self):
         for g in get_graph():
@@ -256,7 +252,6 @@ class NdlibTest(unittest.TestCase):
                 edges = [(g.vs[e.tuple[0]]['name'], g.vs[e.tuple[1]]['name']) for e in g.es]
                 nodes = g.vs['name']
 
-
             for e in edges:
                 config.add_edge_configuration("weight", e, weight)
 
@@ -273,7 +268,6 @@ class NdlibTest(unittest.TestCase):
             self.assertEqual(len(iterations), 10)
             iterations = model.iteration_bunch(10, node_status=False)
             self.assertEqual(len(iterations), 10)
-
 
     def test_si_model(self):
         for g in get_graph(True):

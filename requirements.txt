@@ -16,3 +16,4 @@ pillow
 pyintergraph
 six
 tqdm
+sklearn
