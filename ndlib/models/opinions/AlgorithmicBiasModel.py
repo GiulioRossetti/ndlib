@@ -1,14 +1,15 @@
 from ndlib.models.DiffusionModel import DiffusionModel
 import numpy as np
+from random import choice
 import future.utils
 from collections import defaultdict
 import tqdm
 
-__author__ = ["Alina Sirbu", "Giulio Rossetti"]
-__email__ = ["alina.sirbu@unipi.it", "giulio.rossetti@isti.cnr.it"]
+__author__ = ["Alina Sirbu", "Giulio Rossetti", "Valentina Pansanella"]
+__email__ = ["alina.sirbu@unipi.it", "giulio.rossetti@isti.cnr.it", "valentina.pansanella@sns.it"]
 
 
-class AlgorithmicBiasModel(DiffusionModel):
+class AlgorithmicBias(DiffusionModel):
     """
     Model Parameters to be specified via ModelConfig
 
@@ -57,13 +58,12 @@ class AlgorithmicBiasModel(DiffusionModel):
         self.ids = None
         self.sts = None
 
-
     def set_initial_status(self, configuration=None):
         """
         Override behaviour of methods in class DiffusionModel.
         Overwrites initial status using random real values.
         """
-        super(AlgorithmicBiasModel, self).set_initial_status(configuration)
+        super(AlgorithmicBiasValentinaModel, self).set_initial_status(configuration)
 
         # set node status
         for node in self.status:
@@ -74,9 +74,9 @@ class AlgorithmicBiasModel(DiffusionModel):
 
         max_edgees = (self.graph.number_of_nodes() * (self.graph.number_of_nodes() - 1)) / 2
         nids = np.array(list(self.status.items()))
+        self.ids = nids[:, 0]
 
         if max_edgees == self.graph.number_of_edges():
-            self.ids = nids[:, 0]
             self.sts = nids[:, 1]
 
         else:
@@ -84,6 +84,16 @@ class AlgorithmicBiasModel(DiffusionModel):
                 i_neigh = list(self.graph.neighbors(i))
                 i_ids = nids[:, 0][i_neigh]
                 i_sts = nids[:, 1][i_neigh]
+                # non uso mai node_data[:,1]
+                # per tenere aggiornato node_data() all'interno del for dovrei ciclare ogni item=nodo
+                # e se uno dei suoi vicini è n1 o n2 aggiornare l'array sts
+                # la complessità dovrebbe essere O(N)
+                # se invece uso solo actual_status, considerando che per ogni nodo ho la lista dei neighbors in memoria
+                # a ogni ciclo devo soltanto tirarmi fuori la lista degli stati degli avg_k vicini e prendere i
+                # loro stati da actual_status
+                # quindi la complessità dovrebbe essere O(N*p) < O(N)
+                # sto pensando ad un modo per farlo in O(1) ma non mi è ancora venuto in mente
+
                 self.node_data[i] = (i_ids, i_sts)
 
     # def clean_initial_status(self, valid_status=None):
@@ -128,25 +138,37 @@ class AlgorithmicBiasModel(DiffusionModel):
                 return {"iteration": 0, "status": {},
                         "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
+        n = self.graph.number_of_nodes()
+
         # interact with peers
-        for n1 in self.graph.nodes: # range(0, self.graph.number_of_nodes()):
-            # select a random node
-            # n1 = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]
+        for i in range(0, n):
 
-            # select all node's neighbours (no digraph possible)
-            neighbours = list(self.graph.neighbors(n1))
-
-            if len(neighbours) == 0:
-                continue
+            # ho rimesso la selezione del nodo a random
+            # n1 = list(self.graph.nodes)[np.random.randint(0, n)]
+            n1 = int(choice(self.ids))
 
             if len(self.node_data) == 0:
                 sts = self.sts
                 ids = self.ids
+                # toglie se stesso dalla lista degli id e degli status perché mi sembra rimanesse
+                # e quindi con gamma alto a volte sceglieva se stesso per interagire
+                neigh_sts = np.delete(sts, n1)
+                neigh_ids = np.delete(ids, n1)
             else:
-                ids = self.node_data[n1][0]
-                sts = self.node_data[n1][1]
+                neigh_ids = self.node_data[n1][0]
+                neigh_sts = np.array([actual_status[id] for id in neigh_ids])
 
-            selection_prob = self.pb1(sts, self.status[n1])
+            # ho cambiato come crea l'array degli stati
+            # niegh_sts = self.node_data[n1][1]
+
+            # uso neigh_sts e actual_status[n1] come argomenti della funzione
+            # perché altrimenti self.status[n1] è quello che viene dalla precedente
+            # iterazione ma non viene aggiornato in corso di interazioni all'interno di questo for
+            # e potrebbe essere cambiato in precedenza
+            # e nel codice vecchio su usava invece lo stato sempre aggiornato
+
+            # selection_prob = self.pb1(sts, self.status[n1])
+            selection_prob = self.pb1(neigh_sts, actual_status[n1])
 
             # compute probabilities to select a second node among the neighbours
             total = np.sum(selection_prob)
@@ -154,16 +176,24 @@ class AlgorithmicBiasModel(DiffusionModel):
             cumulative_selection_probability = np.cumsum(selection_prob)
 
             r = np.random.random_sample()
-            n2 = np.argmax(cumulative_selection_probability >= r) - 1
-            n2 = ids[n2]
+            # n2 = np.argmax(cumulative_selection_probability >= r) -1
+            n2 = np.argmax(
+                cumulative_selection_probability >= r)
+            # seleziono n2 dagli id dei neighbors di n1
+            n2 = int(neigh_ids[n2])
 
             # update status of n1 and n2
-            diff = np.abs(self.status[n1] - self.status[n2])
+            diff = np.abs(actual_status[n1] - actual_status[n2])
 
             if diff < self.params['model']['epsilon']:
-                avg = (self.status[n1] + self.status[n2]) / 2.0
+                avg = (actual_status[n1] + actual_status[n2]) / 2.0
                 actual_status[n1] = avg
                 actual_status[n2] = avg
+                # se la rete è completa aggiorno all'interno del ciclo
+                # self.sts, così lo riprendo sempre aggiornato
+                if len(self.node_data) == 0:
+                    self.sts[n1] = avg
+                    self.sts[n2] = avg
 
         # delta, node_count, status_delta = self.status_delta(actual_status)
         delta = actual_status
@@ -180,7 +210,8 @@ class AlgorithmicBiasModel(DiffusionModel):
             return {"iteration": self.actual_iteration - 1, "status": {},
                     "node_count": node_count.copy(), "status_delta": status_delta.copy()}
 
-    def steady_state(self, max_iterations, nsteady=1000, sensibility=0.00001, node_status=True, progress_bar=False):
+    def steady_state(self, max_iterations=100000, nsteady=1000, sensibility=0.00001, node_status=True,
+                     progress_bar=False):
         """
         Execute a bunch of model iterations
 
@@ -200,7 +231,7 @@ class AlgorithmicBiasModel(DiffusionModel):
             if it > 0:
                 old = np.array(list(system_status[-1]['status'].values()))
                 actual = np.array(list(its['status'].values()))
-                res = np.abs(old-actual)
+                res = np.abs(old - actual)
                 if np.all((res < sensibility)):
                     steady_it += 1
                 else:
