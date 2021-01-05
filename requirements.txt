@@ -1,7 +1,7 @@
 mock==3.0.5
 python-igraph
 netdispatch==0.0.6
-sphinx_rtd_theme==0.4.3
+sphinx_rtd_theme==0.5.1
 numpy==1.17.*
 future==0.17.*
 networkx==2.3
