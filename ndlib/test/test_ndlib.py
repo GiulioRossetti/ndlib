@@ -243,6 +243,8 @@ class NdlibTest(unittest.TestCase):
             config.add_model_parameter("perc_stubborness", 0.2)
             config.add_model_parameter("option_for_stubbornness", 1)
             config.add_model_parameter("similarity", 1)
+            config.add_model_parameter("method_variant", 3)
+
 
             weight = 0.2
             if isinstance(g, nx.Graph):

@@ -17,7 +17,7 @@ class ARWHKModel(DiffusionModel):
     :param weight: the weight of edges (float in [0,1])
     :param stubborn: The agent is stubborn or not ( in {0,1}, default 0)
     :param vector: represents the character of the node (list in [0,1], default [])
-
+    :param method_variant: the variant of method to apply: 0-> base case 1->with attraction 2->with repulsion, 3-> with attractiona nd repulsion ( in {0,1, 2, 3}, default 0)
     """
 
     def __init__(self, graph):
@@ -54,6 +54,12 @@ class ARWHKModel(DiffusionModel):
                 "similarity": {
                     "descr": "The method use the feature of the nodes ot not",
                     "range": {0, 1},
+                    "optional": True,
+                    "default": 0
+                },
+                "method_variant": {
+                    "descr": "The variant of method to apply",
+                    "range": {0, 1, 2, 3},
                     "optional": True,
                     "default": 0
                 }
@@ -105,11 +111,70 @@ class ARWHKModel(DiffusionModel):
             if s > 1 or s < -1:
                 self.status[n] = 0.0
 
+    def attraction(self, actual_status_n1, actual_status_neigh, sum_op):
+        # concordant positive signs
+        if (actual_status_n1 >= 0 and actual_status_neigh >= 0):
+            if actual_status_n1 > actual_status_neigh:
+                new_op = actual_status_n1 - ((sum_op / 2) * (1 - actual_status_n1))
+            elif actual_status_n1 < actual_status_neigh:
+                new_op = actual_status_n1 + ((sum_op / 2) * (1 - actual_status_n1))
+            elif actual_status_n1 == actual_status_neigh:
+                new_op = actual_status_n1
+        # concordant negative signs
+        if (actual_status_n1 < 0 and actual_status_neigh < 0):
+            if actual_status_n1 > actual_status_neigh:
+                new_op = actual_status_n1 + ((sum_op / 2) * (1 + actual_status_n1))
+            elif actual_status_n1 < actual_status_neigh:
+                new_op = actual_status_n1 - ((sum_op / 2) * (1 + actual_status_n1))
+            elif actual_status_n1 == actual_status_neigh:
+                new_op = actual_status_n1
+        # discordant signs
+        if (actual_status_n1 >= 0 and actual_status_neigh < 0):
+            if sum_op > 0:
+                new_op = actual_status_n1 - ((sum_op / 2) * (1 - actual_status_n1))
+            else:
+                new_op = actual_status_n1 + ((sum_op / 2) * (1 - actual_status_n1))
+        elif (actual_status_n1 < 0 and actual_status_neigh >= 0):
+            if sum_op > 0:
+                new_op = actual_status_n1 + ((sum_op / 2) * (1 + actual_status_n1))
+            else:
+                new_op = actual_status_n1 - ((sum_op / 2) * (1 + actual_status_n1))
+
+        return new_op
+
+
+
+    def repulsion(self,actual_status_n1,actual_status_neigh,sum_op):
+        # concordant positive signs
+        if (actual_status_n1 >= 0 and actual_status_neigh >= 0):
+            if actual_status_n1 > actual_status_neigh:
+                new_op = actual_status_n1 + ((sum_op / 2) * (1 - actual_status_n1))
+            elif actual_status_n1 < actual_status_neigh:
+                new_op = actual_status_n1 - ((sum_op / 2) * (1 - actual_status_n1))
+        # concordant negative signs
+        if (actual_status_n1 < 0 and actual_status_neigh < 0):
+            if actual_status_n1 > actual_status_neigh:
+                new_op = actual_status_n1 - ((sum_op / 2) * (1 + actual_status_n1))
+            elif actual_status_n1 < actual_status_neigh:
+                new_op = actual_status_n1 + ((sum_op / 2) * (1 + actual_status_n1))
+        # discordant signs
+        if (actual_status_n1 >= 0 and actual_status_neigh < 0):
+            if sum_op > 0:
+                new_op = actual_status_n1 + ((sum_op / 2) * (1 - actual_status_n1))
+            else:
+                new_op = actual_status_n1 - ((sum_op / 2) * (1 - actual_status_n1))
+        elif (actual_status_n1 < 0 and actual_status_neigh >= 0):
+            if sum_op > 0:
+                new_op = actual_status_n1 - ((sum_op / 2) * (1 + actual_status_n1))
+            else:
+                new_op = actual_status_n1 + ((sum_op / 2) * (1 + actual_status_n1))
+        return new_op
+
+
     def iteration(self, node_status=True):
 
         '''
         Execute a single model iteration
-
         :return: Iteration_id, Incremental node status (dictionary code -> status)
         '''
         # An iteration changes the opinion of the selected agent 'i' using the following procedure:
@@ -180,7 +245,6 @@ class ARWHKModel(DiffusionModel):
                 if setting == False:
                     num_stubborns = int(float(self.graph.number_of_nodes())*float(self.params['model']['perc_stubborness']))
                     count_stub = 0
-
                     while count_stub < num_stubborns:
                         n = list(self.graph.nodes)[np.random.randint(0,self.graph.number_of_nodes())]
                         if self.params['nodes']['stubborn'][n] == 0:
@@ -252,65 +316,37 @@ class ARWHKModel(DiffusionModel):
                 # compute the difference between opinions
                 diff_opinion = np.abs((actual_status[n1]) - (actual_status[neigh]))
 
-                # if diff_opinion < epsilon: attractive interaction
-                if diff_opinion <= self.params['model']['epsilon']:
-                    if self.params['model']['similarity'] == 1:
-                        sum_op = actual_status[n1] + ((actual_status[neigh] * weight) * jaccard_sim)
-                    else:
-                        sum_op = actual_status[n1] + (actual_status[neigh] * weight)
-
-                    # concordant positive signs
-                    if (actual_status[n1] >= 0 and actual_status[neigh] >= 0):
-                        if actual_status[n1] > actual_status[neigh]:
-                            new_op = actual_status[n1] - ((sum_op / 2) * (1 - actual_status[n1]))
-                        elif actual_status[n1] < actual_status[neigh]:
-                            new_op = actual_status[n1] + ((sum_op / 2) * (1 - actual_status[n1]))
-                        elif actual_status[n1] == actual_status[neigh]:
-                            new_op = actual_status[n1]
-                    # concordant negative signs
-                    if (actual_status[n1] < 0 and actual_status[neigh] < 0):
-                        if actual_status[n1] > actual_status[neigh]:
-                            new_op = actual_status[n1] + ((sum_op / 2) * (1 + actual_status[n1]))
-                        elif actual_status[n1] < actual_status[neigh]:
-                            new_op = actual_status[n1] - ((sum_op / 2) * (1 + actual_status[n1]))
-                        elif actual_status[n1] == actual_status[neigh]:
-                            new_op = actual_status[n1]
-                    # discordant signs
-                    if (actual_status[n1] >= 0 and actual_status[neigh] < 0):
-                        if sum_op > 0:
-                            new_op = actual_status[n1] - ((sum_op / 2) * (1 - actual_status[n1]))
-                        else:
-                            new_op = actual_status[n1] + ((sum_op / 2) * (1 - actual_status[n1]))
-                    elif (actual_status[n1] < 0 and actual_status[neigh] >= 0):
-                        if sum_op > 0:
-                            new_op = actual_status[n1] + ((sum_op / 2) * (1 + actual_status[n1]))
-                        else:
-                            new_op = actual_status[n1] - ((sum_op / 2) * (1 + actual_status[n1]))
-                # interazione con repulsione
+                if self.params['model']['similarity'] == 1:
+                    sum_op = actual_status[n1] + ((actual_status[neigh] * weight) * jaccard_sim)
                 else:
-                    # concordant positive signs
-                    if (actual_status[n1] >= 0 and actual_status[neigh] >= 0):
-                        if actual_status[n1] > actual_status[neigh]:
+                    sum_op = actual_status[n1] + (actual_status[neigh] * weight)
+
+                if self.params['model']['method_variant'] == 0:
+                    #case base
+                    if diff_opinion <= self.params['model']['epsilon']:
+                        if actual_status[n1] > 0:
                             new_op = actual_status[n1] + ((sum_op / 2) * (1 - actual_status[n1]))
-                        elif actual_status[n1] < actual_status[neigh]:
-                            new_op = actual_status[n1] - ((sum_op / 2) * (1 - actual_status[n1]))
-                    # concordant negative signs
-                    if (actual_status[n1] < 0 and actual_status[neigh] < 0):
-                        if actual_status[n1] > actual_status[neigh]:
-                            new_op = actual_status[n1] - ((sum_op / 2) * (1 + actual_status[n1]))
-                        elif actual_status[n1] < actual_status[neigh]:
+                        elif actual_status[n1] <= 0:
                             new_op = actual_status[n1] + ((sum_op / 2) * (1 + actual_status[n1]))
-                    # discordant signs
-                    if (actual_status[n1] >= 0 and actual_status[neigh] < 0):
-                        if sum_op > 0:
-                            new_op = actual_status[n1] + ((sum_op / 2) * (1 - actual_status[n1]))
-                        else:
-                            new_op = actual_status[n1] - ((sum_op / 2) * (1 - actual_status[n1]))
-                    elif (actual_status[n1] < 0 and actual_status[neigh] >= 0):
-                        if sum_op > 0:
-                            new_op = actual_status[n1] - ((sum_op / 2) * (1 + actual_status[n1]))
-                        else:
-                            new_op = actual_status[n1] + ((sum_op / 2) * (1 + actual_status[n1]))
+
+                elif self.params['model']['method_variant'] == 1:
+                    #attractive interaction
+                    if diff_opinion <= self.params['model']['epsilon']:
+                        new_op = self.attraction(actual_status[n1],actual_status[neigh],sum_op)
+
+                elif self.params['model']['method_variant'] == 2:
+                    # interaction with repulsion
+                    if diff_opinion > self.params['model']['epsilon']:
+                        new_op = self.repulsion(actual_status[n1],actual_status[neigh],sum_op)
+
+                else:
+                    # interaction with attraction and repulsion
+                    # attractive interaction
+                    if diff_opinion <= self.params['model']['epsilon']:
+                        new_op =self.attraction(actual_status[n1], actual_status[neigh], sum_op)
+                    else:
+                        new_op = self.repulsion(actual_status[n1],actual_status[neigh],sum_op)
+
 
             # if n1 is stubborn
             else:

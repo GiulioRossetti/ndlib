@@ -2,7 +2,7 @@
 Weighted Hegselmann-Krause
 *****************************
 
-The Weighted Hegselmann-Krause was introduced by Toccaceli et al. in 2020 [#]_.
+The Weighted Hegselmann-Krause was introduced by Milli et al. in 2021 [#]_.
 
 This model is a variation of the well-known Hegselmann-Krause (HK).
 Conversely from the HK model, during each iteration WHK consider a random pair-wise interaction involving agents at distance :math:`\epsilon`.
@@ -72,6 +72,7 @@ Execute Simulation
 .. automethod:: ndlib.models.opinions.WHKModel.WHKModel.iteration(self)
 .. automethod:: ndlib.models.opinions.WHKModel.WHKModel.iteration_bunch(self, bunch_size)
 
+
 -------
 Example
 -------
@@ -114,4 +115,4 @@ assign an epsilon value of 0.32 and a weight equal 0.2 to all the edges.
     iterations = model.iteration_bunch(20)
 
 
-.. [#] C. Toccaceli, L. Milli and G. Rossetti. “Opinion Dynamic modeling of Fake News Perception,” in Proceedings of International Conference on Complex Networks and Their Applications, 2020.
+.. [#] L. Milli and G. Rossetti. “Opinion Dynamic Modeling of News Perception”.
