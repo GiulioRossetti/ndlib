@@ -117,8 +117,7 @@ Example
 -------
 
 In the code below is shown an example of instantiation and execution of an ARWHK model simulation on a
-random graph: we set the initial set of infected nodes as 1% of the overall population,
-assign an epsilon value of 0.32, the percentage of stubborness equal 0.2, the distribution of stubborness equal 0
+random graph: we assign an epsilon value of 0.32, the percentage of stubborness equal 0.2, the distribution of stubborness equal 0
 and a weight equal 0.2 to all the edges.
 
 

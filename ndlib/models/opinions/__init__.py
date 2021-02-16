@@ -14,6 +14,7 @@ from .SznajdModel import SznajdModel
 from .VoterModel import VoterModel
 from .WHKModel import WHKModel
 from .ARWHKModel import ARWHKModel
+from .HKModel import HKModel
 
 
 __all__ = [
@@ -25,4 +26,5 @@ __all__ = [
     'VoterModel',
     'WHKModel',
     'ARWHKModel',
+    'HKModel'
 ]

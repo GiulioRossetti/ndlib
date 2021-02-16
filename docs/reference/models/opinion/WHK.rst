@@ -5,7 +5,8 @@ Weighted Hegselmann-Krause
 The Weighted Hegselmann-Krause was introduced by Milli et al. in 2021 [#]_.
 
 This model is a variation of the well-known Hegselmann-Krause (HK).
-Conversely from the HK model, during each iteration WHK consider a random pair-wise interaction involving agents at distance :math:`\epsilon`.
+During each interaction a random  agenti is  selected  and  the  set :math:`\Gamma_{\epsilon}` of  its  neighbors  whose
+opinions differ at most :math:`\epsilon` (:math:`d_{i,j}=|x_i(t)-x_j(t)|\leq \epsilon`) is identified.
 Moreover, to account for the heterogeneity of interaction frequency among agent pairs, WHK leverages edge weights, thus capturing the effect of different social bonds' strength/trust as it happens in reality.
 To such extent, each edge :math:`(i,j) \in E`, carries a value :math:`w_{i,j}\in [0,1]`.
 The update rule then becomes:
@@ -13,8 +14,8 @@ The update rule then becomes:
 .. math::
 
         x_i(t+1)= \left\{ \begin{array}{ll}
-              x_i(t) + \frac{x_i(t) + x_j(t)w_{i,j}}{2} (1-x_i(t)) &  \quad \quad \mbox{if }  x_i(t) \geq 0\\
-              x_i(t) + \frac{x_i(t) + x_j(t)w_{i,j}}{2} (1+x_i(t)) &  \quad \quad \mbox{if } x_i(t) < 0
+               x_i(t) + \frac{\sum_{j \in \Gamma_{\epsilon}} x_j(t)w_{ij}}{\#\Gamma_{\epsilon}} (1-x_i(t)) \quad \quad \text{\quad if   x_i(t) \geq 0}\\
+              x_i(t) + \frac{\sum_{j \in \Gamma_{\epsilon}} x_j(t)w_{ij}}{\#\Gamma_{\epsilon}} (1+x_i(t)) \quad \text{if  x_i(t) < 0 }
                 \end{array}
                 \right.
 
@@ -78,8 +79,7 @@ Example
 -------
 
 In the code below is shown an example of instantiation and execution of an WHK model simulation on a random graph:
-we set the initial set of infected nodes as 1% of the overall population,
-assign an epsilon value of 0.32 and a weight equal 0.2 to all the edges.
+we an epsilon value of 0.32 and a weight equal 0.2 to all the edges.
 
 
 .. code-block:: python

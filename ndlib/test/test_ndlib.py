@@ -235,6 +235,19 @@ class NdlibTest(unittest.TestCase):
             iterations = model.iteration_bunch(3)
             self.assertEqual(len(iterations), 3)
 
+    def test_hk_model(self):
+        for g in get_graph():
+            model = opn.HKModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter("epsilon", 0.32)
+
+            model.set_initial_status(config)
+
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
     def test_arwhk_model(self):
         for g in get_graph():
             model = opn.ARWHKModel(g)
