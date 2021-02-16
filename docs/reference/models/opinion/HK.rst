@@ -1,6 +1,6 @@
-************************************************
-Attraction-Repulsion Weighted Hegselmann-Krause
-************************************************
+*********************
+Hegselmann-Krause
+*********************
 
 The Hegselmann-Krause model was introduced in 2002 by Hegselmann, Krause et al [#]_.
 
