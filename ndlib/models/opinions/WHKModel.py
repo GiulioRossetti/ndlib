@@ -191,13 +191,13 @@ class WHKModel(DiffusionModel):
                 '''
 
             self.actual_iteration += 1
-            delta, node_count, status_delta = self.status_delta(self.status)
+            # delta, node_count, status_delta = self.status_delta(self.status)
             if node_status:
                 return {"iteration": 0, "status": self.status.copy(),
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                        "node_count": len(self.status), "status_delta": self.status.copy()}
             else:
                 return {"iteration": 0, "status": {},
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                        "node_count": len(self.status), "status_delta": self.status.copy()}
 
         '''
         - select a random agent n1
@@ -230,17 +230,25 @@ class WHKModel(DiffusionModel):
                     # compute the difference between opinions
                     diff_opinion = np.abs((actual_status[n1]) - (actual_status[neigh]))
                     if diff_opinion < self.params['model']['epsilon']:
+                        jaccard_sim = 0
                         if self.params['model']['similarity'] == 1:
                             # compute similarity between n1 and neigh using jaccard score
                             jaccard_sim = jaccard_score(self.params['nodes']['vector'][n1],
                                                         self.params['nodes']['vector'][neigh])
-                        if key not in list(self.graph.edges):
+                        weight = 0
+                        if not self.graph.has_edge(key[0], key[1]):
                             e = list(key)
                             reverse = [e[1], e[0]]
                             link = tuple(reverse)
-                            weight = self.params['edges']['weight'][link]
+                            if link in self.params['edges']['weight']:
+                                weight = (self.params['edges']['weight'][link])
+                            elif not self.graph.directed:
+                                weight = (self.params['edges']['weight'][key])
                         else:
-                            weight = self.params['edges']['weight'][key]
+                            if key in self.params['edges']['weight']:
+                                weight = (self.params['edges']['weight'][key])
+                            elif not self.graph.directed:
+                                weight = (self.params['edges']['weight'][(key[1], key[0])])
 
                         if self.params['model']['similarity'] == 1:
                             sum_op += (actual_status[neigh] * weight) * jaccard_sim
@@ -265,12 +273,12 @@ class WHKModel(DiffusionModel):
 
             actual_status[n1] = new_op
 
-        delta, node_count, status_delta = self.status_delta(actual_status)
+        # delta, node_count, status_delta = self.status_delta(actual_status)
         self.status = actual_status
         self.actual_iteration += 1
         if node_status:
-            return {"iteration": self.actual_iteration - 1, "status": delta.copy(), "node_count": node_count.copy(),
-                    "status_delta": status_delta.copy()}
+            return {"iteration": self.actual_iteration - 1, "status": self.status.copy(), "node_count": len(actual_status),
+                    "status_delta": self.status.copy()}
         else:
-            return {"iteration": self.actual_iteration - 1, "status": {}, "node_count": node_count.copy(),
-                    "status_delta": status_delta.copy()}
+            return {"iteration": self.actual_iteration - 1, "status": {}, "node_count": len(actual_status),
+                    "status_delta": self.status.copy()}

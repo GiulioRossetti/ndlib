@@ -4,6 +4,7 @@ import numpy as np
 import random
 from sklearn.metrics import jaccard_score
 
+
 __author__ = 'Cecilia Toccaceli'
 __license__ = "BSD-2-Clause"
 
@@ -183,7 +184,7 @@ class ARWHKModel(DiffusionModel):
         # - if between this pair of agents, there is a smaller distance than epsilon,
         # then there is an attraction between opinions, else a repulsion
 
-        self.clean_initial_status(None)
+        #self.clean_initial_status(None)
 
         actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
 
@@ -216,7 +217,7 @@ class ARWHKModel(DiffusionModel):
 
             join_list = negatives + positives
             num_stubborns = 0
-            if use_stubborn_node == False:
+            if not use_stubborn_node:
                 # based on the value of option_for_stubbornness, compute num_stubborns or only on negatives, or on positives or on the union of the two
                 if self.params['model']['option_for_stubbornness'] == -1 and len(negatives) != 0:
                     num_stubborns = int(float(len(negatives)) * float(self.params['model']['perc_stubborness']))
@@ -262,13 +263,13 @@ class ARWHKModel(DiffusionModel):
                         self.params['nodes']['stubborn'][b[1]] = 1                    
             '''
             self.actual_iteration += 1
-            delta, node_count, status_delta = self.status_delta(self.status)
+            #delta, node_count, status_delta = self.status_delta(self.status)
             if node_status:
                 return {"iteration": 0, "status": self.status.copy(),
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                        "node_count": len(actual_status), "status_delta": self.status.copy()}
             else:
                 return {"iteration": 0, "status": {},
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                        "node_count": len(actual_status), "status_delta": self.status.copy()}
 
         '''
         - select a random agent n1
@@ -282,7 +283,8 @@ class ARWHKModel(DiffusionModel):
             - else
                 repulsion: different cases according to the sign of the agents' opinions
         '''
-        for i in range(0, self.graph.number_of_nodes()):
+        for _ in range(0, self.graph.number_of_nodes()):
+
             # select a random node
             n1 = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]
 
@@ -300,18 +302,26 @@ class ARWHKModel(DiffusionModel):
                 # select a neigh for peer interaction
                 neigh = random.choice(neighbours)
 
+                jaccard_sim = 0
                 if self.params['model']['similarity'] == 1:
                     # compute similarity between n1 and neigh using jaccard score
                     jaccard_sim = jaccard_score(self.params['nodes']['vector'][n1], self.params['nodes']['vector'][neigh])
 
                 key = (n1, neigh)
-                if key not in list(self.graph.edges):
+                weight = 0
+                if not self.graph.has_edge(key[0], key[1]):
                     e = list(key)
                     reverse = [e[1], e[0]]
                     link = tuple(reverse)
-                    weight = (self.params['edges']['weight'][link])
+                    if link in self.params['edges']['weight']:
+                        weight = (self.params['edges']['weight'][link])
+                    elif not self.graph.directed:
+                        weight = (self.params['edges']['weight'][key])
                 else:
-                    weight = (self.params['edges']['weight'][key])
+                    if key in self.params['edges']['weight']:
+                        weight = (self.params['edges']['weight'][key])
+                    elif not self.graph.directed:
+                        weight = (self.params['edges']['weight'][(key[1], key[0])])
 
                 # compute the difference between opinions
                 diff_opinion = np.abs((actual_status[n1]) - (actual_status[neigh]))
@@ -354,12 +364,12 @@ class ARWHKModel(DiffusionModel):
                 new_op = actual_status[n1]
 
             actual_status[n1] = new_op
-        delta, node_count, status_delta = self.status_delta(actual_status)
+        #delta, node_count, status_delta = self.status_delta(actual_status)
         self.status = actual_status
         self.actual_iteration += 1
         if node_status:
-            return {"iteration": self.actual_iteration - 1, "status": delta.copy(), "node_count": node_count.copy(),
-                    "status_delta": status_delta.copy()}
+            return {"iteration": self.actual_iteration - 1, "status": self.status.copy(), "node_count": len(actual_status),
+                    "status_delta": self.status.copy()}
         else:
-            return {"iteration": self.actual_iteration - 1, "status": {}, "node_count": node_count.copy(),
-                    "status_delta": status_delta.copy()}
+            return {"iteration": self.actual_iteration - 1, "status": {}, "node_count": len(actual_status),
+                    "status_delta": self.status.copy()}
