@@ -8,6 +8,7 @@
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/GiulioRossetti/ndlib.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/GiulioRossetti/ndlib/context:python)
 [![DOI](https://zenodo.org/badge/59556819.svg)](https://zenodo.org/badge/latestdoi/59556819)
 [![PyPI download month](https://img.shields.io/pypi/dm/ndlib.svg?color=blue&style=plastic)](https://pypi.python.org/pypi/ndlib/)
+[![SBD++](https://img.shields.io/badge/Available%20on-SoBigData%2B%2B-green)](https://sobigdata.d4science.org/group/sobigdata-gateway/explore?siteId=20371853)
 
 
 ![NDlib logo](https://github.com/GiulioRossetti/ndlib/blob/master/docs/ndlogo2.png)
@@ -40,9 +41,12 @@ Alternatively use pip:
 sudo pip install ndlib
 ```
 
-## Documentation
+## Documentation, Tutorials and Online Environments
 
 For examples, tutorials and a complete reference visit the project documentation website on [ReadTheDocs](http://ndlib.readthedocs.io).
+
+If you would like to test ``NDlib`` functionalities withouth installing anything on your machine consider using the preconfigured Jupyter Hub instances offered by [SoBigData++](https://sobigdata.d4science.org/group/sobigdata-gateway/explore?siteId=20371853).
+
 
 ## Jupyter Notebook Tutorial
 
