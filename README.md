@@ -7,7 +7,8 @@
 [![Updates](https://pyup.io/repos/github/GiulioRossetti/ndlib/shield.svg)](https://pyup.io/repos/github/GiulioRossetti/ndlib/)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/GiulioRossetti/ndlib.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/GiulioRossetti/ndlib/context:python)
 [![DOI](https://zenodo.org/badge/59556819.svg)](https://zenodo.org/badge/latestdoi/59556819)
-[![PyPI download month](https://img.shields.io/pypi/dm/ndlib.svg?color=blue&style=plastic)](https://pypi.python.org/pypi/ndlib/)
+[![Downloads](https://pepy.tech/badge/ndlib)](https://pepy.tech/project/ndlib)
+[![Downloads](https://pepy.tech/badge/ndlib/month)](https://pepy.tech/project/ndlib)
 [![SBD++](https://img.shields.io/badge/Available%20on-SoBigData%2B%2B-green)](https://sobigdata.d4science.org/group/sobigdata-gateway/explore?siteId=20371853)
 
 
