@@ -44,7 +44,7 @@ It restrain the rule evaluation to all those nodes for which the attribute "Sex"
 	import random
 	import ndlib.models.ModelConfig as mc
 	import ndlib.models.CompositeModel as gc
-	import ndlib.models.compartments.NodeCategoricalAttribute as ns
+	import ndlib.models.compartments as cpm
 
 	# Network generation
 	g = nx.erdos_renyi_graph(1000, 0.1)
@@ -62,7 +62,7 @@ It restrain the rule evaluation to all those nodes for which the attribute "Sex"
 	model.add_status("Removed")
 
 	# Compartment definition
-	c1 = na.NodeCategoricalAttribute("Sex", "male", probability=0.6)
+	c1 = cpm.NodeCategoricalAttribute("Sex", "male", probability=0.6)
 
 	# Rule definition
 	model.add_rule("Susceptible", "Infected", c1)
