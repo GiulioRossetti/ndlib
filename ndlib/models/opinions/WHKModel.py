@@ -134,7 +134,7 @@ class WHKModel(DiffusionModel):
                     i = 0
                     if len(self.params['nodes']['vector'][node]) == 0:
                     #self.params['nodes']['vector'][node] = []
-                        while i < 6:
+                        while i < 5:
                             self.params['nodes']['vector'][node].append(np.random.randint(2))
                             i += 1
                 if self.params['nodes']['stubborn'][node] == 1:
