@@ -9,6 +9,6 @@ tqdm
 salib>=1.3
 pillow
 pyintergraph
-six
+six==1.16.0
 tqdm
 sklearn
