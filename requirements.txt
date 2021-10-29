@@ -12,3 +12,4 @@ pyintergraph
 six
 tqdm
 sklearn
+docutils==0.15.2
