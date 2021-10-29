@@ -153,7 +153,7 @@ SIR
     iterations = model.iteration_bunch(5)
 
 
-For other examples, give a look to the following examples:
+For other examples, give a look to the following list of CustomModels:
 
 
 .. toctree::
