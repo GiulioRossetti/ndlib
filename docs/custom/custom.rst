@@ -123,7 +123,7 @@ SIR
 	import networkx as nx
 	import ndlib.models.ModelConfig as mc
 	import ndlib.models.CompositeModel as gc
-	import ndlib.models.compartments.NodeStochastic as ns
+	import ndlib.models.compartments as cpm
 
 	# Network generation
 	g = nx.erdos_renyi_graph(1000, 0.1)
@@ -137,8 +137,8 @@ SIR
 	model.add_status("Removed")
 
 	# Compartment definition
-	c1 = ns.NodeStochastic(0.02, triggering_status="Infected")
-	c2 = ns.NodeStochastic(0.01)
+	c1 = cpm.NodeStochastic(0.02, triggering_status="Infected")
+	c2 = cpm.NodeStochastic(0.01)
 
 	# Rule definition
 	model.add_rule("Susceptible", "Infected", c1)
@@ -152,6 +152,13 @@ SIR
 	model.set_initial_status(config)
 	iterations = model.iteration_bunch(5)
 
+
+For other examples, give a look to the following examples:
+
+.. toctree::
+   :maxdepth: 2
+
+   compartments/halloween2021.rst
 
 =======================
 Using continuous states
