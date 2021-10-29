@@ -2,16 +2,15 @@
 2021 Halloween Special: Zombie Epidemiology
 *******************************************
 
-::
 
-    "Zombies are a popular figure in pop culture/entertainment and they are usually portrayed as being brought about through an outbreak or epidemic.
+    Zombies are a popular figure in pop culture/entertainment and they are usually portrayed as being brought about through an outbreak or epidemic.
     Consequently, we model a zombie attack, using biological assumptions based on popular zombie movies.
 
     We introduce a basic model for zombie infection, determine equilibria and their stability, and illustrate the outcome with numerical solutions.
     We then refine the model to introduce a latent period of zombification, whereby humans are infected, but not infectious, before becoming undead. We then modify the model to include the effects of possible quarantine or a cure.
 
     Finally, we examine the impact of regular, impulsive reductions in the number of zombies and derive conditions under which eradication can occur.
-    We show that only quick, aggressive attacks can stave off the doomsday scenario: the collapse of society as zombies overtake us all."
+    We show that only quick, aggressive attacks can stave off the doomsday scenario: the collapse of society as zombies overtake us all.
 
 **Original Paper**
 
