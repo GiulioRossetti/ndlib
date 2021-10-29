@@ -11,4 +11,4 @@ pillow
 pyintergraph
 six
 tqdm
-sklearn
+sklearn==0.0
