@@ -86,8 +86,8 @@ It restrain the rule evaluation to all those nodes connected at least to a "Susc
 	model.add_status("Removed")
 
 	# Compartment definition
-	c1 = na.NodeNumericalAttribute("Age", value=18, op="==", probability=0.6)
-	c2 = na.NodeNumericalAttribute("Age", value=[20, 25], op="IN", probability=0.6, triggering_status="Susceptible")
+	c1 = na("Age", value=18, op="==", probability=0.6)
+	c2 = na("Age", value=[20, 25], op="IN", probability=0.6, triggering_status="Susceptible")
 
 	# Rule definition
 	model.add_rule("Susceptible", "Infected", c1)
