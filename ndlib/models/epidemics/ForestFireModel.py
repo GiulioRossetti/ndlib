@@ -84,7 +84,7 @@ class ForestFireModel(DiffusionModel):
             if len(infected_neighbors) >= 1:
                 actual_status[t] = 1
             else:
-                eventp = np.random_sample()
+                eventp = np.random.uniform(0.0, 1.0)
                 if eventp < self.params['model']['f']:
                     actual_status[t] = 1
 
@@ -92,7 +92,7 @@ class ForestFireModel(DiffusionModel):
             actual_status[b] = 2
 
         for r in self.noTree:
-            eventp = np.random_sample()
+            eventp = np.random.uniform(0.0, 1.0)
             if eventp < self.params['model']['p']:
                 actual_status[r] = 0
 

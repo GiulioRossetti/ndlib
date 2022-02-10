@@ -308,6 +308,19 @@ class NdlibTest(unittest.TestCase):
             iterations = model.iteration_bunch(10, node_status=False)
             self.assertEqual(len(iterations), 10)
 
+    def test_forest_fire_model(self):
+        for g in get_graph(True):
+            model = epd.ForestFireModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter('f', 0.1)
+            config.add_model_parameter('p', 0.2)
+            config.add_model_parameter("fraction_infected", 0.1)
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
     def test_seir_model(self):
 
         for g in get_graph(True):
