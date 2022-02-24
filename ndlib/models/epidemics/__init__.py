@@ -21,6 +21,7 @@ from .GeneralThresholdModel import GeneralThresholdModel
 from .UTLDRModel import UTLDRModel
 from .SEIR_ct_Model import SEIRctModel
 from .SEIS_ct_Model import SEISctModel
+from .ForestFireModel import ForestFireModel
 
 __all__ = [
     'GeneralisedThresholdModel',
@@ -41,5 +42,6 @@ __all__ = [
     'UTLDRModel',
     'ICEPModel',
     'SEIRctModel',
-    'SEISctModel'
+    'SEISctModel',
+    'ForestFireModel'
 ]
