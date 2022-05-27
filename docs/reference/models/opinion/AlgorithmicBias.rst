@@ -2,9 +2,6 @@
 Algorithmic Bias
 ****************
 
-.. note:: The Algorithmic Bias model will be officially released in NDlib 4.0.1
-
-
 The Algorithmic Bias model considers a population of individuals, where each individual holds a continuous opinion  in the interval  [0,1].
 Individuals are connected by a social network, and interact pairwise at discrete time steps.
 The interacting pair is selected from the population at each time point in such a way that individuals that have close opinion values are selected more often, to simulate algorithmic bias.
