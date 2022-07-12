@@ -68,7 +68,7 @@ It restrain the rule evaluation to all those nodes connected at least to a "Susc
 	import random
 	import ndlib.models.ModelConfig as mc
 	import ndlib.models.CompositeModel as gc
-	import ndlib.models.compartments.EdgeNumericalAttribute as ns
+	import ndlib.models.compartments.EdgeNumericalAttribute as na
 
 	# Network generation
 	g = nx.erdos_renyi_graph(1000, 0.1)

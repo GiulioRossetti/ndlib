@@ -4,13 +4,13 @@ Threshold
 
 The Threshold model was introduced in 1978 by Granovetter [#]_. 
 
-In this model during an epidemics, a node has two distinct and mutually exclusive behavioral alternatives, e.g., the decision to do or not do something, to participate or not participate in a riot. 
+In this model during an epidemic, a node has two distinct and mutually exclusive behavioral alternatives, e.g., the decision to do or not do something, to participate or not participate in a riot. 
 
-Node's individual decision depends on the percentage of its neighbors have made the same choice, thus imposing a threshold. 
+Node's individual decision depends on the percentage of its neighbors that have made the same choice, thus imposing a threshold. 
 
 The model works as follows: 
 - each node has its own threshold; 
-- during a generic iteration every node is observed: iff the percentage of its infected neighbors is grater than its threshold it becomes infected as well.
+- during a generic iteration every node is observed: if the percentage of its infected neighbors is greater than its threshold it becomes infected as well.
 
 --------
 Statuses

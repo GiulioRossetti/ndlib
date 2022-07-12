@@ -6,9 +6,10 @@
 [![Documentation Status](https://readthedocs.org/projects/ndlib/badge/?version=latest)](http://ndlib.readthedocs.io/en/latest/?badge=latest)
 [![Updates](https://pyup.io/repos/github/GiulioRossetti/ndlib/shield.svg)](https://pyup.io/repos/github/GiulioRossetti/ndlib/)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/GiulioRossetti/ndlib.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/GiulioRossetti/ndlib/context:python)
-[![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/ndlib_nx/community?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FGiulioRossetti%2Fndlib.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FGiulioRossetti%2Fndlib?ref=badge_shield)
 [![DOI](https://zenodo.org/badge/59556819.svg)](https://zenodo.org/badge/latestdoi/59556819)
+[![Downloads](https://pepy.tech/badge/ndlib)](https://pepy.tech/project/ndlib)
+[![Downloads](https://pepy.tech/badge/ndlib/month)](https://pepy.tech/project/ndlib)
+[![SBD++](https://img.shields.io/badge/Available%20on-SoBigData%2B%2B-green)](https://sobigdata.d4science.org/group/sobigdata-gateway/explore?siteId=20371853)
 
 
 ![NDlib logo](https://github.com/GiulioRossetti/ndlib/blob/master/docs/ndlogo2.png)
@@ -41,9 +42,12 @@ Alternatively use pip:
 sudo pip install ndlib
 ```
 
-## Documentation
+## Documentation, Tutorials and Online Environments
 
 For examples, tutorials and a complete reference visit the project documentation website on [ReadTheDocs](http://ndlib.readthedocs.io).
+
+If you would like to test ``NDlib`` functionalities withouth installing anything on your machine consider using the preconfigured Jupyter Hub instances offered by [SoBigData++](https://sobigdata.d4science.org/group/sobigdata-gateway/explore?siteId=20371853).
+
 
 ## Jupyter Notebook Tutorial
 
@@ -65,10 +69,7 @@ Contributing is good, doing it correctly is better! Check out our [rules](https:
 
 Do you want to be part of the NDlib community to discuss enhancements, desiderata, bug fix? Join us on **Slack**!
 
-[<img align="middle" width="150" src="docs/join-slack-team.png">](https://join.slack.com/t/ndlib/shared_invite/enQtNTA2ODk1MzQzODE0LWNjOWE2YTdiYjdkNTVmZjUyY2E5Y2NkMzczOGZkZjJiNDk5MDA4ZWUyNDgwNzNjMWIzMDIzNmQxYzQ4YWEyMDQ)
+[<img align="middle" width="150" src="docs/join-slack-team.png">](https://join.slack.com/t/ndlib/shared_invite/enQtNTA2ODk1MzQzODE0LTU2YWEzZjAzNDFiNTBlY2QxN2IyODAwMjgyMDBmYjQ2NzhjZjA4NzA1M2U0ZmZlN2I1NGM5OTI2N2I4ZTFmMzQ)
 
 We are a welcoming community... just follow the [Code of Conduct](https://github.com/GiulioRossetti/ndlib/blob/master/.github/CODE_OF_CONDUCT.md).
 
-
-## License
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FGiulioRossetti%2Fndlib.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FGiulioRossetti%2Fndlib?ref=badge_large)

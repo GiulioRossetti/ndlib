@@ -43,7 +43,8 @@ Indeed, heterogeneous compartment types can be mixed to build more complex scena
 	import networkx as nx
 	import ndlib.models.ModelConfig as mc
 	import ndlib.models.CompositeModel as gc
-	import ndlib.models.compartments.NodeStochastic as ns
+	import ndlib.models.compartments as cpm
+	from ndlib.models.compartments.enums.NumericalType import NumericalType
 	import ndlib.models.compartments.ConditionalComposition as cif
 
 	# Network generation
@@ -57,9 +58,9 @@ Indeed, heterogeneous compartment types can be mixed to build more complex scena
 	model.add_status("Infected")
 
 	# Compartment definition
-	c1 = ns.NodeStochastic(0.5, "Infected")
-	c2 = ns.NodeStochastic(0.2)
-	c3 = ns.NodeStochastic(0.1)
+	c1 = cpm.NodeStochastic(0.5, "Infected")
+	c2 = cpm.NodeStochastic(0.2)
+	c3 = cpm.NodeStochastic(0.1)
 
 	# Conditional Composition
 	cc = cif.ConditionalComposition(c1, c2, c3)

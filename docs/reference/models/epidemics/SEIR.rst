@@ -1,6 +1,6 @@
-****
-SEIR
-****
+*********
+SEIR (DT)
+*********
 
  
 In the SEIR model [#]_, during the course of an epidemics, a node is allowed to change its status  from **Susceptible** (S) to **Exposed** (E) to **Infected** (I), then to **Removed** (R).
@@ -9,6 +9,7 @@ The model is instantiated on a graph having a non-empty set of infected nodes.
 
 SEIR assumes that if, during a generic iteration, a susceptible node comes into contact with an infected one, it becomes infected after an exposition period with probability beta, than it can switch to removed with probability gamma (the only transition allowed are S→E→I→R).
 
+This implementation assumes discrete time dynamics for the E->I  and I->R transitions.
 
 --------
 Statuses
@@ -34,7 +35,7 @@ Name   Type   Value Type       Default  Mandatory  Description
 =====  =====  ===============  =======  =========  =====================
 beta   Model  float in [0, 1]           True       Infection probability
 gamma  Model  float in [0, 1]           True       Removal probability
-alpha  Model  float in [0, 1]           True       Incubation period
+alpha  Model  float in [0, 1]           True       Latent period
 =====  =====  ===============  =======  =========  =====================
 
 The initial infection status can be defined via:

@@ -4,7 +4,7 @@ Count Down
 
 Count Down compartments are used to evaluate time related deterministic events attached to network nodes.
 
-Consider the transition rule **Susceptible->Infected** that has an incubation period of *t* iterations.
+Consider the transition rule **Susceptible->Infected** that has an latent period of *t* iterations.
 
 Such rule can be described by a simple compartment that models Count Down behaviors. Let's call il *CD*.
 

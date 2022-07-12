@@ -8,9 +8,9 @@ __license__ = "BSD-2-Clause"
 
 class SWIRModel(DiffusionModel):
 
-    def __init__(self, graph):
+    def __init__(self, graph, seed=None):
 
-        super(self.__class__, self).__init__(graph)
+        super(self.__class__, self).__init__(graph, seed)
 
         self.name = "SWIR"
 

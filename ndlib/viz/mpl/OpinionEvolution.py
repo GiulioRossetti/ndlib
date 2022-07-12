@@ -41,8 +41,6 @@ class OpinionEvolution(object):
         nodes2opinions = {}
         node2col = {}
 
-        mx = 0
-
         last_it = self.srev[-1]['iteration'] + 1
         last_seen = {}
 
@@ -82,7 +80,6 @@ class OpinionEvolution(object):
         plt.xlabel("Iterations", fontsize=24)
         plt.ylabel(self.ylabel, fontsize=24)
         plt.legend(loc="best", fontsize=18)
-
 
         plt.tight_layout()
         if filename is not None:

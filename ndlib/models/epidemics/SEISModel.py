@@ -14,13 +14,13 @@ class SEISModel(DiffusionModel):
        :param lambda: The recovery rate (float value in [0,1])
     """
 
-    def __init__(self, graph):
+    def __init__(self, graph, seed=None):
         """
              Model Constructor
 
              :param graph: A networkx graph object
          """
-        super(self.__class__, self).__init__(graph)
+        super(self.__class__, self).__init__(graph, seed)
         self.available_statuses = {
             "Susceptible": 0,
             "Exposed": 2,
@@ -91,22 +91,17 @@ class SEISModel(DiffusionModel):
                 if self.params['model']['tp_rate'] == 1:
                     if eventp < 1 - (1 - self.params['model']['beta']) ** len(infected_neighbors):
                         actual_status[u] = 2  # Exposed
-                        self.progress[u] = 0
                 else:
                     if eventp < self.params['model']['beta'] * triggered:
                         actual_status[u] = 2  # Exposed
-                        self.progress[u] = 0
 
             elif u_status == 2:
-                if self.progress[u] < 1:
-                    self.progress[u] += self.params['model']['alpha']
-                else:
+                if eventp < self.params['model']['alpha']:
                     actual_status[u] = 1  # Infected
-                    del self.progress[u]
 
             elif u_status == 1:
                 if eventp < self.params['model']['lambda']:
-                    actual_status[u] = 0  # Susceptible
+                    actual_status[u] = 0
 
         delta, node_count, status_delta = self.status_delta(actual_status)
         self.status = actual_status

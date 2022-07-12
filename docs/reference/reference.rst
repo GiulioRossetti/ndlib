@@ -39,7 +39,9 @@ In ``NDlib`` are implemented the following **Epidemic** models:
    models/epidemics/SIS.rst
    models/epidemics/SIR.rst
    models/epidemics/SEIR.rst
+   models/epidemics/SEIR_ct.rst
    models/epidemics/SEIS.rst
+   models/epidemics/SEIS_ct.rst
    models/epidemics/SWIR.rst
    models/epidemics/Threshold.rst
    models/epidemics/GeneralisedThreshold.rst
@@ -47,10 +49,14 @@ In ``NDlib`` are implemented the following **Epidemic** models:
    models/epidemics/IndependentCascades.rst
    models/epidemics/Profile.rst
    models/epidemics/ProfileThreshold.rst
+   models/epidemics/UTLDR.rst
+   models/epidemics/ICEP.rst
+   models/epidemics/ICP.rst
+   models/epidemics/ICE.rst
 
 
 ----------------
-Opinion Dinamycs
+Opinion Dynamics
 ----------------
 
 A different field related with modelling social behaviour is that of opinion dynamics.
@@ -81,6 +87,11 @@ In ``NDlib`` are implemented the following **Opinion Dynamics** models:
    models/opinion/Snajzd.rst
    models/opinion/COD.rst
    models/opinion/AlgorithmicBias.rst
+   models/opinion/ARWHK.rst
+   models/opinion/WHK.rst
+   models/opinion/HK.rst
+
+
 
 ----------------------
 Dynamic Network Models
@@ -133,7 +144,7 @@ The ``ndlib.utils`` module contains facilities that extend the simulation framew
 Visualization
 =============
 
-In order to provide an easy proxy to study diffusion phenomena and compare different configurations as well as models ``NDlib`` offers built-in visualizzation facilities.
+In order to provide an easy proxy to study diffusion phenomena and compare different configurations as well as models ``NDlib`` offers built-in visualization facilities.
 
 In particular, the following plots are made available:
 

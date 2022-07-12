@@ -21,12 +21,15 @@ The last step of such process can be easily decomposed into atomic operations th
 
 .. note::
 
-    ``NDlib`` exposes two classes for defining custom diffusion models:
+    ``NDlib`` exposes three classes for defining custom diffusion models:
 
-    - ``CompositeModel`` describes diffusion models for static networks
-    - ``DynamicCompositeModel`` describes diffusion models for dynamic networks
+	- ``CompositeModel`` describes diffusion models for static networks
 
-    To avoid redundant documentation, here we will discuss only the former class, the latter behaving alike.
+	- ``DynamicCompositeModel`` describes diffusion models for dynamic networks
+
+	- ``ContinuousModel`` describes diffusion models with continuous states for static and dynamic networks
+
+    To avoid redundant documentation, here we will discuss only the former class, the second behaving alike. The ``ContinuousModel`` class will have a seperate section due to its extra complexity.
 
 ============
 Compartments
@@ -52,6 +55,7 @@ They model stochastic events as well as deterministic ones.
    compartments/NodeStochastic.rst
    compartments/NodeCategoricalAttribute.rst
    compartments/NodeNumericalAttribute.rst
+   compartments/NodeNumericalVariable.rst
    compartments/NodeThreshold.rst
 
 -----------------
@@ -116,34 +120,57 @@ SIR
 
 .. code-block:: python
 
-	import networkx as nx
-	import ndlib.models.ModelConfig as mc
-	import ndlib.models.CompositeModel as gc
-	import ndlib.models.compartments.NodeStochastic as ns
+    import networkx as nx
+    import ndlib.models.ModelConfig as mc
+    import ndlib.models.CompositeModel as gc
+    import ndlib.models.compartments as cpm
 
-	# Network generation
-	g = nx.erdos_renyi_graph(1000, 0.1)
+    # Network generation
+    g = nx.erdos_renyi_graph(1000, 0.1)
 
-	# Composite Model instantiation
-	model = gc.CompositeModel(g)
+    # Composite Model instantiation
+    model = gc.CompositeModel(g)
 
-	# Model statuses
-	model.add_status("Susceptible")
-	model.add_status("Infected")
-	model.add_status("Removed")
+    # Model statuses
+    model.add_status("Susceptible")
+    model.add_status("Infected")
+    model.add_status("Removed")
 
-	# Compartment definition
-	c1 = ns.NodeStochastic(0.02, triggering_status="Infected")
-	c2 = ns.NodeStochastic(0.01)
+    # Compartment definition
+    c1 = cpm.NodeStochastic(0.02, triggering_status="Infected")
+    c2 = cpm.NodeStochastic(0.01)
 
-	# Rule definition
-	model.add_rule("Susceptible", "Infected", c1)
-	model.add_rule("Infected", "Removed", c2)
+    # Rule definition
+    model.add_rule("Susceptible", "Infected", c1)
+    model.add_rule("Infected", "Removed", c2)
 
-	# Model initial status configuration
-	config = mc.Configuration()
-	config.add_model_parameter('fraction_infected', 0.1)
+    # Model initial status configuration
+    config = mc.Configuration()
+    config.add_model_parameter('fraction_infected', 0.1)
 
-	# Simulation execution
-	model.set_initial_status(config)
-	iterations = model.iteration_bunch(5)
+    # Simulation execution
+    model.set_initial_status(config)
+    iterations = model.iteration_bunch(5)
+
+
+For other examples, give a look to the following list of CustomModels:
+
+
+.. toctree::
+   :maxdepth: 1
+
+   compartments/Halloween2021.rst
+
+
+
+=======================
+Using continuous states
+=======================
+
+The composite model only supports discrete states, but more advanced custom models might require continuous states and more options.
+If continuous states are required, it might be better to use the continous model implementation.
+
+.. toctree::
+   :maxdepth: 2
+
+   continuous_model/continuous_model.rst

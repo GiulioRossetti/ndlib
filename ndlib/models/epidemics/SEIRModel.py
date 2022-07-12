@@ -8,9 +8,9 @@ __license__ = "BSD-2-Clause"
 
 class SEIRModel(DiffusionModel):
 
-    def __init__(self, graph):
+    def __init__(self, graph, seed=None):
 
-        super(self.__class__, self).__init__(graph)
+        super(self.__class__, self).__init__(graph, seed)
 
         self.name = "SEIR"
 
@@ -23,7 +23,7 @@ class SEIRModel(DiffusionModel):
         self.parameters = {
             "model": {
                 "alpha": {
-                    "descr": "Incubation period",
+                    "descr": "Latent period (1/duration)",
                     "range": [0, 1],
                     "optional": False},
                 "beta": {
@@ -45,8 +45,6 @@ class SEIRModel(DiffusionModel):
             "nodes": {},
             "edges": {},
         }
-
-        self.progress = {}
 
     def iteration(self, node_status=True):
         self.clean_initial_status(self.available_statuses.values())
@@ -79,18 +77,15 @@ class SEIRModel(DiffusionModel):
                 if self.params['model']['tp_rate'] == 1:
                     if eventp < 1 - (1 - self.params['model']['beta']) ** len(infected_neighbors):
                         actual_status[u] = 2  # Exposed
-                        self.progress[u] = 0
                 else:
                     if eventp < self.params['model']['beta'] * triggered:
                         actual_status[u] = 2  # Exposed
-                        self.progress[u] = 0
 
             elif u_status == 2:
-                if self.progress[u] < 1:
-                    self.progress[u] += self.params['model']['alpha']
-                else:
+
+                # apply prob. of infection, after (t - t_i) 
+                if eventp < self.params['model']['alpha']:
                     actual_status[u] = 1  # Infected
-                    del self.progress[u]
 
             elif u_status == 1:
                 if eventp < self.params['model']['gamma']:

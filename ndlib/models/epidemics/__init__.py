@@ -14,6 +14,14 @@ from .SIRModel import SIRModel
 from .SISModel import SISModel
 from .SWIRModel import SWIRModel
 from .ThresholdModel import ThresholdModel
+from .ICEModel import ICEModel
+from .ICPModel import ICPModel
+from .ICEPModel import ICEPModel
+from .GeneralThresholdModel import GeneralThresholdModel
+from .UTLDRModel import UTLDRModel
+from .SEIR_ct_Model import SEIRctModel
+from .SEIS_ct_Model import SEISctModel
+from .ForestFireModel import ForestFireModel
 
 __all__ = [
     'GeneralisedThresholdModel',
@@ -28,4 +36,12 @@ __all__ = [
     'SISModel',
     'SWIRModel',
     'ThresholdModel',
+    'ICEModel',
+    'ICPModel',
+    'GeneralThresholdModel',
+    'UTLDRModel',
+    'ICEPModel',
+    'SEIRctModel',
+    'SEISctModel',
+    'ForestFireModel'
 ]

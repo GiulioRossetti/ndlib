@@ -1,20 +1,20 @@
 from setuptools import setup, find_packages
-# from codecs import open
-# from os import path
+from codecs import open
+from os import path
 
 __author__ = 'Giulio Rossetti'
 __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
-# here = path.abspath(path.dirname(__file__))
+here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
-# with open(path.join(here, 'README.md'), encoding='utf-8') as f:
-#    long_description = f.read()
+with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 
 setup(name='ndlib',
-      version='5.0.0',
+      version='5.1.1',
       license='BSD-Clause-2',
       description='Network Diffusion Library',
       url='https://github.com/GiulioRossetti/ndlib',
@@ -49,6 +49,8 @@ setup(name='ndlib',
           'Programming Language :: Python :: 3'
       ],
       keywords='epidemics opinion-dynamics simulator complex-networks',
+      long_description=long_description,
+      long_description_content_type='text/markdown',
       install_requires=['netdispatch', 'python-igraph', 'numpy', 'networkx', 'dynetx', 'scipy', 'bokeh', 'future', ''],
       packages=find_packages(exclude=["*.test", "*.test.*", "test.*", "test", "ndlib.test", "ndlib.test.*"]),
       )

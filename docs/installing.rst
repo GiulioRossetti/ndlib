@@ -22,7 +22,7 @@ You can install the development version with
 
 .. code-block:: python
 
-    pip install git://github.com/GiulioRossetti/ndlib.git
+    pip install git+http://github.com/GiulioRossetti/ndlib.git
 
 ======================
 Installing from source
@@ -112,6 +112,37 @@ Bokeh
 Provides support to the visualization facilities offered by ``NDlib``.
 
 Download: http://bokeh.pydata.org/en/latest/
+
+^^^
+PIL
+^^^
+Enables matplotlib animations to be saved to a file, used only by ``Continuous Model`` implementations.
+
+Download: https://pillow.readthedocs.io/en/stable/installation.html
+
+^^^^^^
+igraph
+^^^^^^
+Enables graphs to use layouts from the igraph library, used only by ``Continuous Model`` implementations.
+
+Download: https://igraph.org/python/#downloads
+
+^^^^^^^^^^^^
+pyintergraph
+^^^^^^^^^^^^
+Enables graphs to use layouts from the igraph library, used only by ``Continuous Model`` implementations.
+
+It helps by transforming networkx graphs to igraphs and back
+
+Download: https://gitlab.com/luerhard/pyintergraph#installation
+
+^^^^^
+SALib
+^^^^^
+Enables support for sensitivity analysis, used only by ``Continuous Model Runner`` implementations.
+
+Download: https://salib.readthedocs.io/en/latest/getting-started.html#installing-salib
+
 
 --------------
 Other packages
