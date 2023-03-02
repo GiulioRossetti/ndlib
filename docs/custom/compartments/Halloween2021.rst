@@ -127,7 +127,7 @@ Things that need to be considered now include:
     model.add_status("Removed")
 
     # Compartment definition
-    c_alpha = cpm.NodeStochastic(0.005, , triggering_status="Susceptible")
+    c_alpha = cpm.NodeStochastic(0.005, triggering_status="Susceptible")
     c_beta = cpm.NodeStochastic(0.0095, triggering_status="Zombie")
     c_gamma = cpm.NodeStochastic(0.0001)
     c_delta = cpm.NodeStochastic(0.0001)
@@ -193,7 +193,7 @@ Thus, the changes to the previous model include:
     model.add_status("Quarantined")
 
     # Compartment definition
-    c_alpha = cpm.NodeStochastic(0.005, , triggering_status="Susceptible")
+    c_alpha = cpm.NodeStochastic(0.005, triggering_status="Susceptible")
     c_beta = cpm.NodeStochastic(0.0095, triggering_status="Zombie")
     c_sigma = cpm.NodeStochastic(0.0001)
     c_delta = cpm.NodeStochastic(0.0001)
