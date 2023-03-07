@@ -46,6 +46,11 @@ class AlgorithmicBiasModel(DiffusionModel):
                     "descr": "Algorithmic bias",
                     "range": [0, 100],
                     "optional": False
+                }, 
+                "mu": {
+                    "descr": "learning parameter",
+                    "range": [0, 0.5],
+                    "optional": False
                 }
             },
             "nodes": {},
@@ -58,17 +63,24 @@ class AlgorithmicBiasModel(DiffusionModel):
         self.ids = None
         self.sts = None
 
-    def set_initial_status(self, configuration=None):
+    def set_initial_status(self, initialstatus=None, configuration=None):
+
         """
         Override behaviour of methods in class DiffusionModel.
         Overwrites initial status using random real values.
         """
         super(AlgorithmicBiasModel, self).set_initial_status(configuration)
 
-        # set node status
-        for node in self.status:
-            self.status[node] = np.random.random_sample()
-        self.initial_status = self.status.copy()
+        #todo: controllare che initial status sia una lista e abbia len = N
+        if initialstatus != None:
+            for node in self.status:
+                self.status[node] = initialstatus[node]
+            self.initial_status = self.status.copy()
+        else:
+            # set node status
+            for node in self.status:
+                self.status[node] = np.random.random_sample()
+            self.initial_status = self.status.copy()
 
         ### Initialization numpy representation
 
@@ -78,7 +90,6 @@ class AlgorithmicBiasModel(DiffusionModel):
 
         if max_edgees == self.graph.number_of_edges():
             self.sts = nids[:, 1]
-
         else:
             for i in self.graph.nodes:
                 i_neigh = list(self.graph.neighbors(i))
@@ -93,7 +104,6 @@ class AlgorithmicBiasModel(DiffusionModel):
                 # loro stati da actual_status
                 # quindi la complessità dovrebbe essere O(N*p) < O(N)
                 # sto pensando ad un modo per farlo in O(1) ma non mi è ancora venuto in mente
-
                 self.node_data[i] = (i_ids, i_sts)
 
     # def clean_initial_status(self, valid_status=None):
@@ -186,14 +196,15 @@ class AlgorithmicBiasModel(DiffusionModel):
             diff = np.abs(actual_status[n1] - actual_status[n2])
 
             if diff < self.params['model']['epsilon']:
-                avg = (actual_status[n1] + actual_status[n2]) / 2.0
-                actual_status[n1] = avg
-                actual_status[n2] = avg
+                x_1 = actual_status[n1]
+                x_2 = actual_status[n2] 
+                actual_status[n1] = x_1 + self.params['model']['mu']*(x_2-x_1)
+                actual_status[n2] = x_2 + self.params['model']['mu']*(x_1-x_2)
                 # se la rete è completa aggiorno all'interno del ciclo
                 # self.sts, così lo riprendo sempre aggiornato
                 if len(self.node_data) == 0:
-                    self.sts[n1] = avg
-                    self.sts[n2] = avg
+                    self.sts[n1] = actual_status[n1]
+                    self.sts[n2] = actual_status[n2]
 
         # delta, node_count, status_delta = self.status_delta(actual_status)
         delta = actual_status
