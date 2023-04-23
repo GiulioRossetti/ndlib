@@ -9,12 +9,12 @@ import matplotlib.pyplot as plt
 import future.utils
 import past
 import six
-
+import itertools
 __author__ = 'Giulio Rossetti'
 __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
-
+marker = itertools.cycle(('D', '+', '>', 'o', '*')) 
 class InitializationException(Exception):
     """Initialization Exception"""
 
@@ -38,7 +38,7 @@ class ComparisonPlot(object):
         for model in models:
             srev = {v: k for k, v in future.utils.iteritems(sts[i])}
             self.nnodes = model.graph.number_of_nodes()
-            for cl in srev.values():
+            for cl in list(srev.values()):
                 available_classes[cl] = None
 
             self.srev["%s_%s" % (model.name, i)] = srev
@@ -76,32 +76,34 @@ class ComparisonPlot(object):
         :param percentile: The percentile for the trend variance area. Default 90.
 
         """
-
+		
         pres = self.iteration_series(percentile)
-
+		
         mx = 0
         i, h = 0, 0
         for k, l in future.utils.iteritems(pres):
+			
             j = 0
             for st in l:
+			
                 mx = len(l[st][0])
                 if self.normalized:
-                    plt.plot(range(0, mx), l[st][1]/self.nnodes, lw=2,
-                             label="%s - %s" % (k.split("_")[0], st), alpha=0.9, color=cols[h+j])
-                    plt.fill_between(range(0,  mx), l[st][0]/self.nnodes,
-                                     l[st][2]/self.nnodes, alpha=0.2, color=cols[h+j])
+                    plt.plot(list(range(0, mx)), l[st][1]/self.nnodes, lw=2,
+                             label="%s - %s" % (k.split("_")[0], st), alpha=0.9, marker = next(marker), color=cols[h+j])
+                    plt.fill_between(list(range(0,  mx)), l[st][0]/self.nnodes,
+                                     l[st][2]/self.nnodes,alpha=0.2, color=cols[h+j])
                 else:
-                    plt.plot(range(0, mx), l[st][1], lw=2,
-                             label="%s - %s" % (k.split("_")[0], st), alpha=0.9, color=cols[h + j])
-                    plt.fill_between(range(0, mx), l[st][0],
+                    plt.plot(list(range(0, mx)), l[st][1], lw=2,
+                             label="%s - %s" % (k.split("_")[0], st),alpha=0.9, marker = next(marker), color=cols[h + j])
+                    plt.fill_between(list(range(0, mx)), l[st][0],
                                      l[st][2], alpha=0.2, color=cols[h + j])
                 j += 1
             i += 1
             h += 2
 
         plt.grid(axis="y")
-        plt.xlabel("Iterations", fontsize=24)
-        plt.ylabel(self.ylabel, fontsize=24)
+        plt.xlabel("Iterations", fontsize=20)
+        plt.ylabel(self.ylabel, fontsize=20)
         plt.legend(loc="best", fontsize=18)
         plt.xlim((0, mx))
 
