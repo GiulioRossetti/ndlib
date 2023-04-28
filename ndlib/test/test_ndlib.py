@@ -874,3 +874,22 @@ class NdlibTest(unittest.TestCase):
                 model.set_initial_status(config)
             except:
                 pass
+
+    def test_algorithmic_bias_media_model(self):
+
+        for g in get_graph():
+            model = opn.AlgorithmicBiasMediaModel(g, seed=0)
+            config = mc.Configuration()
+            config.add_model_parameter("epsilon", 0.32)
+            config.add_model_parameter("gamma", 1)
+
+            config.add_model_parameter("k", 2)
+            config.add_model_parameter("p", 0.05)
+            config.add_model_parameter("gamma_media", 0.1)
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
+            _ = model.steady_state(max_iterations=100)

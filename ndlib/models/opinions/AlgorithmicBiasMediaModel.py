@@ -2,9 +2,7 @@ from ndlib.models.DiffusionModel import DiffusionModel
 import numpy as np
 import tqdm
 import random
-import os
 import time
-import pickle
 
 class AlgorithmicBiasMediaModel(DiffusionModel):
     """

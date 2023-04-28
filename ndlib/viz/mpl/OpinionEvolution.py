@@ -81,7 +81,7 @@ class OpinionEvolution(object):
         plt.ylabel(self.ylabel, fontsize=24)
         plt.legend(loc="best", fontsize=18)
 
-        plt.tight_layout()
+#        plt.tight_layout()
         if filename is not None:
             plt.savefig(filename)
             plt.clf()
