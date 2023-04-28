@@ -48,34 +48,6 @@ The initial blocked nodes can be defined via:
 
 In both cases, the two options are mutually exclusive and the latter takes precedence over the former.
 
--------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-.. autoclass:: ndlib.models.dynamic.DynKerteszThresholdModel.DynKerteszThresholdModel
-.. automethod:: ndlib.models.dynamic.DynKerteszThresholdModel.DynKerteszThresholdModel.__init__(graph)
-
-.. automethod:: ndlib.models.dynamic.DynKerteszThresholdModel.DynKerteszThresholdModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.dynamic.DynKerteszThresholdModel.DynKerteszThresholdModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.dynamic.DynKerteszThresholdModel.DynKerteszThresholdModel.get_info(self)
-.. automethod:: ndlib.models.dynamic.DynKerteszThresholdModel.DynKerteszThresholdModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.dynamic.DynKerteszThresholdModel.DynKerteszThresholdModel.iteration(self)
-.. automethod:: ndlib.models.dynamic.DynKerteszThresholdModel.DynKerteszThresholdModel.execute_snapshots(bunch_size, node_status)
-.. automethod:: ndlib.models.dynamic.DynKerteszThresholdModel.DynKerteszThresholdModel.execute_iterations(node_status)
 
 -------
 Example

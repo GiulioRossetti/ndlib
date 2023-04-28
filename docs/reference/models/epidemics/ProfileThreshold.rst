@@ -48,34 +48,6 @@ The initial infection status can be defined via:
 
 The two options are mutually exclusive and the latter takes precedence over the former.
 
--------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-.. autoclass:: ndlib.models.epidemics.ProfileThresholdModel.ProfileThresholdModel
-.. automethod:: ndlib.models.epidemics.ProfileThresholdModel.ProfileThresholdModel.__init__(graph)
-
-.. automethod:: ndlib.models.epidemics.ProfileThresholdModel.ProfileThresholdModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.epidemics.ProfileThresholdModel.ProfileThresholdModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.epidemics.ProfileThresholdModel.ProfileThresholdModel.get_info(self)
-.. automethod:: ndlib.models.epidemics.ProfileThresholdModel.ProfileThresholdModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.epidemics.ProfileThresholdModel.ProfileThresholdModel.iteration(self)
-.. automethod:: ndlib.models.epidemics.ProfileThresholdModel.ProfileThresholdModel.iteration_bunch(self, bunch_size)
-
 
 -------
 Example

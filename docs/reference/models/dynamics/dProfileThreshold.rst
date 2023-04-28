@@ -47,34 +47,6 @@ The initial infection status can be defined via:
 
 The two options are mutually exclusive and the latter takes precedence over the former.
 
--------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-.. autoclass:: ndlib.models.dynamic.DynProfileThresholdModel.DynProfileThresholdModel
-.. automethod:: ndlib.models.dynamic.DynProfileThresholdModel.DynProfileThresholdModel.__init__(graph)
-
-.. automethod:: ndlib.models.dynamic.DynProfileThresholdModel.DynProfileThresholdModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.dynamic.DynProfileThresholdModel.DynProfileThresholdModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.dynamic.DynProfileThresholdModel.DynProfileThresholdModel.get_info(self)
-.. automethod:: ndlib.models.dynamic.DynProfileThresholdModel.DynProfileThresholdModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.dynamic.DynProfileThresholdModel.DynProfileThresholdModel.iteration(self)
-.. automethod:: ndlib.models.dynamic.DynProfileThresholdModel.DynProfileThresholdModel.execute_snapshots(bunch_size, node_status)
-
 *NB: the ``execute_iterations()`` method is unavailable for this model (along with other thresholded models).*
 
 -------

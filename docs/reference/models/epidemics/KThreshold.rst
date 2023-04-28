@@ -49,34 +49,6 @@ The initial blocked nodes can be defined via:
 In both cases, the two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-.. autoclass:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel
-.. automethod:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel.__init__(graph)
-
-.. automethod:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel.get_info(self)
-.. automethod:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel.iteration(self)
-.. automethod:: ndlib.models.epidemics.KerteszThresholdModel.KerteszThresholdModel.iteration_bunch(self, bunch_size)
-
--------
 Example
 -------
 

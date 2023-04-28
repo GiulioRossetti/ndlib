@@ -47,35 +47,6 @@ The initial infection status can be defined via:
 The two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-
-.. autoclass:: ndlib.models.epidemics.ICEPModel.ICEPModel
-.. automethod:: ndlib.models.epidemics.ICEPModel.ICEPModel.__init__(graph)
-
-.. automethod:: ndlib.models.epidemics.ICEPModel.ICEPModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.epidemics.ICEPModel.ICEPModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.epidemics.ICEPModel.ICEPModel.get_info(self)
-.. automethod:: ndlib.models.epidemics.ICEPModel.ICEPModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.epidemics.ICEPModel.ICEPModel.iteration(self)
-.. automethod:: ndlib.models.epidemics.ICEPModel.ICEPModel.iteration_bunch(self, bunch_size)
-
--------
 Example
 -------
 

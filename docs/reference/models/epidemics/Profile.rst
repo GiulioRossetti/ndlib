@@ -52,34 +52,6 @@ The initial infection status can be defined via:
 
 The two options are mutually exclusive and the latter takes precedence over the former.
 
--------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-.. autoclass:: ndlib.models.epidemics.ProfileModel.ProfileModel
-.. automethod:: ndlib.models.epidemics.ProfileModel.ProfileModel.__init__(graph)
-
-.. automethod:: ndlib.models.epidemics.ProfileModel.ProfileModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.epidemics.ProfileModel.ProfileModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.epidemics.ProfileModel.ProfileModel.get_info(self)
-.. automethod:: ndlib.models.epidemics.ProfileModel.ProfileModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.epidemics.ProfileModel.ProfileModel.iteration(self)
-.. automethod:: ndlib.models.epidemics.ProfileModel.ProfileModel.iteration_bunch(self, bunch_size)
-
 
 -------
 Example

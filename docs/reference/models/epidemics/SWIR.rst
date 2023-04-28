@@ -44,35 +44,6 @@ The initial infection status can be defined via:
 The two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-.. autoclass:: ndlib.models.epidemics.SWIRModel.SWIRModel
-.. automethod:: ndlib.models.epidemics.SWIRModel.SWIRModel.__init__(graph)
-
-.. automethod:: ndlib.models.epidemics.SWIRModel.SWIRModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.epidemics.SWIRModel.SWIRModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.epidemics.SWIRModel.SWIRModel.get_info(self)
-.. automethod:: ndlib.models.epidemics.SWIRModel.SWIRModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.epidemics.SWIRModel.SWIRModel.iteration(self)
-.. automethod:: ndlib.models.epidemics.SWIRModel.SWIRModel.iteration_bunch(self, bunch_size)
-
-
--------
 Example
 -------
 

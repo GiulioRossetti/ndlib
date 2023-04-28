@@ -45,35 +45,6 @@ The initial infection status can be defined via:
 The two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-.. autoclass:: ndlib.models.dynamic.DynSIRModel.DynSIRModel
-.. automethod:: ndlib.models.dynamic.DynSIRModel.DynSIRModel.__init__(graph)
-
-.. automethod:: ndlib.models.dynamic.DynSIRModel.DynSIRModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.dynamic.DynSIRModel.DynSIRModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.dynamic.DynSIRModel.DynSIRModel.get_info(self)
-.. automethod:: ndlib.models.dynamic.DynSIRModel.DynSIRModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.dynamic.DynSIRModel.DynSIRModel.iteration(self)
-.. automethod:: ndlib.models.dynamic.DynSIRModel.DynSIRModel.execute_snapshots(bunch_size, node_status)
-.. automethod:: ndlib.models.dynamic.DynSIRModel.DynSIRModel.execute_iterations(node_status)
-
--------
 Example
 -------
 

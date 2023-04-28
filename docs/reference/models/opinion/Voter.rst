@@ -40,35 +40,6 @@ The initial blocked nodes can be defined via:
 
 In both cases, the two options are mutually exclusive and the latter takes precedence over the former.
 
--------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-
-.. autoclass:: ndlib.models.opinions.VoterModel.VoterModel
-.. automethod:: ndlib.models.opinions.VoterModel.VoterModel.__init__(graph)
-
-.. automethod:: ndlib.models.opinions.VoterModel.VoterModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.opinions.VoterModel.VoterModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.opinions.VoterModel.VoterModel.get_info(self)
-.. automethod:: ndlib.models.opinions.VoterModel.VoterModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.opinions.VoterModel.VoterModel.iteration(self)
-.. automethod:: ndlib.models.opinions.VoterModel.VoterModel.iteration_bunch(self, bunch_size)
-
 
 -------
 Example

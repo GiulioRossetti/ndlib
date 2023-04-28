@@ -32,35 +32,6 @@ Name                         Type   Value Type                 Default  Mandator
 epsilon                      Model  float in [0, 1]             ---     True       Bounded confidence threshold
 ===========================  =====  =========================  =======  =========  ==============================================
 
--------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-
-.. autoclass:: ndlib.models.opinions.HKModel.HKModel
-.. automethod:: ndlib.models.opinions.HKModel.HKModel.__init__(graph)
-
-.. automethod:: ndlib.models.opinions.HKModel.HKModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.opinions.HKModel.HKModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.opinions.HKModel.HKModel.get_info(self)
-.. automethod:: ndlib.models.opinions.HKModel.HKModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.opinions.HKModel.HKModel.iteration(self)
-.. automethod:: ndlib.models.opinions.HKModel.HKModel.iteration_bunch(self, bunch_size)
-
 
 -------
 Example

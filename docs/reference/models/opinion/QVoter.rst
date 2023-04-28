@@ -44,36 +44,6 @@ The initial infection status can be defined via:
 The two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-
-.. autoclass:: ndlib.models.opinions.QVoterModel.QVoterModel
-.. automethod:: ndlib.models.opinions.QVoterModel.QVoterModel.__init__(graph)
-
-.. automethod:: ndlib.models.opinions.QVoterModel.QVoterModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.opinions.QVoterModel.QVoterModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.opinions.QVoterModel.QVoterModel.get_info(self)
-.. automethod:: ndlib.models.opinions.QVoterModel.QVoterModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.opinions.QVoterModel.QVoterModel.iteration(self)
-.. automethod:: ndlib.models.opinions.QVoterModel.QVoterModel.iteration_bunch(self, bunch_size)
-
-
--------
 Example
 -------
 

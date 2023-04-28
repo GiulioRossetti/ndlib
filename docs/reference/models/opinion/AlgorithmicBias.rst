@@ -33,37 +33,6 @@ epsilon              Model  float in [0, 1]            True       Bounded confid
 gamma                Model  int in [0, 100]            True       Algorithmic bias
 ===================  =====  ================  =======  =========  =============================================
 
-
--------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-
-.. autoclass:: ndlib.models.opinions.AlgorithmicBiasModel.AlgorithmicBiasModel
-.. automethod:: ndlib.models.opinions.AlgorithmicBiasModel.AlgorithmicBiasModel.__init__(graph)
-
-.. automethod:: ndlib.models.opinions.AlgorithmicBiasModel.AlgorithmicBiasModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.opinions.AlgorithmicBiasModel.AlgorithmicBiasModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.opinions.AlgorithmicBiasModel.AlgorithmicBiasModel.get_info(self)
-.. automethod:: ndlib.models.opinions.AlgorithmicBiasModel.AlgorithmicBiasModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.opinions.AlgorithmicBiasModel.AlgorithmicBiasModel.iteration(self)
-.. automethod:: ndlib.models.opinions.AlgorithmicBiasModel.AlgorithmicBiasModel.iteration_bunch(self, bunch_size)
-
-
 -------
 Example
 -------

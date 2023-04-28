@@ -58,35 +58,6 @@ The initial infection status can be defined via:
 The two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-.. autoclass:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel
-.. automethod:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel.__init__(graph)
-
-.. automethod:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel.get_info(self)
-.. automethod:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel.iteration(self)
-.. automethod:: ndlib.models.opinions.CognitiveOpDynModel.CognitiveOpDynModel.iteration_bunch(self, bunch_size)
-
-
--------
 Example
 -------
 

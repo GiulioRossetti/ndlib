@@ -45,35 +45,6 @@ The initial infection status can be defined via:
 The two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-.. autoclass:: ndlib.models.epidemics.SEISModel.SEISModel
-.. automethod:: ndlib.models.epidemics.SEISModel.SEISModel.__init__(graph)
-
-.. automethod:: ndlib.models.epidemics.SEISModel.SEISModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.epidemics.SEISModel.SEISModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.epidemics.SEISModel.SEISModel.get_info(self)
-.. automethod:: ndlib.models.epidemics.SEISModel.SEISModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.epidemics.SEISModel.SEISModel.iteration(self)
-.. automethod:: ndlib.models.epidemics.SEISModel.SEISModel.iteration_bunch(self, bunch_size)
-
-
--------
 Example
 -------
 

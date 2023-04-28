@@ -45,34 +45,6 @@ The initial infection status can be defined via:
 
 The two options are mutually exclusive and the latter takes precedence over the former.
 
--------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-.. autoclass:: ndlib.models.epidemics.SEIR_ct_Model.SEIRctModel
-.. automethod:: ndlib.models.epidemics.SEIR_ct_Model.SEIRctModel.__init__(graph)
-
-.. automethod:: ndlib.models.epidemics.SEIR_ct_Model.SEIRctModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.epidemics.SEIR_ct_Model.SEIRctModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.epidemics.SEIR_ct_Model.SEIRctModel.get_info(self)
-.. automethod:: ndlib.models.epidemics.SEIR_ct_Model.SEIRctModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.epidemics.SEIR_ct_Model.SEIRctModel.iteration(self)
-.. automethod:: ndlib.models.epidemics.SEIR_ct_Model.SEIRctModel.iteration_bunch(self, bunch_size)
-
 
 -------
 Example

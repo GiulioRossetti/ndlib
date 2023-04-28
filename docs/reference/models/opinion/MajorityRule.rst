@@ -42,34 +42,6 @@ The initial infection status can be defined via:
 
 The two options are mutually exclusive and the latter takes precedence over the former.
 
--------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-.. autoclass:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel
-.. automethod:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel.__init__(graph)
-
-.. automethod:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel.get_info(self)
-.. automethod:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel.iteration(self)
-.. automethod:: ndlib.models.opinions.MajorityRuleModel.MajorityRuleModel.iteration_bunch(self, bunch_size)
-
 
 -------
 Example

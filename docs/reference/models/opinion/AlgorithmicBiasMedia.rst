@@ -36,37 +36,6 @@ p                    Model  float in [0, 1]            True       Probability of
 k                    Model  int in [0, |V|]            True       Number of media
 ===================  =====  ================  =======  =========  =============================================
 
-
--------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-
-.. autoclass:: ndlib.models.opinions.AlgorithmicBiasMediaModel.AlgorithmicBiasMediaModel
-.. automethod:: ndlib.models.opinions.AlgorithmicBiasMediaModel.AlgorithmicBiasMediaModel.__init__(graph)
-
-.. automethod:: ndlib.models.opinions.AlgorithmicBiasMediaModel.AlgorithmicBiasMediaModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.opinions.AlgorithmicBiasMediaModel.AlgorithmicBiasMediaModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.opinions.AlgorithmicBiasMediaModel.AlgorithmicBiasMediaModel.get_info(self)
-.. automethod:: ndlib.models.opinions.AlgorithmicBiasMediaModel.AlgorithmicBiasMediaModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.opinions.AlgorithmicBiasMediaModel.AlgorithmicBiasMediaModel.iteration(self)
-.. automethod:: ndlib.models.opinions.AlgorithmicBiasMediaModel.AlgorithmicBiasMediaModel.iteration_bunch(self, bunch_size)
-
-
 -------
 Example
 -------

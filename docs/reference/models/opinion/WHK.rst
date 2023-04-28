@@ -44,35 +44,6 @@ stubborn                     Node   int in {0, 1}               0       False   
 vector                       Node   Vector of float in [0, 1]   []      False      Vector represents the character of the node
 ===========================  =====  =========================  =======  =========  ==============================================
 
--------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-
-.. autoclass:: ndlib.models.opinions.WHKModel.WHKModel
-.. automethod:: ndlib.models.opinions.WHKModel.WHKModel.__init__(graph)
-
-.. automethod:: ndlib.models.opinions.WHKModel.WHKModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.opinions.WHKModel.WHKModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.opinions.WHKModel.WHKModel.get_info(self)
-.. automethod:: ndlib.models.opinions.WHKModel.WHKModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.opinions.WHKModel.WHKModel.iteration(self)
-.. automethod:: ndlib.models.opinions.WHKModel.WHKModel.iteration_bunch(self, bunch_size)
-
 
 -------
 Example

@@ -97,41 +97,6 @@ The initial infection status can be defined via:
 The two options are mutually exclusive and the latter takes precedence over the former.
 
 -------
-Methods
--------
-
-The following class methods are made available to configure, describe and execute the simulation:
-
-^^^^^^^^^
-Configure
-^^^^^^^^^
-.. autoclass:: ndlib.models.epidemics.UTLDRModel.UTLDRModel
-.. automethod:: ndlib.models.epidemics.UTLDRModel.UTLDRModel.__init__(graph)
-
-.. automethod:: ndlib.models.epidemics.UTLDRModel.UTLDRModel.set_initial_status(self, configuration)
-.. automethod:: ndlib.models.epidemics.UTLDRModel.UTLDRModel.reset(self)
-
-^^^^^^^^
-Describe
-^^^^^^^^
-
-.. automethod:: ndlib.models.epidemics.UTLDRModel.UTLDRModel.get_info(self)
-.. automethod:: ndlib.models.epidemics.UTLDRModel.UTLDRModel.get_status_map(self)
-
-^^^^^^^^^^^^^^^^^^
-Execute Simulation
-^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.epidemics.UTLDRModel.UTLDRModel.iteration(self)
-.. automethod:: ndlib.models.epidemics.UTLDRModel.UTLDRModel.iteration_bunch(self, bunch_size)
-
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Dynamically Update Policies
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. automethod:: ndlib.models.epidemics.UTLDRModel.UTLDRModel.set_lockdown(self)
-.. automethod:: ndlib.models.epidemics.UTLDRModel.UTLDRModel.unset_lockdown(self)
-.. automethod:: ndlib.models.epidemics.UTLDRModel.UTLDRModel.add_ICU_beds(self, n)
-
--------
 Example
 -------
 
