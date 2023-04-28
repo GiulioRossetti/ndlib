@@ -6,7 +6,11 @@ from collections import defaultdict
 import tqdm
 
 __author__ = ["Alina Sirbu", "Giulio Rossetti", "Valentina Pansanella"]
-__email__ = ["alina.sirbu@unipi.it", "giulio.rossetti@isti.cnr.it", "valentina.pansanella@sns.it"]
+__email__ = [
+    "alina.sirbu@unipi.it",
+    "giulio.rossetti@isti.cnr.it",
+    "valentina.pansanella@sns.it",
+]
 
 
 class AlgorithmicBiasModel(DiffusionModel):
@@ -23,33 +27,31 @@ class AlgorithmicBiasModel(DiffusionModel):
 
     def __init__(self, graph, seed=None):
         """
-             Model Constructor
+        Model Constructor
 
-             :param graph: A networkx graph object
-         """
+        :param graph: A networkx graph object
+        """
         super(self.__class__, self).__init__(graph, seed)
 
         self.discrete_state = False
 
-        self.available_statuses = {
-            "Infected": 0
-        }
+        self.available_statuses = {"Infected": 0}
 
         self.parameters = {
             "model": {
                 "epsilon": {
                     "descr": "Bounded confidence threshold",
                     "range": [0, 1],
-                    "optional": False
+                    "optional": False,
                 },
                 "gamma": {
                     "descr": "Algorithmic bias",
                     "range": [0, 100],
-                    "optional": False
-                }
+                    "optional": False,
+                },
             },
             "nodes": {},
-            "edges": {}
+            "edges": {},
         }
 
         self.name = "Agorithmic Bias"
@@ -72,7 +74,9 @@ class AlgorithmicBiasModel(DiffusionModel):
 
         ### Initialization numpy representation
 
-        max_edgees = (self.graph.number_of_nodes() * (self.graph.number_of_nodes() - 1)) / 2
+        max_edgees = (
+            self.graph.number_of_nodes() * (self.graph.number_of_nodes() - 1)
+        ) / 2
         nids = np.array(list(self.status.items()))
         self.ids = nids[:, 0]
 
@@ -111,7 +115,7 @@ class AlgorithmicBiasModel(DiffusionModel):
         dist = np.abs(statuses - i_status)
         null = np.full(statuses.shape[0], 0.00001)
         max_base = np.maximum(dist, null)
-        dists = max_base ** -self.params['model']['gamma']
+        dists = max_base ** -self.params["model"]["gamma"]
         return dists
 
     def iteration(self, node_status=True):
@@ -132,11 +136,19 @@ class AlgorithmicBiasModel(DiffusionModel):
             self.actual_iteration += 1
             delta, node_count, status_delta = self.status_delta(self.status)
             if node_status:
-                return {"iteration": 0, "status": actual_status,
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                return {
+                    "iteration": 0,
+                    "status": actual_status,
+                    "node_count": node_count.copy(),
+                    "status_delta": status_delta.copy(),
+                }
             else:
-                return {"iteration": 0, "status": {},
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                return {
+                    "iteration": 0,
+                    "status": {},
+                    "node_count": node_count.copy(),
+                    "status_delta": status_delta.copy(),
+                }
 
         n = self.graph.number_of_nodes()
 
@@ -177,15 +189,14 @@ class AlgorithmicBiasModel(DiffusionModel):
 
             r = np.random.random_sample()
             # n2 = np.argmax(cumulative_selection_probability >= r) -1
-            n2 = np.argmax(
-                cumulative_selection_probability >= r)
+            n2 = np.argmax(cumulative_selection_probability >= r)
             # seleziono n2 dagli id dei neighbors di n1
             n2 = int(neigh_ids[n2])
 
             # update status of n1 and n2
             diff = np.abs(actual_status[n1] - actual_status[n2])
 
-            if diff < self.params['model']['epsilon']:
+            if diff < self.params["model"]["epsilon"]:
                 avg = (actual_status[n1] + actual_status[n2]) / 2.0
                 actual_status[n1] = avg
                 actual_status[n2] = avg
@@ -204,14 +215,28 @@ class AlgorithmicBiasModel(DiffusionModel):
         self.actual_iteration += 1
 
         if node_status:
-            return {"iteration": self.actual_iteration - 1, "status": delta,
-                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+            return {
+                "iteration": self.actual_iteration - 1,
+                "status": delta,
+                "node_count": node_count.copy(),
+                "status_delta": status_delta.copy(),
+            }
         else:
-            return {"iteration": self.actual_iteration - 1, "status": {},
-                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+            return {
+                "iteration": self.actual_iteration - 1,
+                "status": {},
+                "node_count": node_count.copy(),
+                "status_delta": status_delta.copy(),
+            }
 
-    def steady_state(self, max_iterations=100000, nsteady=1000, sensibility=0.00001, node_status=True,
-                     progress_bar=False):
+    def steady_state(
+        self,
+        max_iterations=100000,
+        nsteady=1000,
+        sensibility=0.00001,
+        node_status=True,
+        progress_bar=False,
+    ):
         """
         Execute a bunch of model iterations
 
@@ -229,8 +254,8 @@ class AlgorithmicBiasModel(DiffusionModel):
             its = self.iteration(node_status)
 
             if it > 0:
-                old = np.array(list(system_status[-1]['status'].values()))
-                actual = np.array(list(its['status'].values()))
+                old = np.array(list(system_status[-1]["status"].values()))
+                actual = np.array(list(its["status"].values()))
                 res = np.abs(old - actual)
                 if np.all((res < sensibility)):
                     steady_it += 1

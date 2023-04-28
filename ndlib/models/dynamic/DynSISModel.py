@@ -10,35 +10,29 @@ __email__ = "giulio.rossetti@gmail.com"
 
 class DynSISModel(DynamicDiffusionModel):
     """
-       Model Parameters to be specified via ModelConfig
+    Model Parameters to be specified via ModelConfig
 
-       :param beta: The infection rate (float value in [0,1])
-       :param lambda: The recovery rate (float value in [0,1])
+    :param beta: The infection rate (float value in [0,1])
+    :param lambda: The recovery rate (float value in [0,1])
     """
 
     def __init__(self, graph, seed=None):
         """
-             Model Constructor
+        Model Constructor
 
-             :param graph: A networkx graph object
-         """
+        :param graph: A networkx graph object
+        """
         super(self.__class__, self).__init__(graph, seed)
-        self.available_statuses = {
-            "Susceptible": 0,
-            "Infected": 1
-        }
+        self.available_statuses = {"Susceptible": 0, "Infected": 1}
 
         self.parameters = {
             "model": {
-                "beta": {
-                    "descr": "Infection rate",
-                    "range": [0, 1],
-                    "optional": False},
+                "beta": {"descr": "Infection rate", "range": [0, 1], "optional": False},
                 "lambda": {
                     "descr": "Recovery rate",
                     "range": [0, 1],
-                    "optional": False
-                }
+                    "optional": False,
+                },
             },
             "nodes": {},
             "edges": {},
@@ -54,7 +48,9 @@ class DynSISModel(DynamicDiffusionModel):
         """
         self.clean_initial_status(self.available_statuses.values())
 
-        actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
+        actual_status = {
+            node: nstatus for node, nstatus in future.utils.iteritems(self.status)
+        }
 
         # streaming
         if self.stream_execution:
@@ -65,23 +61,23 @@ class DynSISModel(DynamicDiffusionModel):
             # infection test
             if u_status == 1 and v_status == 0:
                 p = np.random.random_sample()
-                if p < self.params['model']['beta']:
+                if p < self.params["model"]["beta"]:
                     actual_status[v] = 1
 
             if v_status == 1 and u_status == 0:
                 p = np.random.random_sample()
-                if p < self.params['model']['beta']:
+                if p < self.params["model"]["beta"]:
                     actual_status[u] = 1
 
             # removal test
             if v_status == 1:
                 g = np.random.random_sample()
-                if g < self.params['model']['lambda']:
+                if g < self.params["model"]["lambda"]:
                     actual_status[v] = 0
 
             if u_status == 1:
                 g = np.random.random_sample()
-                if g < self.params['model']['lambda']:
+                if g < self.params["model"]["lambda"]:
                     actual_status[u] = 0
 
             delta, node_count, status_delta = self.status_delta(actual_status)
@@ -89,11 +85,19 @@ class DynSISModel(DynamicDiffusionModel):
             self.actual_iteration += 1
 
             if node_status:
-                return {"iteration": self.actual_iteration - 1, "status": delta.copy(),
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                return {
+                    "iteration": self.actual_iteration - 1,
+                    "status": delta.copy(),
+                    "node_count": node_count.copy(),
+                    "status_delta": status_delta.copy(),
+                }
             else:
-                return {"iteration": self.actual_iteration - 1, "status": {},
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                return {
+                    "iteration": self.actual_iteration - 1,
+                    "status": {},
+                    "node_count": node_count.copy(),
+                    "status_delta": status_delta.copy(),
+                }
         # snapshot
         else:
 
@@ -101,11 +105,19 @@ class DynSISModel(DynamicDiffusionModel):
                 self.actual_iteration += 1
                 delta, node_count, status_delta = self.status_delta(actual_status)
                 if node_status:
-                    return {"iteration": 0, "status": actual_status.copy(),
-                            "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                    return {
+                        "iteration": 0,
+                        "status": actual_status.copy(),
+                        "node_count": node_count.copy(),
+                        "status_delta": status_delta.copy(),
+                    }
                 else:
-                    return {"iteration": 0, "status": {},
-                            "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                    return {
+                        "iteration": 0,
+                        "status": {},
+                        "node_count": node_count.copy(),
+                        "status_delta": status_delta.copy(),
+                    }
 
             for u in self.graph.nodes():
 
@@ -116,11 +128,13 @@ class DynSISModel(DynamicDiffusionModel):
                     neighbors = self.graph.predecessors(u)
 
                 if u_status == 0:
-                    infected_neighbors = len([v for v in neighbors if self.status[v] == 1])
-                    if eventp < self.params['model']['beta'] * infected_neighbors:
+                    infected_neighbors = len(
+                        [v for v in neighbors if self.status[v] == 1]
+                    )
+                    if eventp < self.params["model"]["beta"] * infected_neighbors:
                         actual_status[u] = 1
                 elif u_status == 1:
-                    if eventp < self.params['model']['lambda']:
+                    if eventp < self.params["model"]["lambda"]:
                         actual_status[u] = 0
 
         delta, node_count, status_delta = self.status_delta(actual_status)
@@ -128,9 +142,16 @@ class DynSISModel(DynamicDiffusionModel):
         self.actual_iteration += 1
 
         if node_status:
-            return {"iteration": self.actual_iteration - 1, "status": delta.copy(),
-                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+            return {
+                "iteration": self.actual_iteration - 1,
+                "status": delta.copy(),
+                "node_count": node_count.copy(),
+                "status_delta": status_delta.copy(),
+            }
         else:
-            return {"iteration": self.actual_iteration - 1, "status": {},
-                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
-
+            return {
+                "iteration": self.actual_iteration - 1,
+                "status": {},
+                "node_count": node_count.copy(),
+                "status_delta": status_delta.copy(),
+            }

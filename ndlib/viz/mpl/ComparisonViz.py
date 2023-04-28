@@ -2,15 +2,16 @@ import abc
 from bokeh.palettes import Category20_9 as cols
 import os
 import matplotlib as mpl
-if os.environ.get('DISPLAY', '') == '':
-    print('no display found. Using non-interactive Agg backend')
-    mpl.use('Agg')
+
+if os.environ.get("DISPLAY", "") == "":
+    print("no display found. Using non-interactive Agg backend")
+    mpl.use("Agg")
 import matplotlib.pyplot as plt
 import future.utils
 import past
 import six
 
-__author__ = 'Giulio Rossetti'
+__author__ = "Giulio Rossetti"
 __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
@@ -27,10 +28,14 @@ class ComparisonPlot(object):
         self.models = models
         self.trends = trends
         if len(models) != len(trends):
-            raise InitializationException({"message": "The number of models does not match the number of trends"})
+            raise InitializationException(
+                {"message": "The number of models does not match the number of trends"}
+            )
 
         sts = [model.available_statuses for model in models]
-        self.mnames = ["%s_%s" % (models[i].name, i) for i in past.builtins.xrange(0, len(models))]
+        self.mnames = [
+            "%s_%s" % (models[i].name, i) for i in past.builtins.xrange(0, len(models))
+        ]
         self.srev = {}
         i = 0
 
@@ -51,12 +56,15 @@ class ComparisonPlot(object):
         if len(cls) > 0:
             self.classes = cls
         else:
-            raise InitializationException({"message": "Statuses specified not available for the model (or missing)"})
+            raise InitializationException(
+                {
+                    "message": "Statuses specified not available for the model (or missing)"
+                }
+            )
 
         self.ylabel = ""
         self.title = ""
         self.normalized = True
-
 
     @abc.abstractmethod
     def iteration_series(self, percentile):
@@ -86,15 +94,33 @@ class ComparisonPlot(object):
             for st in l:
                 mx = len(l[st][0])
                 if self.normalized:
-                    plt.plot(range(0, mx), l[st][1]/self.nnodes, lw=2,
-                             label="%s - %s" % (k.split("_")[0], st), alpha=0.9, color=cols[h+j])
-                    plt.fill_between(range(0,  mx), l[st][0]/self.nnodes,
-                                     l[st][2]/self.nnodes, alpha=0.2, color=cols[h+j])
+                    plt.plot(
+                        range(0, mx),
+                        l[st][1] / self.nnodes,
+                        lw=2,
+                        label="%s - %s" % (k.split("_")[0], st),
+                        alpha=0.9,
+                        color=cols[h + j],
+                    )
+                    plt.fill_between(
+                        range(0, mx),
+                        l[st][0] / self.nnodes,
+                        l[st][2] / self.nnodes,
+                        alpha=0.2,
+                        color=cols[h + j],
+                    )
                 else:
-                    plt.plot(range(0, mx), l[st][1], lw=2,
-                             label="%s - %s" % (k.split("_")[0], st), alpha=0.9, color=cols[h + j])
-                    plt.fill_between(range(0, mx), l[st][0],
-                                     l[st][2], alpha=0.2, color=cols[h + j])
+                    plt.plot(
+                        range(0, mx),
+                        l[st][1],
+                        lw=2,
+                        label="%s - %s" % (k.split("_")[0], st),
+                        alpha=0.9,
+                        color=cols[h + j],
+                    )
+                    plt.fill_between(
+                        range(0, mx), l[st][0], l[st][2], alpha=0.2, color=cols[h + j]
+                    )
                 j += 1
             i += 1
             h += 2
@@ -109,7 +135,7 @@ class ComparisonPlot(object):
             plt.ylim((0, 1))
 
         plt.tight_layout()
-        
+
         if filename is not None:
             plt.savefig(filename)
             plt.clf()

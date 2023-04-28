@@ -1,18 +1,17 @@
 from ndlib.models.DynamicDiffusionModel import DynamicDiffusionModel
 import future.utils
 
-__author__ = 'Giulio Rossetti'
+__author__ = "Giulio Rossetti"
 __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
 class DynamicCompositeModel(DynamicDiffusionModel):
-
     def __init__(self, graph):
         """
-             Model Constructor
-             :param graph: A networkx graph object
-         """
+        Model Constructor
+        :param graph: A networkx graph object
+        """
         super(self.__class__, self).__init__(graph)
         self.available_statuses = {}
         self.compartment = {}
@@ -34,17 +33,27 @@ class DynamicCompositeModel(DynamicDiffusionModel):
         :return: Iteration_id, Incremental node status (dictionary node->status)
         """
         self.clean_initial_status(self.available_statuses.values())
-        actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
+        actual_status = {
+            node: nstatus for node, nstatus in future.utils.iteritems(self.status)
+        }
 
         if self.actual_iteration == 0:
             self.actual_iteration += 1
             delta, node_count, status_delta = self.status_delta(actual_status)
             if node_status:
-                return {"iteration": 0, "status": actual_status.copy(),
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                return {
+                    "iteration": 0,
+                    "status": actual_status.copy(),
+                    "node_count": node_count.copy(),
+                    "status_delta": status_delta.copy(),
+                }
             else:
-                return {"iteration": 0, "status": {},
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                return {
+                    "iteration": 0,
+                    "status": {},
+                    "node_count": node_count.copy(),
+                    "status_delta": status_delta.copy(),
+                }
 
         for u in self.graph.nodes():
             u_status = self.status[u]
@@ -52,10 +61,17 @@ class DynamicCompositeModel(DynamicDiffusionModel):
 
                 if u_status == self.available_statuses[self.compartment[i][0]]:
                     rule = self.compartment[i][2]
-                    test = rule.execute(node=u, graph=self.graph, status=self.status,
-                                        status_map=self.available_statuses, params=self.params)
+                    test = rule.execute(
+                        node=u,
+                        graph=self.graph,
+                        status=self.status,
+                        status_map=self.available_statuses,
+                        params=self.params,
+                    )
                     if test:
-                        actual_status[u] = self.available_statuses[self.compartment[i][1]]
+                        actual_status[u] = self.available_statuses[
+                            self.compartment[i][1]
+                        ]
                         break
 
         delta, node_count, status_delta = self.status_delta(actual_status)
@@ -63,8 +79,16 @@ class DynamicCompositeModel(DynamicDiffusionModel):
         self.actual_iteration += 1
 
         if node_status:
-            return {"iteration": self.actual_iteration - 1, "status": delta.copy(),
-                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+            return {
+                "iteration": self.actual_iteration - 1,
+                "status": delta.copy(),
+                "node_count": node_count.copy(),
+                "status_delta": status_delta.copy(),
+            }
         else:
-            return {"iteration": self.actual_iteration - 1, "status": {},
-                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+            return {
+                "iteration": self.actual_iteration - 1,
+                "status": {},
+                "node_count": node_count.copy(),
+                "status_delta": status_delta.copy(),
+            }

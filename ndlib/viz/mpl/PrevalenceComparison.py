@@ -1,13 +1,12 @@
 from ndlib.viz.mpl.ComparisonViz import ComparisonPlot
 import numpy as np
 
-__author__ = 'Giulio Rossetti'
+__author__ = "Giulio Rossetti"
 __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
 class DiffusionPrevalenceComparison(ComparisonPlot):
-
     def __init__(self, models, trends, statuses=("Infected")):
         """
         :param models: A list of model object
@@ -27,13 +26,15 @@ class DiffusionPrevalenceComparison(ComparisonPlot):
         for trend in self.trends:
             presences = {k: [] for k in self.classes}
             for t in trend:
-                for k in t['trends']['status_delta'].keys():
+                for k in t["trends"]["status_delta"].keys():
                     if self.srev[self.mnames[i]][k] in presences:
-                        presences[self.srev[self.mnames[i]][k]].append(np.array(t['trends']['status_delta'][k]))
+                        presences[self.srev[self.mnames[i]][k]].append(
+                            np.array(t["trends"]["status_delta"][k])
+                        )
 
             for st in presences:
                 tp = np.percentile(np.array(presences[st]), percentile, axis=0)
-                bp = np.percentile(np.array(presences[st]), 100-percentile, axis=0)
+                bp = np.percentile(np.array(presences[st]), 100 - percentile, axis=0)
                 av = np.average(np.array(presences[st]), axis=0)
                 if self.mnames[i] not in mseries:
                     mseries[self.mnames[i]] = {st: (tp, av, bp)}

@@ -6,21 +6,19 @@ __email__ = "alina.sirbu@unipi.it"
 
 
 class SznajdModel(DiffusionModel):
-    """
-
-    """
+    """ """
 
     def __init__(self, graph, seed=None):
         """
-             Model Constructor
+        Model Constructor
 
-             :param graph: A networkx graph object
-         """
+        :param graph: A networkx graph object
+        """
         super(self.__class__, self).__init__(graph, seed)
         self.available_statuses = {
             "Susceptible": 0,
             "Infected": 1,
-         }
+        }
 
         self.name = "Sznajd"
 
@@ -41,17 +39,27 @@ class SznajdModel(DiffusionModel):
             self.actual_iteration += 1
             delta, node_count, status_delta = self.status_delta(self.status)
             if node_status:
-                return {"iteration": 0, "status": self.status.copy(),
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                return {
+                    "iteration": 0,
+                    "status": self.status.copy(),
+                    "node_count": node_count.copy(),
+                    "status_delta": status_delta.copy(),
+                }
             else:
-                return {"iteration": 0, "status": {},
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                return {
+                    "iteration": 0,
+                    "status": {},
+                    "node_count": node_count.copy(),
+                    "status_delta": status_delta.copy(),
+                }
 
         delta = {}
         status_delta = {st: 0 for st in self.available_statuses.values()}
 
         # select a random node
-        speaker1 = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]
+        speaker1 = list(self.graph.nodes)[
+            np.random.randint(0, self.graph.number_of_nodes())
+        ]
 
         # select a random neighbour
         neighbours = list(self.graph.neighbors(speaker1))
@@ -63,12 +71,16 @@ class SznajdModel(DiffusionModel):
 
         if self.status[speaker1] == self.status[speaker2]:
             # select listeners (all neighbours of two speakers)
-            neighbours = list(self.graph.neighbors(speaker1)) + list(self.graph.neighbors(speaker2))
+            neighbours = list(self.graph.neighbors(speaker1)) + list(
+                self.graph.neighbors(speaker2)
+            )
 
             if self.graph.directed:
                 # assumed if a->b then b can be influenced by a
                 # but not the other way around - the link between the speakers doesn't matter
-                neighbours = list(self.graph.successors(speaker1)) + list(self.graph.successors(speaker2))
+                neighbours = list(self.graph.successors(speaker1)) + list(
+                    self.graph.successors(speaker2)
+                )
 
             # update status of listeners
             for listener in neighbours:
@@ -81,16 +93,24 @@ class SznajdModel(DiffusionModel):
 
                 self.status[listener] = self.status[speaker1]
 
-        node_count = {st: len([n for n in self.status if self.status[n] == st])
-                      for st in self.available_statuses.values()}
+        node_count = {
+            st: len([n for n in self.status if self.status[n] == st])
+            for st in self.available_statuses.values()
+        }
 
         self.actual_iteration += 1
 
         if node_status:
-            return {"iteration": self.actual_iteration - 1, "status": delta.copy(),
-                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+            return {
+                "iteration": self.actual_iteration - 1,
+                "status": delta.copy(),
+                "node_count": node_count.copy(),
+                "status_delta": status_delta.copy(),
+            }
         else:
-            return {"iteration": self.actual_iteration - 1, "status": {},
-                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
-
-
+            return {
+                "iteration": self.actual_iteration - 1,
+                "status": {},
+                "node_count": node_count.copy(),
+                "status_delta": status_delta.copy(),
+            }

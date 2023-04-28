@@ -12,23 +12,19 @@ __email__ = "letizia.milli@isti.cnr.it"
 
 class DynKerteszThresholdModel(DynamicDiffusionModel):
     """
-             Node Parameters to be specified via ModelConfig
+     Node Parameters to be specified via ModelConfig
 
-            :param profile: The node profile. As default a value of 0.1 is assumed for all nodes.
-         """
+    :param profile: The node profile. As default a value of 0.1 is assumed for all nodes.
+    """
 
     def __init__(self, graph, seed=None):
         """
-             Model Constructor
+        Model Constructor
 
-             :param graph: A networkx graph object
-         """
+        :param graph: A networkx graph object
+        """
         super(self.__class__, self).__init__(graph, seed)
-        self.available_statuses = {
-            "Susceptible": 0,
-            "Infected": 1,
-            "Blocked": -1
-        }
+        self.available_statuses = {"Susceptible": 0, "Infected": 1, "Blocked": -1}
 
         self.parameters = {
             "model": {
@@ -36,21 +32,21 @@ class DynKerteszThresholdModel(DynamicDiffusionModel):
                     "descr": "Exogenous adoption rate",
                     "range": [0, 1],
                     "optional": True,
-                    "default": 0
+                    "default": 0,
                 },
                 "percentage_blocked": {
                     "descr": "Percentage of blocked nodes",
                     "range": [0, 1],
                     "optional": True,
-                    "default": 0.1
-                }
+                    "default": 0.1,
+                },
             },
             "nodes": {
                 "threshold": {
                     "descr": "Node threshold",
                     "range": [0, 1],
                     "optional": True,
-                    "default": 0.1
+                    "default": 0.1,
                 }
             },
             "edges": {},
@@ -65,7 +61,9 @@ class DynKerteszThresholdModel(DynamicDiffusionModel):
         :return: Iteration_id, Incremental node status (dictionary node->status)
         """
         self.clean_initial_status(self.available_statuses.values())
-        actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
+        actual_status = {
+            node: nstatus for node, nstatus in future.utils.iteritems(self.status)
+        }
 
         # streaming
         if self.stream_execution:
@@ -75,13 +73,17 @@ class DynKerteszThresholdModel(DynamicDiffusionModel):
             if self.actual_iteration == 0:
 
                 if min(actual_status.values()) == 0:
-                    number_node_blocked = int(float(self.graph.number_of_nodes()) *
-                                              float(self.params['model']['percentage_blocked']))
+                    number_node_blocked = int(
+                        float(self.graph.number_of_nodes())
+                        * float(self.params["model"]["percentage_blocked"])
+                    )
 
                     i = 0
                     while i < number_node_blocked:
                         # select a random node
-                        node = list(self.graph.nodes())[np.random.randint(0, self.graph.number_of_nodes())]
+                        node = list(self.graph.nodes())[
+                            np.random.randint(0, self.graph.number_of_nodes())
+                        ]
 
                         # node not infected
                         if actual_status[node] == 0:
@@ -93,18 +95,31 @@ class DynKerteszThresholdModel(DynamicDiffusionModel):
                 self.actual_iteration += 1
                 delta, node_count, status_delta = self.status_delta(actual_status)
                 if node_status:
-                    return {"iteration": 0, "status": actual_status.copy(),
-                            "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                    return {
+                        "iteration": 0,
+                        "status": actual_status.copy(),
+                        "node_count": node_count.copy(),
+                        "status_delta": status_delta.copy(),
+                    }
                 else:
-                    return {"iteration": 0, "status": {},
-                            "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                    return {
+                        "iteration": 0,
+                        "status": {},
+                        "node_count": node_count.copy(),
+                        "status_delta": status_delta.copy(),
+                    }
 
             for node in self.graph.nodes():
                 if self.status[node] == 0:
-                    if self.params['model']['adopter_rate'] > 0:
+                    if self.params["model"]["adopter_rate"] > 0:
                         xk = (0, 1)
-                        pk = (1 - self.params['model']['adopter_rate'], self.params['model']['adopter_rate'])
-                        probability = stats.rv_discrete(name='probability', values=(xk, pk))
+                        pk = (
+                            1 - self.params["model"]["adopter_rate"],
+                            self.params["model"]["adopter_rate"],
+                        )
+                        probability = stats.rv_discrete(
+                            name="probability", values=(xk, pk)
+                        )
                         number_probability = probability.rvs()
 
                         if number_probability == 1:
@@ -124,7 +139,7 @@ class DynKerteszThresholdModel(DynamicDiffusionModel):
                             infected += self.status[v]
 
                     infected_ratio = float(infected) / len(neighbors)
-                    if infected_ratio >= self.params['nodes']['threshold'][node]:
+                    if infected_ratio >= self.params["nodes"]["threshold"][node]:
                         actual_status[node] = 1
 
             delta, node_count, status_delta = self.status_delta(actual_status)
@@ -132,8 +147,16 @@ class DynKerteszThresholdModel(DynamicDiffusionModel):
             self.actual_iteration += 1
 
             if node_status:
-                return {"iteration": self.actual_iteration - 1, "status": delta.copy(),
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                return {
+                    "iteration": self.actual_iteration - 1,
+                    "status": delta.copy(),
+                    "node_count": node_count.copy(),
+                    "status_delta": status_delta.copy(),
+                }
             else:
-                return {"iteration": self.actual_iteration - 1, "status": {},
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                return {
+                    "iteration": self.actual_iteration - 1,
+                    "status": {},
+                    "node_count": node_count.copy(),
+                    "status_delta": status_delta.copy(),
+                }

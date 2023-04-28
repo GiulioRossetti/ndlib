@@ -2,21 +2,22 @@ import abc
 from bokeh.palettes import Category20_9 as cols
 import os
 import matplotlib as mpl
-if os.environ.get('DISPLAY', '') == '':
-    print('no display found. Using non-interactive Agg backend')
-    mpl.use('Agg')
+
+if os.environ.get("DISPLAY", "") == "":
+    print("no display found. Using non-interactive Agg backend")
+    mpl.use("Agg")
 import matplotlib.pyplot as plt
 import future.utils
 import six
 
-__author__ = 'Giulio Rossetti'
+__author__ = "Giulio Rossetti"
 __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
 @six.add_metaclass(abc.ABCMeta)
 class DiffusionPlot(object):
-   # __metaclass__ = abc.ABCMeta
+    # __metaclass__ = abc.ABCMeta
 
     def __init__(self, model, trends):
         self.model = model
@@ -65,11 +66,21 @@ class DiffusionPlot(object):
                 continue
             mx = len(l[0])
             if self.normalized:
-                plt.plot(range(0, mx), l[1]/self.nnodes, lw=2, label=self.srev[k], alpha=0.5)  # , color=cols[i])
-                plt.fill_between(range(0,  mx), l[0]/self.nnodes, l[2]/self.nnodes, alpha=0.2)
-                    #,color=cols[i])
+                plt.plot(
+                    range(0, mx),
+                    l[1] / self.nnodes,
+                    lw=2,
+                    label=self.srev[k],
+                    alpha=0.5,
+                )  # , color=cols[i])
+                plt.fill_between(
+                    range(0, mx), l[0] / self.nnodes, l[2] / self.nnodes, alpha=0.2
+                )
+                # ,color=cols[i])
             else:
-                plt.plot(range(0, mx), l[1], lw=2, label=self.srev[k], alpha=0.5)  # , color=cols[i])
+                plt.plot(
+                    range(0, mx), l[1], lw=2, label=self.srev[k], alpha=0.5
+                )  # , color=cols[i])
                 plt.fill_between(range(0, mx), l[0], l[2], alpha=0.2)  # ,color=cols[i])
 
             i += 1

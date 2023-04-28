@@ -1,12 +1,11 @@
 from ndlib.models.compartments.Compartment import Compartiment, ConfigurationException
 
-__author__ = 'Giulio Rossetti'
+__author__ = "Giulio Rossetti"
 __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
 class NodeThreshold(Compartiment):
-
     def __init__(self, threshold=None, triggering_status=None, **kwargs):
         super(self.__class__, self).__init__(kwargs)
         self.threshold = threshold
@@ -27,12 +26,14 @@ class NodeThreshold(Compartiment):
         if self.trigger is None:
             triggered = 0
         else:
-            triggered = len([v for v in neighbors if status[v] == status_map[self.trigger]])
+            triggered = len(
+                [v for v in neighbors if status[v] == status_map[self.trigger]]
+            )
 
         if len(list(neighbors)) > 0:
             infected_ratio = float(triggered) / len(neighbors)
-            if 'threshold' in params['nodes']:
-                test = infected_ratio >= params['nodes']['threshold'][node]
+            if "threshold" in params["nodes"]:
+                test = infected_ratio >= params["nodes"]["threshold"][node]
             else:
                 if self.threshold is not None:
                     test = infected_ratio >= self.threshold

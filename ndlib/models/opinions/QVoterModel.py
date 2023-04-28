@@ -14,25 +14,23 @@ class QVoterModel(DiffusionModel):
 
     def __init__(self, graph, seed=None):
         """
-             Model Constructor
+        Model Constructor
 
-             :param graph: A networkx graph object
-         """
+        :param graph: A networkx graph object
+        """
         super(self.__class__, self).__init__(graph, seed)
-        self.available_statuses = {
-            "Susceptible": 0,
-            "Infected": 1
-        }
+        self.available_statuses = {"Susceptible": 0, "Infected": 1}
 
-        self.parameters = {"model": {
+        self.parameters = {
+            "model": {
                 "q": {
                     "descr": "Number of neighbours that affect the opinion of an agent",
                     "range": [0, len(self.graph.nodes)],
-                    "optional": False
+                    "optional": False,
                 }
             },
             "nodes": {},
-            "edges": {}
+            "edges": {},
         }
 
         self.name = "QVoter"
@@ -54,14 +52,24 @@ class QVoterModel(DiffusionModel):
             self.actual_iteration += 1
             delta, node_count, status_delta = self.status_delta(self.status)
             if node_status:
-                return {"iteration": 0, "status": self.status.copy(),
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                return {
+                    "iteration": 0,
+                    "status": self.status.copy(),
+                    "node_count": node_count.copy(),
+                    "status_delta": status_delta.copy(),
+                }
             else:
-                return {"iteration": 0, "status": {},
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                return {
+                    "iteration": 0,
+                    "status": {},
+                    "node_count": node_count.copy(),
+                    "status_delta": status_delta.copy(),
+                }
 
                 # select a random listener
-        listener = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]
+        listener = list(self.graph.nodes)[
+            np.random.randint(0, self.graph.number_of_nodes())
+        ]
 
         # select all of the listener's neighbours
         neighbours = list(self.graph.neighbors(listener))
@@ -71,14 +79,18 @@ class QVoterModel(DiffusionModel):
             neighbours = list(self.graph.predecessors(listener))
 
         # select q random neighbours (with repetitions)
-        influence_group_state = [self.status[neighbours[i]]
-                                 for i in np.random.randint(0, len(neighbours), self.params['model']['q'])]
+        influence_group_state = [
+            self.status[neighbours[i]]
+            for i in np.random.randint(0, len(neighbours), self.params["model"]["q"])
+        ]
 
         delta = {}
         # if all neighbours agree (either on 0 or on 1)
         status_delta = {st: 0 for st in self.available_statuses.values()}
 
-        if sum(influence_group_state) == 0 or sum(influence_group_state) == len(influence_group_state):
+        if sum(influence_group_state) == 0 or sum(influence_group_state) == len(
+            influence_group_state
+        ):
             # update status of listener to either on of the neighbours selected
             delta[listener] = influence_group_state[0]
             self.status[listener] = influence_group_state[0]
@@ -87,15 +99,24 @@ class QVoterModel(DiffusionModel):
                 if x != self.status[listener]:
                     status_delta[x] -= 1
         # fix
-        node_count = {st: len([n for n in self.status if self.status[n] == st])
-                      for st in self.available_statuses.values()}
+        node_count = {
+            st: len([n for n in self.status if self.status[n] == st])
+            for st in self.available_statuses.values()
+        }
 
         self.actual_iteration += 1
 
         if node_status:
-            return {"iteration": self.actual_iteration - 1, "status": delta.copy(),
-                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+            return {
+                "iteration": self.actual_iteration - 1,
+                "status": delta.copy(),
+                "node_count": node_count.copy(),
+                "status_delta": status_delta.copy(),
+            }
         else:
-            return {"iteration": self.actual_iteration - 1, "status": {},
-                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
-
+            return {
+                "iteration": self.actual_iteration - 1,
+                "status": {},
+                "node_count": node_count.copy(),
+                "status_delta": status_delta.copy(),
+            }

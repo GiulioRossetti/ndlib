@@ -14,14 +14,14 @@ from .ConditionalComposition import ConditionalComposition
 from .CountDown import CountDown
 
 __all__ = [
-    'NodeStochastic',
-    'NodeThreshold',
-    'NodeCategoricalAttribute',
-    'NodeNumericalAttribute',
-    'NodeNumericalVariable',
-    'EdgeStochastic',
-    'EdgeCategoricalAttribute',
-    'EdgeNumericalAttribute',
-    'ConditionalComposition',
-    'CountDown',
+    "NodeStochastic",
+    "NodeThreshold",
+    "NodeCategoricalAttribute",
+    "NodeNumericalAttribute",
+    "NodeNumericalVariable",
+    "EdgeStochastic",
+    "EdgeCategoricalAttribute",
+    "EdgeNumericalAttribute",
+    "ConditionalComposition",
+    "CountDown",
 ]

@@ -1,13 +1,12 @@
 from ndlib.viz.mpl.DiffusionViz import DiffusionPlot
 import numpy as np
 
-__author__ = 'Giulio Rossetti'
+__author__ = "Giulio Rossetti"
 __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
 class DiffusionPrevalence(DiffusionPlot):
-
     def __init__(self, model, trends):
         """
         :param model: The model object
@@ -26,8 +25,8 @@ class DiffusionPrevalence(DiffusionPlot):
         for t in self.trends:
 
             for st in t:
-                for k in t[st]['status_delta']:
-                    presences[k].append(np.array(t[st]['status_delta'][k]))
+                for k in t[st]["status_delta"]:
+                    presences[k].append(np.array(t[st]["status_delta"][k]))
 
         for st in presences:
             tp = np.percentile(np.array(presences[st]), percentile, axis=0)

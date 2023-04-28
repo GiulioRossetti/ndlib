@@ -19,42 +19,34 @@ class ConfigurationException(Exception):
 @six.add_metaclass(abc.ABCMeta)
 class DiffusionModel(object):
     """
-        Partial Abstract Class that defines Diffusion Models
+    Partial Abstract Class that defines Diffusion Models
     """
+
     # __metaclass__ = abc.ABCMeta
 
     def __init__(self, graph, seed=None):
         """
-            Model Constructor
+        Model Constructor
 
-            :param graph: A networkx graph object
+        :param graph: A networkx graph object
         """
 
         np.random.seed(seed)
 
         self.discrete_state = True
 
-        self.params = {
-            'nodes': {},
-            'edges': {},
-            'model': {},
-            'status': {}
-        }
+        self.params = {"nodes": {}, "edges": {}, "model": {}, "status": {}}
 
         self.available_statuses = {
             "Susceptible": 0,
             "Infected": 1,
             "Recovered": 2,
-            "Blocked": -1
+            "Blocked": -1,
         }
 
         self.name = ""
 
-        self.parameters = {
-            "model": {},
-            "nodes": {},
-            "edges": {}
-        }
+        self.parameters = {"model": {}, "nodes": {}, "edges": {}}
 
         self.actual_iteration = 0
         self.graph = AGraph(graph)
@@ -71,9 +63,27 @@ class DiffusionModel(object):
             raise ConfigurationException("'Infected' status not defined.")
 
         # Checking mandatory parameters
-        omp = set([k for k in self.parameters['model'].keys() if not self.parameters['model'][k]['optional']])
-        onp = set([k for k in self.parameters['nodes'].keys() if not self.parameters['nodes'][k]['optional']])
-        oep = set([k for k in self.parameters['edges'].keys() if not self.parameters['edges'][k]['optional']])
+        omp = set(
+            [
+                k
+                for k in self.parameters["model"].keys()
+                if not self.parameters["model"][k]["optional"]
+            ]
+        )
+        onp = set(
+            [
+                k
+                for k in self.parameters["nodes"].keys()
+                if not self.parameters["nodes"][k]["optional"]
+            ]
+        )
+        oep = set(
+            [
+                k
+                for k in self.parameters["edges"].keys()
+                if not self.parameters["edges"][k]["optional"]
+            ]
+        )
 
         mdp = set(configuration.get_model_parameters().keys())
         ndp = set(configuration.get_nodes_configuration().keys())
@@ -81,44 +91,89 @@ class DiffusionModel(object):
 
         if len(omp) > 0:
             if len(omp & mdp) != len(omp):
-                raise ConfigurationException({"message": "Missing mandatory model parameter(s)", "parameters": omp-mdp})
+                raise ConfigurationException(
+                    {
+                        "message": "Missing mandatory model parameter(s)",
+                        "parameters": omp - mdp,
+                    }
+                )
 
         if len(onp) > 0:
             if len(onp & ndp) != len(onp):
-                raise ConfigurationException({"message": "Missing mandatory node parameter(s)", "parameters": onp-ndp})
+                raise ConfigurationException(
+                    {
+                        "message": "Missing mandatory node parameter(s)",
+                        "parameters": onp - ndp,
+                    }
+                )
 
         if len(oep) > 0:
             if len(oep & edp) != len(oep):
-                raise ConfigurationException({"message": "Missing mandatory edge parameter(s)", "parameters": oep-edp})
+                raise ConfigurationException(
+                    {
+                        "message": "Missing mandatory edge parameter(s)",
+                        "parameters": oep - edp,
+                    }
+                )
 
         # Checking optional parameters
-        omp = set([k for k in self.parameters['model'].keys() if self.parameters['model'][k]['optional']])
-        onp = set([k for k in self.parameters['nodes'].keys() if self.parameters['nodes'][k]['optional']])
-        oep = set([k for k in self.parameters['edges'].keys() if self.parameters['edges'][k]['optional']])
+        omp = set(
+            [
+                k
+                for k in self.parameters["model"].keys()
+                if self.parameters["model"][k]["optional"]
+            ]
+        )
+        onp = set(
+            [
+                k
+                for k in self.parameters["nodes"].keys()
+                if self.parameters["nodes"][k]["optional"]
+            ]
+        )
+        oep = set(
+            [
+                k
+                for k in self.parameters["edges"].keys()
+                if self.parameters["edges"][k]["optional"]
+            ]
+        )
 
         if len(omp) > 0:
             for param in omp:
                 if param not in mdp:
-                    configuration.add_model_parameter(param, self.parameters['model'][param]['default'])
+                    configuration.add_model_parameter(
+                        param, self.parameters["model"][param]["default"]
+                    )
 
         if len(onp) > 0:
             for param in onp:
                 if param not in ndp:
                     for nid in self.graph.nodes:
-                        configuration.add_node_configuration(param, nid, self.parameters['nodes'][param]['default'])
+                        configuration.add_node_configuration(
+                            param, nid, self.parameters["nodes"][param]["default"]
+                        )
 
         if len(oep) > 0:
             for param in oep:
                 if param not in edp:
                     for eid in self.graph.edges:
-                        configuration.add_edge_configuration(param, eid, self.parameters['edges'][param]['default'])
+                        configuration.add_edge_configuration(
+                            param, eid, self.parameters["edges"][param]["default"]
+                        )
 
         # Checking initial simulation status
         sts = set(configuration.get_model_configuration().keys())
-        if self.discrete_state and "Infected" not in sts and "fraction_infected" not in mdp \
-                and "percentage_infected" not in mdp:
-            warnings.warn('Initial infection missing: a random sample of 5% of graph nodes will be set as infected')
-            self.params['model']["fraction_infected"] = 0.05
+        if (
+            self.discrete_state
+            and "Infected" not in sts
+            and "fraction_infected" not in mdp
+            and "percentage_infected" not in mdp
+        ):
+            warnings.warn(
+                "Initial infection missing: a random sample of 5% of graph nodes will be set as infected"
+            )
+            self.params["model"]["fraction_infected"] = 0.05
 
     def set_initial_status(self, configuration):
         """
@@ -134,47 +189,56 @@ class DiffusionModel(object):
 
         for param, node_to_value in future.utils.iteritems(nodes_cfg):
             if len(node_to_value) < len(self.graph.nodes):
-                raise ConfigurationException({"message": "Not all nodes have a configuration specified"})
+                raise ConfigurationException(
+                    {"message": "Not all nodes have a configuration specified"}
+                )
 
-            self.params['nodes'][param] = node_to_value
+            self.params["nodes"][param] = node_to_value
 
         edges_cfg = configuration.get_edges_configuration()
         # Set additional edges information
         for param, edge_to_values in future.utils.iteritems(edges_cfg):
             if len(edge_to_values) == len(self.graph.edges):
-                self.params['edges'][param] = {}
+                self.params["edges"][param] = {}
                 for e in edge_to_values:
-                    self.params['edges'][param][e] = edge_to_values[e]
+                    self.params["edges"][param][e] = edge_to_values[e]
 
         # Set initial status
         model_status = configuration.get_model_configuration()
 
         for param, nodes in future.utils.iteritems(model_status):
-            self.params['status'][param] = nodes
+            self.params["status"][param] = nodes
             for node in nodes:
                 self.status[node] = self.available_statuses[param]
 
         # Set model additional information
         model_params = configuration.get_model_parameters()
         for param, val in future.utils.iteritems(model_params):
-            self.params['model'][param] = val
+            self.params["model"][param] = val
 
         # Handle initial infection
-        if 'Infected' not in self.params['status']:
-            if 'percentage_infected' in self.params['model']:
-                self.params['model']['fraction_infected'] = self.params['model']['percentage_infected']
-            if 'fraction_infected' in self.params['model']:
-                number_of_initial_infected = self.graph.number_of_nodes() * float(self.params['model']['fraction_infected'])
+        if "Infected" not in self.params["status"]:
+            if "percentage_infected" in self.params["model"]:
+                self.params["model"]["fraction_infected"] = self.params["model"][
+                    "percentage_infected"
+                ]
+            if "fraction_infected" in self.params["model"]:
+                number_of_initial_infected = self.graph.number_of_nodes() * float(
+                    self.params["model"]["fraction_infected"]
+                )
                 if number_of_initial_infected < 1:
                     warnings.warn(
                         "The fraction_infected value is too low given the number of nodes of the selected graph: a "
-                        "single node will be set as infected")
+                        "single node will be set as infected"
+                    )
                     number_of_initial_infected = 1
 
                 available_nodes = [n for n in self.status if self.status[n] == 0]
-                sampled_nodes = np.random.choice(available_nodes, int(number_of_initial_infected), replace=False)
+                sampled_nodes = np.random.choice(
+                    available_nodes, int(number_of_initial_infected), replace=False
+                )
                 for k in sampled_nodes:
-                    self.status[k] = self.available_statuses['Infected']
+                    self.status[k] = self.available_statuses["Infected"]
 
         self.initial_status = self.status
 
@@ -198,7 +262,9 @@ class DiffusionModel(object):
         :return: a list containing for each iteration a dictionary {"iteration": iteration_id, "status": dictionary_node_to_status}
         """
         system_status = []
-        for it in tqdm.tqdm(past.builtins.xrange(0, bunch_size), disable=not progress_bar):
+        for it in tqdm.tqdm(
+            past.builtins.xrange(0, bunch_size), disable=not progress_bar
+        ):
             its = self.iteration(node_status)
             system_status.append(its)
         return system_status
@@ -209,10 +275,14 @@ class DiffusionModel(object):
 
         :return: a dictionary containing for each parameter class the values specified during model configuration
         """
-        info = {k: v for k, v in future.utils.iteritems(self.params) if k not in ['nodes', 'edges', 'status']}
-        if 'infected_nodes' in self.params['status']:
-            info['selected_initial_infected'] = True
-        return info['model']
+        info = {
+            k: v
+            for k, v in future.utils.iteritems(self.params)
+            if k not in ["nodes", "edges", "status"]
+        }
+        if "infected_nodes" in self.params["status"]:
+            info["selected_initial_infected"] = True
+        return info["model"]
 
     def reset(self, infected_nodes=None):
         """
@@ -224,21 +294,27 @@ class DiffusionModel(object):
             for n in self.status:
                 self.status[n] = 0
             for n in infected_nodes:
-                self.status[n] = self.available_statuses['Infected']
+                self.status[n] = self.available_statuses["Infected"]
             self.initial_status = self.status
 
         else:
-            if 'percentage_infected' in self.params['model']:
-                self.params['model']['fraction_infected'] = self.params['model']['percentage_infected']
-            if 'fraction_infected' in self.params['model']:
+            if "percentage_infected" in self.params["model"]:
+                self.params["model"]["fraction_infected"] = self.params["model"][
+                    "percentage_infected"
+                ]
+            if "fraction_infected" in self.params["model"]:
                 for n in self.status:
                     self.status[n] = 0
-                number_of_initial_infected = self.graph.number_of_nodes() * float(self.params['model']['fraction_infected'])
+                number_of_initial_infected = self.graph.number_of_nodes() * float(
+                    self.params["model"]["fraction_infected"]
+                )
                 available_nodes = [n for n in self.status if self.status[n] == 0]
-                sampled_nodes = np.random.choice(available_nodes, int(number_of_initial_infected), replace=False)
+                sampled_nodes = np.random.choice(
+                    available_nodes, int(number_of_initial_infected), replace=False
+                )
 
                 for k in sampled_nodes:
-                    self.status[k] = self.available_statuses['Infected']
+                    self.status[k] = self.available_statuses["Infected"]
 
                 self.initial_status = self.status
             else:
@@ -307,10 +383,15 @@ class DiffusionModel(object):
                 delta[n] = actual_status[n]
 
         for st in list(self.available_statuses.values()):
-            actual_status_count[st] = len([x for x in actual_status if actual_status[x] == st])
+            actual_status_count[st] = len(
+                [x for x in actual_status if actual_status[x] == st]
+            )
             old_status_count[st] = len([x for x in self.status if self.status[x] == st])
 
-        status_delta = {st: actual_status_count[st] - old_status_count[st] for st in actual_status_count}
+        status_delta = {
+            st: actual_status_count[st] - old_status_count[st]
+            for st in actual_status_count
+        }
 
         return delta, actual_status_count, status_delta
 
@@ -341,7 +422,6 @@ class DiffusionModel(object):
 
         return delta, status_delta
 
-
     def build_trends(self, iterations):
         """
         Build node status and node delta trends from model iteration bunch
@@ -355,10 +435,10 @@ class DiffusionModel(object):
         for it in iterations:
             for st in self.available_statuses.values():
                 try:
-                    status_delta[st].append(it['status_delta'][st])
-                    node_count[st].append(it['node_count'][st])
+                    status_delta[st].append(it["status_delta"][st])
+                    node_count[st].append(it["node_count"][st])
                 except:
-                    status_delta[st].append(it['status_delta'][str(st)])
-                    node_count[st].append(it['node_count'][str(st)])
+                    status_delta[st].append(it["status_delta"][str(st)])
+                    node_count[st].append(it["node_count"][str(st)])
 
         return [{"trends": {"node_count": node_count, "status_delta": status_delta}}]

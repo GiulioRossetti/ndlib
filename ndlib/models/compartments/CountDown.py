@@ -1,12 +1,11 @@
 from ndlib.models.compartments.Compartment import Compartiment
 
-__author__ = 'Giulio Rossetti'
+__author__ = "Giulio Rossetti"
 __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
 class CountDown(Compartiment):
-
     def __init__(self, name, iterations, **kwargs):
         super(self.__class__, self).__init__(kwargs)
         self.iterations = iterations

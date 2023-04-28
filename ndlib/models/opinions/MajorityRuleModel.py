@@ -6,31 +6,30 @@ __email__ = "alina.sirbu@unipi.it"
 
 
 class MajorityRuleModel(DiffusionModel):
-    """
-
-    """
+    """ """
 
     def __init__(self, graph, seed=None):
         """
-             Model Constructor
+        Model Constructor
 
-             :param graph: A networkx graph object
-         """
+        :param graph: A networkx graph object
+        """
         super(self.__class__, self).__init__(graph, seed)
         self.available_statuses = {
             "Susceptible": 0,
             "Infected": 1,
         }
 
-        self.parameters = {"model": {
-            "q": {
-                "descr": "Number of randomly chosen voters",
-                "range": [0, len(self.graph.nodes)],
-                "optional": False
-            }
-        },
+        self.parameters = {
+            "model": {
+                "q": {
+                    "descr": "Number of randomly chosen voters",
+                    "range": [0, len(self.graph.nodes)],
+                    "optional": False,
+                }
+            },
             "nodes": {},
-            "edges": {}
+            "edges": {},
         }
 
         self.name = "Majority Rule"
@@ -54,15 +53,27 @@ class MajorityRuleModel(DiffusionModel):
             self.actual_iteration += 1
             delta, node_count, status_delta = self.status_delta(self.status)
             if node_status:
-                return {"iteration": 0, "status": self.status.copy(),
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                return {
+                    "iteration": 0,
+                    "status": self.status.copy(),
+                    "node_count": node_count.copy(),
+                    "status_delta": status_delta.copy(),
+                }
             else:
-                return {"iteration": 0, "status": {},
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                return {
+                    "iteration": 0,
+                    "status": {},
+                    "node_count": node_count.copy(),
+                    "status_delta": status_delta.copy(),
+                }
 
         # select q random nodes
-        discussion_group = [list(self.graph.nodes)[i]
-                            for i in np.random.randint(0, self.graph.number_of_nodes(), self.params['model']['q'])]
+        discussion_group = [
+            list(self.graph.nodes)[i]
+            for i in np.random.randint(
+                0, self.graph.number_of_nodes(), self.params["model"]["q"]
+            )
+        ]
 
         # compute majority
         majority_vote = 1
@@ -86,16 +97,24 @@ class MajorityRuleModel(DiffusionModel):
             self.status[listener] = majority_vote
 
         # fix
-        node_count = {st: len([n for n in self.status if self.status[n] == st])
-                      for st in self.available_statuses.values()}
+        node_count = {
+            st: len([n for n in self.status if self.status[n] == st])
+            for st in self.available_statuses.values()
+        }
 
         self.actual_iteration += 1
 
         if node_status:
-            return {"iteration": self.actual_iteration - 1, "status": delta.copy(),
-                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+            return {
+                "iteration": self.actual_iteration - 1,
+                "status": delta.copy(),
+                "node_count": node_count.copy(),
+                "status_delta": status_delta.copy(),
+            }
         else:
-            return {"iteration": self.actual_iteration - 1, "status": {},
-                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
-
-
+            return {
+                "iteration": self.actual_iteration - 1,
+                "status": {},
+                "node_count": node_count.copy(),
+                "status_delta": status_delta.copy(),
+            }

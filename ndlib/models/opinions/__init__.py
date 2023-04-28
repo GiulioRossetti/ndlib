@@ -2,7 +2,7 @@
 The :mod:`ndlib.models.opinions` module contains common opinion dynamics network models from research literature.
 """
 
-__author__ = 'rossetti'
+__author__ = "rossetti"
 __license__ = "GPL"
 __email__ = "giulio.rossetti@gmail.com"
 
@@ -18,4 +18,3 @@ from .VoterModel import VoterModel
 from .WHKModel import WHKModel
 from .ARWHKModel import ARWHKModel
 from .HKModel import HKModel
-

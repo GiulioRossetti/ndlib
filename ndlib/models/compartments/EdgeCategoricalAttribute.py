@@ -2,14 +2,15 @@ from ndlib.models.compartments.Compartment import Compartiment
 import networkx as nx
 import numpy as np
 
-__author__ = 'Giulio Rossetti'
+__author__ = "Giulio Rossetti"
 __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
 class EdgeCategoricalAttribute(Compartiment):
-
-    def __init__(self, attribute, value, triggering_status=None, probability=1, **kwargs):
+    def __init__(
+        self, attribute, value, triggering_status=None, probability=1, **kwargs
+    ):
         super(self.__class__, self).__init__(kwargs)
         self.attribute = attribute
 
@@ -28,10 +29,18 @@ class EdgeCategoricalAttribute(Compartiment):
         edge_attr = graph.get_edge_attributes(self.attribute)
 
         if self.trigger is not None:
-            triggered = [v for v in neighbors if status[v] == status_map[self.trigger] and
-                         edge_attr[(min([node, v]), max([node, v]))] == self.attribute_value]
+            triggered = [
+                v
+                for v in neighbors
+                if status[v] == status_map[self.trigger]
+                and edge_attr[(min([node, v]), max([node, v]))] == self.attribute_value
+            ]
         else:
-            triggered = [v for v in neighbors if edge_attr[(min([node, v]), max([node, v]))] == self.attribute_value]
+            triggered = [
+                v
+                for v in neighbors
+                if edge_attr[(min([node, v]), max([node, v]))] == self.attribute_value
+            ]
 
         for _ in triggered:
             p = np.random.random_sample()

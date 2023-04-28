@@ -18,19 +18,18 @@ import ndlib.models.dynamic as dyn
 
 import os
 
-__author__ = 'Giulio Rossetti'
+__author__ = "Giulio Rossetti"
 __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
 class MplVizTest(unittest.TestCase):
-
     def test_visualize(self):
         g = nx.erdos_renyi_graph(1000, 0.1)
         model = epd.SIRModel(g)
         config = mc.Configuration()
-        config.add_model_parameter('beta', 0.001)
-        config.add_model_parameter('gamma', 0.01)
+        config.add_model_parameter("beta", 0.001)
+        config.add_model_parameter("gamma", 0.01)
         config.add_model_parameter("fraction_infected", 0.05)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(200)
@@ -50,7 +49,7 @@ class MplVizTest(unittest.TestCase):
 
         model = dyn.DynSIModel(dg)
         config = mc.Configuration()
-        config.add_model_parameter('beta', 0.1)
+        config.add_model_parameter("beta", 0.1)
         config.add_model_parameter("fraction_infected", 0.1)
         model.set_initial_status(config)
         iterations = model.execute_snapshots()
@@ -65,8 +64,8 @@ class MplVizTest(unittest.TestCase):
         g = nx.erdos_renyi_graph(1000, 0.1)
         model = epd.SIRModel(g)
         config = mc.Configuration()
-        config.add_model_parameter('beta', 0.001)
-        config.add_model_parameter('gamma', 0.01)
+        config.add_model_parameter("beta", 0.001)
+        config.add_model_parameter("gamma", 0.01)
         config.add_model_parameter("fraction_infected", 0.05)
         model.set_initial_status(config)
         iterations = model.iteration_bunch(200)
@@ -87,8 +86,8 @@ class MplVizTest(unittest.TestCase):
 
         # Model Configuration
         cfg = mc.Configuration()
-        cfg.add_model_parameter('beta', 0.001)
-        cfg.add_model_parameter('gamma', 0.02)
+        cfg.add_model_parameter("beta", 0.001)
+        cfg.add_model_parameter("gamma", 0.02)
         cfg.add_model_parameter("fraction_infected", 0.01)
         model.set_initial_status(cfg)
 
@@ -97,7 +96,7 @@ class MplVizTest(unittest.TestCase):
 
         model1 = epd.SIModel(g)
         cfg = mc.Configuration()
-        cfg.add_model_parameter('beta', 0.001)
+        cfg.add_model_parameter("beta", 0.001)
         cfg.add_model_parameter("fraction_infected", 0.01)
         model1.set_initial_status(cfg)
 
@@ -118,8 +117,8 @@ class MplVizTest(unittest.TestCase):
 
         # Model Configuration
         cfg = mc.Configuration()
-        cfg.add_model_parameter('beta', 0.001)
-        cfg.add_model_parameter('gamma', 0.02)
+        cfg.add_model_parameter("beta", 0.001)
+        cfg.add_model_parameter("gamma", 0.02)
         cfg.add_model_parameter("fraction_infected", 0.01)
         model.set_initial_status(cfg)
 
@@ -128,7 +127,7 @@ class MplVizTest(unittest.TestCase):
 
         model1 = epd.SIModel(g)
         cfg = mc.Configuration()
-        cfg.add_model_parameter('beta', 0.001)
+        cfg.add_model_parameter("beta", 0.001)
         cfg.add_model_parameter("fraction_infected", 0.01)
         model1.set_initial_status(cfg)
 
@@ -159,5 +158,5 @@ class MplVizTest(unittest.TestCase):
         os.remove("opinion_ev.png")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

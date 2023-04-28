@@ -10,10 +10,10 @@ from .DynSIRModel import DynSIRModel
 from .DynSISModel import DynSISModel
 
 __all__ = [
-    'DynSIModel',
-    'DynSIRModel',
-    'DynSISModel',
-    'DynKerteszThresholdModel',
-    'DynProfileModel',
-    'DynProfileThresholdModel',
+    "DynSIModel",
+    "DynSIRModel",
+    "DynSISModel",
+    "DynKerteszThresholdModel",
+    "DynProfileModel",
+    "DynProfileThresholdModel",
 ]

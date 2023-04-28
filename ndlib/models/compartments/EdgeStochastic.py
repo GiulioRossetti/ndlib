@@ -1,13 +1,12 @@
 from ndlib.models.compartments.Compartment import Compartiment, ConfigurationException
 import numpy as np
 
-__author__ = 'Giulio Rossetti'
+__author__ = "Giulio Rossetti"
 __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
 
 class EdgeStochastic(Compartiment):
-
     def __init__(self, threshold=None, triggering_status=None, **kwargs):
         super(self.__class__, self).__init__(kwargs)
         self.threshold = threshold
@@ -26,16 +25,16 @@ class EdgeStochastic(Compartiment):
         if directed:
             neighbors = list(graph.predecessors(node))
 
-        threshold = float(1)/len(neighbors)
+        threshold = float(1) / len(neighbors)
         triggered = [v for v in neighbors if status[v] == status_map[self.trigger]]
 
         for n in triggered:
-            if 'threshold' in params['edges']:
+            if "threshold" in params["edges"]:
                 key = (node, n)
                 try:
-                    threshold = params['edges']['threshold'][key]
+                    threshold = params["edges"]["threshold"][key]
                 except KeyError:
-                    threshold = params['edges']['threshold'][(n, node)]
+                    threshold = params["edges"]["threshold"][(n, node)]
             else:
                 if self.threshold is not None:
                     threshold = self.threshold
@@ -46,4 +45,3 @@ class EdgeStochastic(Compartiment):
                 return self.compose(node, graph, status, status_map, params, kwargs)
 
         return False
-

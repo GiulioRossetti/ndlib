@@ -10,35 +10,29 @@ __email__ = "gmavros@protonmail.com"
 
 class ForestFireModel(DiffusionModel):
     """
-        Node Parameters to be specified via ModelConfig
+     Node Parameters to be specified via ModelConfig
 
-       :param f: Probability with which a tree ignites, even if no neighbor is burning. (float value in [0,1])
-       :param p: Probability with which an empty space fills with a tree .
+    :param f: Probability with which a tree ignites, even if no neighbor is burning. (float value in [0,1])
+    :param p: Probability with which an empty space fills with a tree .
     """
 
     def __init__(self, graph, seed=None):
         """
-             Model Constructor
+        Model Constructor
 
-             :param graph: A networkx graph object
-         """
+        :param graph: A networkx graph object
+        """
         super(self.__class__, self).__init__(graph, seed)
         self.available_statuses = {
             "Susceptible": 0,  # Tree
             "Infected": 1,  # Burning Tree
-            "Removed": 2  # Empty Space
+            "Removed": 2,  # Empty Space
         }
 
         self.parameters = {
             "model": {
-                "f": {
-                    "descr": "Ignite rate",
-                    "range": [0, 1],
-                    "optional": False},
-                "p": {
-                    "descr": "Recovery rate",
-                    "range": [0, 1],
-                    "optional": False}
+                "f": {"descr": "Ignite rate", "range": [0, 1], "optional": False},
+                "p": {"descr": "Recovery rate", "range": [0, 1], "optional": False},
             },
             "nodes": {},
             "edges": {},
@@ -57,35 +51,58 @@ class ForestFireModel(DiffusionModel):
         """
         self.clean_initial_status(self.available_statuses.values())
 
-        actual_status = {node: nstatus for node, nstatus in future.utils.iteritems(self.status)}
-        self.tree = [node for node, nstatus in future.utils.iteritems(self.status) if
-                     nstatus == self.available_statuses['Susceptible']]
-        self.burn = [node for node, nstatus in future.utils.iteritems(self.status) if
-                     nstatus == self.available_statuses['Infected']]
-        self.noTree = [node for node, nstatus in future.utils.iteritems(self.status) if
-                       nstatus == self.available_statuses['Removed']]
+        actual_status = {
+            node: nstatus for node, nstatus in future.utils.iteritems(self.status)
+        }
+        self.tree = [
+            node
+            for node, nstatus in future.utils.iteritems(self.status)
+            if nstatus == self.available_statuses["Susceptible"]
+        ]
+        self.burn = [
+            node
+            for node, nstatus in future.utils.iteritems(self.status)
+            if nstatus == self.available_statuses["Infected"]
+        ]
+        self.noTree = [
+            node
+            for node, nstatus in future.utils.iteritems(self.status)
+            if nstatus == self.available_statuses["Removed"]
+        ]
 
         if self.actual_iteration == 0:
             self.actual_iteration += 1
             delta, node_count, status_delta = self.status_delta(actual_status)
             if node_status:
-                return {"iteration": 0, "status": actual_status.copy(),
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                return {
+                    "iteration": 0,
+                    "status": actual_status.copy(),
+                    "node_count": node_count.copy(),
+                    "status_delta": status_delta.copy(),
+                }
             else:
-                return {"iteration": 0, "status": {},
-                        "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+                return {
+                    "iteration": 0,
+                    "status": {},
+                    "node_count": node_count.copy(),
+                    "status_delta": status_delta.copy(),
+                }
 
         for t in self.tree:
             if self.graph.directed:
-                infected_neighbors = [v for v in self.graph.successors(t) if self.status[v] == 1]
+                infected_neighbors = [
+                    v for v in self.graph.successors(t) if self.status[v] == 1
+                ]
             else:
-                infected_neighbors = [v for v in self.graph.neighbors(t) if self.status[v] == 1]
+                infected_neighbors = [
+                    v for v in self.graph.neighbors(t) if self.status[v] == 1
+                ]
 
             if len(infected_neighbors) >= 1:
                 actual_status[t] = 1
             else:
                 eventp = np.random.uniform(0.0, 1.0)
-                if eventp < self.params['model']['f']:
+                if eventp < self.params["model"]["f"]:
                     actual_status[t] = 1
 
         for b in self.burn:
@@ -93,7 +110,7 @@ class ForestFireModel(DiffusionModel):
 
         for r in self.noTree:
             eventp = np.random.uniform(0.0, 1.0)
-            if eventp < self.params['model']['p']:
+            if eventp < self.params["model"]["p"]:
                 actual_status[r] = 0
 
         delta, node_count, status_delta = self.status_delta(actual_status)
@@ -101,8 +118,16 @@ class ForestFireModel(DiffusionModel):
         self.actual_iteration += 1
 
         if node_status:
-            return {"iteration": self.actual_iteration - 1, "status": delta.copy(),
-                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+            return {
+                "iteration": self.actual_iteration - 1,
+                "status": delta.copy(),
+                "node_count": node_count.copy(),
+                "status_delta": status_delta.copy(),
+            }
         else:
-            return {"iteration": self.actual_iteration - 1, "status": {},
-                    "node_count": node_count.copy(), "status_delta": status_delta.copy()}
+            return {
+                "iteration": self.actual_iteration - 1,
+                "status": {},
+                "node_count": node_count.copy(),
+                "status_delta": status_delta.copy(),
+            }

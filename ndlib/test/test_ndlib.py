@@ -12,7 +12,7 @@ import ndlib.models.epidemics as epd
 import ndlib.models.opinions as opn
 import ndlib.utils as ut
 
-__author__ = 'Giulio Rossetti'
+__author__ = "Giulio Rossetti"
 __license__ = "BSD-2-Clause"
 __email__ = "giulio.rossetti@gmail.com"
 
@@ -43,7 +43,6 @@ def get_directed_graph(er=False):
 
 
 class NdlibTest(unittest.TestCase):
-
     def test_utldr(self):
         for g in get_graph():
             model = epd.UTLDRModel(g)
@@ -86,14 +85,16 @@ class NdlibTest(unittest.TestCase):
             if isinstance(g, nx.Graph):
                 nodes = g.nodes
             else:
-                nodes = g.vs['name']
+                nodes = g.vs["name"]
 
-            ngender = ['M', 'F']
-            work = ['school', 'PA', 'hospital', 'none']
+            ngender = ["M", "F"]
+            work = ["school", "PA", "hospital", "none"]
             for i in nodes:
                 config.add_node_configuration("activity", i, 1)
                 config.add_node_configuration("work", i, np.random.choice(work, 2))
-                config.add_node_configuration("segment", i, np.random.choice(ngender, 1)[0])
+                config.add_node_configuration(
+                    "segment", i, np.random.choice(ngender, 1)[0]
+                )
 
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
@@ -103,13 +104,13 @@ class NdlibTest(unittest.TestCase):
 
             households = {0: [1, 2, 3, 4], 5: [6, 7]}
 
-            model.set_lockdown(households, ['PA', 'school'])
+            model.set_lockdown(households, ["PA", "school"])
             iterations = model.iteration_bunch(10)
             self.assertEqual(len(iterations), 10)
             iterations = model.iteration_bunch(10, node_status=False)
             self.assertEqual(len(iterations), 10)
 
-            model.unset_lockdown(['PA'])
+            model.unset_lockdown(["PA"])
             iterations = model.iteration_bunch(10)
             self.assertEqual(len(iterations), 10)
             iterations = model.iteration_bunch(10, node_status=False)
@@ -121,7 +122,7 @@ class NdlibTest(unittest.TestCase):
             iterations = model.iteration_bunch(10, node_status=False)
             self.assertEqual(len(iterations), 10)
 
-            model.unset_lockdown(['school'])
+            model.unset_lockdown(["school"])
             iterations = model.iteration_bunch(10)
             self.assertEqual(len(iterations), 10)
             iterations = model.iteration_bunch(10, node_status=False)
@@ -226,7 +227,9 @@ class NdlibTest(unittest.TestCase):
             if isinstance(g, nx.Graph):
                 edges = g.edges
             else:
-                edges = [(g.vs[e.tuple[0]]['name'], g.vs[e.tuple[1]]['name']) for e in g.es]
+                edges = [
+                    (g.vs[e.tuple[0]]["name"], g.vs[e.tuple[1]]["name"]) for e in g.es
+                ]
 
             for e in edges:
                 config.add_edge_configuration("weight", e, weight)
@@ -263,8 +266,10 @@ class NdlibTest(unittest.TestCase):
                 edges = g.edges
                 nodes = g.nodes
             else:
-                edges = [(g.vs[e.tuple[0]]['name'], g.vs[e.tuple[1]]['name']) for e in g.es]
-                nodes = g.vs['name']
+                edges = [
+                    (g.vs[e.tuple[0]]["name"], g.vs[e.tuple[1]]["name"]) for e in g.es
+                ]
+                nodes = g.vs["name"]
 
             for e in edges:
                 config.add_edge_configuration("weight", e, weight)
@@ -287,7 +292,7 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.SIModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('beta', 0.5)
+            config.add_model_parameter("beta", 0.5)
             config.add_model_parameter("fraction_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
@@ -299,8 +304,8 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.SIRModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('beta', 0.5)
-            config.add_model_parameter('gamma', 0.2)
+            config.add_model_parameter("beta", 0.5)
+            config.add_model_parameter("gamma", 0.2)
             config.add_model_parameter("percentage_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
@@ -312,8 +317,8 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.ForestFireModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('f', 0.1)
-            config.add_model_parameter('p', 0.2)
+            config.add_model_parameter("f", 0.1)
+            config.add_model_parameter("p", 0.2)
             config.add_model_parameter("fraction_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
@@ -326,9 +331,9 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.SEIRModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('beta', 0.5)
-            config.add_model_parameter('gamma', 0.2)
-            config.add_model_parameter('alpha', 0.05)
+            config.add_model_parameter("beta", 0.5)
+            config.add_model_parameter("gamma", 0.2)
+            config.add_model_parameter("alpha", 0.05)
             config.add_model_parameter("fraction_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
@@ -337,9 +342,9 @@ class NdlibTest(unittest.TestCase):
         for g in get_directed_graph(True):
             model = epd.SEIRModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('beta', 0.5)
-            config.add_model_parameter('gamma', 0.8)
-            config.add_model_parameter('alpha', 0.5)
+            config.add_model_parameter("beta", 0.5)
+            config.add_model_parameter("gamma", 0.8)
+            config.add_model_parameter("alpha", 0.5)
             config.add_model_parameter("fraction_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10, node_status=False)
@@ -350,9 +355,9 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.SEIRctModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('beta', 0.5)
-            config.add_model_parameter('gamma', 0.2)
-            config.add_model_parameter('alpha', 0.05)
+            config.add_model_parameter("beta", 0.5)
+            config.add_model_parameter("gamma", 0.2)
+            config.add_model_parameter("alpha", 0.05)
             config.add_model_parameter("fraction_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
@@ -361,9 +366,9 @@ class NdlibTest(unittest.TestCase):
         for g in get_directed_graph(True):
             model = epd.SEIRctModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('beta', 0.5)
-            config.add_model_parameter('gamma', 0.8)
-            config.add_model_parameter('alpha', 0.5)
+            config.add_model_parameter("beta", 0.5)
+            config.add_model_parameter("gamma", 0.8)
+            config.add_model_parameter("alpha", 0.5)
             config.add_model_parameter("fraction_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10, node_status=False)
@@ -373,9 +378,9 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.SWIRModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('kappa', 0.5)
-            config.add_model_parameter('mu', 0.2)
-            config.add_model_parameter('nu', 0.05)
+            config.add_model_parameter("kappa", 0.5)
+            config.add_model_parameter("mu", 0.2)
+            config.add_model_parameter("nu", 0.05)
             config.add_model_parameter("fraction_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
@@ -385,9 +390,9 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.SEISModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('beta', 0.5)
-            config.add_model_parameter('lambda', 0.2)
-            config.add_model_parameter('alpha', 0.05)
+            config.add_model_parameter("beta", 0.5)
+            config.add_model_parameter("lambda", 0.2)
+            config.add_model_parameter("alpha", 0.05)
             config.add_model_parameter("fraction_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
@@ -396,9 +401,9 @@ class NdlibTest(unittest.TestCase):
         for g in get_directed_graph(True):
             model = epd.SEISModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('beta', 0.5)
-            config.add_model_parameter('lambda', 0.8)
-            config.add_model_parameter('alpha', 0.5)
+            config.add_model_parameter("beta", 0.5)
+            config.add_model_parameter("lambda", 0.8)
+            config.add_model_parameter("alpha", 0.5)
             config.add_model_parameter("fraction_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10, node_status=False)
@@ -408,9 +413,9 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.SEISctModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('beta', 0.5)
-            config.add_model_parameter('lambda', 0.2)
-            config.add_model_parameter('alpha', 0.05)
+            config.add_model_parameter("beta", 0.5)
+            config.add_model_parameter("lambda", 0.2)
+            config.add_model_parameter("alpha", 0.05)
             config.add_model_parameter("fraction_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
@@ -419,9 +424,9 @@ class NdlibTest(unittest.TestCase):
         for g in get_directed_graph(True):
             model = epd.SEISctModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('beta', 0.5)
-            config.add_model_parameter('lambda', 0.8)
-            config.add_model_parameter('alpha', 0.5)
+            config.add_model_parameter("beta", 0.5)
+            config.add_model_parameter("lambda", 0.8)
+            config.add_model_parameter("alpha", 0.5)
             config.add_model_parameter("fraction_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10, node_status=False)
@@ -431,8 +436,8 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.SISModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('beta', 0.5)
-            config.add_model_parameter('lambda', 0.2)
+            config.add_model_parameter("beta", 0.5)
+            config.add_model_parameter("lambda", 0.2)
             config.add_model_parameter("fraction_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
@@ -444,15 +449,15 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph():
             model = epd.KerteszThresholdModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('adopter_rate', 0.4)
-            config.add_model_parameter('percentage_blocked', 0.1)
-            config.add_model_parameter('fraction_infected', 0.1)
+            config.add_model_parameter("adopter_rate", 0.4)
+            config.add_model_parameter("percentage_blocked", 0.1)
+            config.add_model_parameter("fraction_infected", 0.1)
 
             threshold = 0.2
             if isinstance(g, nx.Graph):
                 nodes = g.nodes
             else:
-                nodes = g.vs['name']
+                nodes = g.vs["name"]
             for i in nodes:
                 config.add_node_configuration("threshold", i, threshold)
 
@@ -466,7 +471,7 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.SIModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('beta', 0.01)
+            config.add_model_parameter("beta", 0.01)
             config.add_model_parameter("fraction_infected", 0.1)
             model.set_initial_status(config)
             executions = ut.multi_runs(model, execution_number=10, iteration_number=50)
@@ -478,13 +483,13 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.ThresholdModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('fraction_infected', 0.1)
+            config.add_model_parameter("fraction_infected", 0.1)
 
             threshold = 0.2
             if isinstance(g, nx.Graph):
                 nodes = g.nodes
             else:
-                nodes = g.vs['name']
+                nodes = g.vs["name"]
             for i in nodes:
                 config.add_node_configuration("threshold", i, threshold)
 
@@ -498,15 +503,15 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.GeneralisedThresholdModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('fraction_infected', 0.1)
-            config.add_model_parameter('tau', 5)
-            config.add_model_parameter('mu', 5)
+            config.add_model_parameter("fraction_infected", 0.1)
+            config.add_model_parameter("tau", 5)
+            config.add_model_parameter("mu", 5)
 
             threshold = 0.2
             if isinstance(g, nx.Graph):
                 nodes = g.nodes
             else:
-                nodes = g.vs['name']
+                nodes = g.vs["name"]
             for i in nodes:
                 config.add_node_configuration("threshold", i, threshold)
             model.set_initial_status(config)
@@ -520,7 +525,7 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.GeneralThresholdModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('fraction_infected', 0.1)
+            config.add_model_parameter("fraction_infected", 0.1)
 
             threshold = 0.2
             weight = 0.2
@@ -528,8 +533,10 @@ class NdlibTest(unittest.TestCase):
                 nodes = g.nodes
                 edges = g.edges
             else:
-                nodes = g.vs['name']
-                edges = [(g.vs[e.tuple[0]]['name'], g.vs[e.tuple[1]]['name']) for e in g.es]
+                nodes = g.vs["name"]
+                edges = [
+                    (g.vs[e.tuple[0]]["name"], g.vs[e.tuple[1]]["name"]) for e in g.es
+                ]
 
             for i in nodes:
                 config.add_node_configuration("threshold", i, threshold)
@@ -546,14 +553,14 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.ProfileThresholdModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('percentage_infected', 0.1)
+            config.add_model_parameter("percentage_infected", 0.1)
 
             threshold = 0.2
             profile = 0.1
             if isinstance(g, nx.Graph):
                 nodes = g.nodes
             else:
-                nodes = g.vs['name']
+                nodes = g.vs["name"]
             for i in nodes:
                 config.add_node_configuration("threshold", i, threshold)
                 config.add_node_configuration("profile", i, profile)
@@ -565,7 +572,7 @@ class NdlibTest(unittest.TestCase):
 
             model = epd.ProfileThresholdModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('percentage_infected', 0.1)
+            config.add_model_parameter("percentage_infected", 0.1)
             config.add_model_parameter("blocked", 0.1)
             config.add_model_parameter("adopter_rate", 0.001)
 
@@ -574,7 +581,7 @@ class NdlibTest(unittest.TestCase):
             if isinstance(g, nx.Graph):
                 nodes = g.nodes
             else:
-                nodes = g.vs['name']
+                nodes = g.vs["name"]
             for i in nodes:
                 config.add_node_configuration("threshold", i, threshold)
                 config.add_node_configuration("profile", i, profile)
@@ -590,13 +597,13 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.ProfileModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('fraction_infected', 0.1)
+            config.add_model_parameter("fraction_infected", 0.1)
 
             profile = 0.1
             if isinstance(g, nx.Graph):
                 nodes = g.nodes
             else:
-                nodes = g.vs['name']
+                nodes = g.vs["name"]
             for i in nodes:
                 config.add_node_configuration("profile", i, profile)
 
@@ -606,7 +613,7 @@ class NdlibTest(unittest.TestCase):
 
             model = epd.ProfileModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('fraction_infected', 0.1)
+            config.add_model_parameter("fraction_infected", 0.1)
             config.add_model_parameter("blocked", 0.1)
             config.add_model_parameter("adopter_rate", 0.001)
 
@@ -614,7 +621,7 @@ class NdlibTest(unittest.TestCase):
             if isinstance(g, nx.Graph):
                 nodes = g.nodes
             else:
-                nodes = g.vs['name']
+                nodes = g.vs["name"]
             for i in nodes:
                 config.add_node_configuration("profile", i, profile)
             model.set_initial_status(config)
@@ -626,14 +633,16 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.IndependentCascadesModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('percentage_infected', 0.1)
+            config.add_model_parameter("percentage_infected", 0.1)
             threshold = 0.1
 
             if isinstance(g, nx.Graph):
                 for e in g.edges:
                     config.add_edge_configuration("threshold", e, threshold)
             else:
-                edges = [(g.vs[e.tuple[0]]['name'], g.vs[e.tuple[1]]['name']) for e in g.es]
+                edges = [
+                    (g.vs[e.tuple[0]]["name"], g.vs[e.tuple[1]]["name"]) for e in g.es
+                ]
                 for e in edges:
                     config.add_edge_configuration("threshold", e, threshold)
 
@@ -647,14 +656,14 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.ICEModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('percentage_infected', 0.1)
+            config.add_model_parameter("percentage_infected", 0.1)
             if isinstance(g, nx.Graph):
                 node_to_com = {n: random.choice([0, 1]) for n in g.nodes()}
                 for i in g.nodes():
                     config.add_node_configuration("com", i, node_to_com[i])
             else:
-                node_to_com = {n: random.choice([0, 1]) for n in g.vs['name']}
-                for i in g.vs['name']:
+                node_to_com = {n: random.choice([0, 1]) for n in g.vs["name"]}
+                for i in g.vs["name"]:
                     config.add_node_configuration("com", i, node_to_com[i])
 
             model.set_initial_status(config)
@@ -670,7 +679,7 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.ICPModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('percentage_infected', 0.1)
+            config.add_model_parameter("percentage_infected", 0.1)
             if isinstance(g, nx.Graph):
                 node_to_com = {n: random.choice([0, 1]) for n in g.nodes()}
                 for i in g.nodes():
@@ -678,14 +687,16 @@ class NdlibTest(unittest.TestCase):
                 for e in g.edges:
                     config.add_edge_configuration("threshold", e, threshold)
             else:
-                node_to_com = {n: random.choice([0, 1]) for n in g.vs['name']}
-                for i in g.vs['name']:
+                node_to_com = {n: random.choice([0, 1]) for n in g.vs["name"]}
+                for i in g.vs["name"]:
                     config.add_node_configuration("com", i, node_to_com[i])
-                edges = [(g.vs[e.tuple[0]]['name'], g.vs[e.tuple[1]]['name']) for e in g.es]
+                edges = [
+                    (g.vs[e.tuple[0]]["name"], g.vs[e.tuple[1]]["name"]) for e in g.es
+                ]
                 for e in edges:
                     config.add_edge_configuration("threshold", e, threshold)
 
-            config.add_model_parameter('permeability', 0.1)
+            config.add_model_parameter("permeability", 0.1)
 
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
@@ -698,17 +709,17 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.ICEPModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('percentage_infected', 0.1)
+            config.add_model_parameter("percentage_infected", 0.1)
             if isinstance(g, nx.Graph):
                 node_to_com = {n: random.choice([0, 1]) for n in g.nodes()}
                 for i in g.nodes():
                     config.add_node_configuration("com", i, node_to_com[i])
             else:
-                node_to_com = {n: random.choice([0, 1]) for n in g.vs['name']}
-                for i in g.vs['name']:
+                node_to_com = {n: random.choice([0, 1]) for n in g.vs["name"]}
+                for i in g.vs["name"]:
                     config.add_node_configuration("com", i, node_to_com[i])
 
-            config.add_model_parameter('permeability', 0.1)
+            config.add_model_parameter("permeability", 0.1)
 
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
@@ -720,30 +731,32 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.KerteszThresholdModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('adopter_rate', 0.4)
+            config.add_model_parameter("adopter_rate", 0.4)
             predefined_blocked = [0, 1, 2, 3, 4, 5]
             config.add_model_initial_configuration("Blocked", predefined_blocked)
-            config.add_model_parameter('percentage_infected', 0.1)
+            config.add_model_parameter("percentage_infected", 0.1)
 
             threshold = 0.2
             if isinstance(g, nx.Graph):
                 nodes = g.nodes
             else:
-                nodes = g.vs['name']
+                nodes = g.vs["name"]
             for i in nodes:
                 config.add_node_configuration("threshold", i, threshold)
 
             model.set_initial_status(config)
             iteration = model.iteration()
-            blocked = [x for x, v in future.utils.iteritems(iteration['status']) if v == -1]
+            blocked = [
+                x for x, v in future.utils.iteritems(iteration["status"]) if v == -1
+            ]
             self.assertEqual(blocked, predefined_blocked)
 
     def test_initial_infected(self):
         for g in get_graph(True):
             model = epd.SISModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('beta', 0.5)
-            config.add_model_parameter('lambda', 0.2)
+            config.add_model_parameter("beta", 0.5)
+            config.add_model_parameter("lambda", 0.2)
             predefined_infected = [0, 1, 2, 3, 4, 5]
             config.add_model_initial_configuration("Infected", predefined_infected)
             model.set_initial_status(config)
@@ -757,40 +770,44 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.ThresholdModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('fraction_infected', 0.1)
+            config.add_model_parameter("fraction_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
             if isinstance(g, nx.Graph):
                 config.add_node_set_configuration("test", {n: 1 for n in g.nodes})
                 config.add_edge_set_configuration("etest", {e: 1 for e in g.edges})
             else:
-                config.add_node_set_configuration("test", {n: 1 for n in g.vs['name']})
-                edges = [(g.vs[e.tuple[0]]['name'], g.vs[e.tuple[1]]['name']) for e in g.es]
+                config.add_node_set_configuration("test", {n: 1 for n in g.vs["name"]})
+                edges = [
+                    (g.vs[e.tuple[0]]["name"], g.vs[e.tuple[1]]["name"]) for e in g.es
+                ]
                 config.add_edge_set_configuration("etest", {e: 1 for e in edges})
 
             self.assertEqual(len(iterations), 10)
 
             model = epd.KerteszThresholdModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('adopter_rate', 0.4)
+            config.add_model_parameter("adopter_rate", 0.4)
             predefined_blocked = [0, 1, 2, 3, 4, 5]
             config.add_model_initial_configuration("Blocked", predefined_blocked)
-            config.add_model_parameter('percentage_infected', 0.1)
+            config.add_model_parameter("percentage_infected", 0.1)
             model.set_initial_status(config)
             iteration = model.iteration()
-            blocked = [x for x, v in future.utils.iteritems(iteration["status"]) if v == -1]
+            blocked = [
+                x for x, v in future.utils.iteritems(iteration["status"]) if v == -1
+            ]
             self.assertEqual(blocked, predefined_blocked)
 
             model = epd.IndependentCascadesModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('percentage_infected', 0.1)
+            config.add_model_parameter("percentage_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
             self.assertEqual(len(iterations), 10)
 
             model = epd.ProfileModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('percentage_infected', 0.1)
+            config.add_model_parameter("percentage_infected", 0.1)
 
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
@@ -798,23 +815,23 @@ class NdlibTest(unittest.TestCase):
 
             model = epd.ProfileThresholdModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('fraction_infected', 0.1)
+            config.add_model_parameter("fraction_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
             self.assertEqual(len(iterations), 10)
 
             model = epd.ThresholdModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('fraction_infected', 0.1)
+            config.add_model_parameter("fraction_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
             self.assertEqual(len(iterations), 10)
 
             model = epd.KerteszThresholdModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('adopter_rate', 0.4)
-            config.add_model_parameter('percentage_blocked', 0.1)
-            config.add_model_parameter('fraction_infected', 0.1)
+            config.add_model_parameter("adopter_rate", 0.4)
+            config.add_model_parameter("percentage_blocked", 0.1)
+            config.add_model_parameter("fraction_infected", 0.1)
             model.set_initial_status(config)
             iterations = model.iteration_bunch(10)
             self.assertEqual(len(iterations), 10)
@@ -823,7 +840,7 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.ThresholdModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('fraction_infected', 0.1)
+            config.add_model_parameter("fraction_infected", 0.1)
             config.add_model_initial_configuration("Infected", [1, 2, 3])
             config.add_node_set_configuration("partial", {1: 1, 2: 2})
             try:
@@ -835,8 +852,10 @@ class NdlibTest(unittest.TestCase):
                 edges = list(g.edges)
                 nodes = list(g.nodes)
             else:
-                edges = [(g.vs[e.tuple[0]]['name'], g.vs[e.tuple[1]]['name']) for e in g.es]
-                nodes = g.vs['name']
+                edges = [
+                    (g.vs[e.tuple[0]]["name"], g.vs[e.tuple[1]]["name"]) for e in g.es
+                ]
+                nodes = g.vs["name"]
 
             config.add_edge_set_configuration("partial", {e: 1 for e in edges[:10]})
             try:
@@ -860,7 +879,7 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.IndependentCascadesModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('percentage_infected', 0.1)
+            config.add_model_parameter("percentage_infected", 0.1)
             try:
                 model.set_initial_status(config)
             except:
@@ -869,7 +888,7 @@ class NdlibTest(unittest.TestCase):
         for g in get_graph(True):
             model = epd.ThresholdModel(g)
             config = mc.Configuration()
-            config.add_model_parameter('percentage_infected', 0.1)
+            config.add_model_parameter("percentage_infected", 0.1)
             try:
                 model.set_initial_status(config)
             except:
