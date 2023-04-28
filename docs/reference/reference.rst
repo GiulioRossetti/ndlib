@@ -171,26 +171,6 @@ Pyplot Viz
    viz/mpl/TrendComparison.rst
    viz/mpl/PrevalenceComparison.rst
 
-
----------
-Bokeh Viz
----------
-
-**Classic Visualizations**
-
-.. toctree::
-   :maxdepth: 1
-
-   viz/bokeh/DiffusionTrend.rst
-   viz/bokeh/DiffusionPrevalence.rst
-
-
-**Model Comparison Visualizations**
-
-.. toctree::
-   :maxdepth: 1
-
-   viz/bokeh/Multiplot.rst
    
 
 .. [#] P. Szor, “Fighting computer virus attacks.” USENIX, 2004.
