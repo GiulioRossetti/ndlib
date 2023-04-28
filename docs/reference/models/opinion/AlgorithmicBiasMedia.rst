@@ -40,7 +40,7 @@ k                    Model  int in [0, |V|]            True       Number of medi
 Example
 -------
 
-In the code below is shown an example of instantiation and execution of a AlgorithmicBiasMediaModel model simulation on a random graph with 2 media and a agent-media interaction probability of 5%.
+In the code below is shown an example of instantiation and execution of a Algorithmic Bias Media model simulation on a random graph with 2 media and a agent-media interaction probability of 5%.
 
 .. code-block:: python
 
