@@ -1,7 +1,7 @@
 # TODO
 # - Fix visualization logic (overwrite vs update),
 # - numpy matrix implementation instead of networkx nodes/dict
-# Requirements, networkx, numpy, matplotlib, PIL, pyintergraph, python-igraph, tqdm
+# Requirements, networkx, numpy, matplotlib, PIL, pyintergraph, igraph, tqdm
 
 from ndlib.models.DiffusionModel import DiffusionModel
 import future.utils
