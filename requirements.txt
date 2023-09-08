@@ -13,4 +13,3 @@ tqdm
 scikit-learn
 docutils==0.15.2
 matplotlib
-sklearn
