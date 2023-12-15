@@ -6,8 +6,6 @@ __author__ = "rossetti"
 __license__ = "GPL"
 __email__ = "giulio.rossetti@gmail.com"
 
-from .SimilarityDrivenBCM import SimilarityDrivenBCM
-from .EmpiricalBoundedConfidenceModel import EmpiricalBoundedConfidenceModel
 from .AlgorithmicBiasMediaModel import AlgorithmicBiasMediaModel
 from .AlgorithmicBiasModel import AlgorithmicBiasModel
 from .CognitiveOpDynModel import CognitiveOpDynModel
