@@ -80,6 +80,18 @@ class CognitiveOpDynModel(DiffusionModel):
                     "range": [0, 1],
                     "optional": False,
                 },
+                "init_dist_lower" : {
+                    "descr": "The lower bound of the initial distribution",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 0,
+                },
+                "init_dist_upper" : {
+                    "descr": "The upper bound of the initial distribution",
+                    "range": [0, 1],
+                    "optional": True,
+                    "default": 1,
+                }
             },
             "nodes": {},
             "edges": {},
@@ -97,7 +109,7 @@ class CognitiveOpDynModel(DiffusionModel):
 
         # set node status
         for node in self.status:
-            self.status[node] = np.random.random_sample()
+            self.status[node] = np.random.uniform(self.params["model"]["init_dist_lower"], self.params["model"]["init_dist_upper"])
         self.initial_status = self.status.copy()
 
         # set new node parameters

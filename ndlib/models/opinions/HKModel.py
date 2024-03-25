@@ -30,6 +30,18 @@ class HKModel(DiffusionModel):
                     "descr": "Bounded confidence threshold",
                     "range": [0, 1],
                     "optional": False,
+                },
+                 "init_dist_lower" : {
+                    "descr": "The lower bound of the initial distribution",
+                    "range": [-1, 1],
+                    "optional": True,
+                    "default": -1,
+                },
+                "init_dist_upper" : {
+                    "descr": "The upper bound of the initial distribution",
+                    "range": [-1, 1],
+                    "optional": True,
+                    "default": 1,
                 }
             },
             "edges": {},
@@ -46,7 +58,7 @@ class HKModel(DiffusionModel):
 
         # set node status
         for node in self.status:
-            self.status[node] = random.uniform(-1, 1)
+            self.status[node] = random.uniform(self.params["model"]["init_dist_lower"], self.params["model"]["init_dist_upper"])
         self.initial_status = self.status.copy()
 
     def clean_initial_status(self, valid_status=None):
