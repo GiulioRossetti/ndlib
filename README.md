@@ -10,7 +10,8 @@
 [![SBD++](https://img.shields.io/badge/Available%20on-SoBigData%2B%2B-green)](https://sobigdata.d4science.org/group/sobigdata-gateway/explore?siteId=20371853)
 
 
-![NDlib logo](https://github.com/GiulioRossetti/ndlib/blob/master/docs/ndlogo2.png)
+![plot](./docs/NDlib_logo_full.png)
+
 
 NDlib provides implementations of several spreading and opinion dynamics models.
 
