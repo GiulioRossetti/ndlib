@@ -11,5 +11,5 @@ pyintergraph
 six
 tqdm
 scikit-learn
-docutils==0.15.2
+#docutils==0.15.2
 matplotlib
