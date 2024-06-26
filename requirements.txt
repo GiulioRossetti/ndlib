@@ -1,8 +1,8 @@
 igraph
 netdispatch>=0.0.7
-numpy>=1.17.*
+numpy>=1.17
 networkx>=2.4
-matplotlib>=3.0.*
+matplotlib>=3.0
 pandas
 tqdm
 salib>=1.3
