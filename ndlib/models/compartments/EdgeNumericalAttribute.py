@@ -67,7 +67,10 @@ class EdgeNumericalAttribute(Compartiment):
         if self.trigger is not None:
             for v in neighbors:
                 if status[v] == status_map[self.trigger]:
-                    val = edge_attr[(min([node, v]), max([node, v]))]
+                    if((node, v) in edge_attr):
+                        val = edge_attr[(node, v)]
+                    else:
+                        val = edge_attr[(v, node)]
                     if self.operator == "IN":
                         if self.__available_operators[self.operator][0](
                             val, self.attribute_range[0]
@@ -82,7 +85,10 @@ class EdgeNumericalAttribute(Compartiment):
                             triggered.append(v)
         else:
             for v in neighbors:
-                val = edge_attr[(min([node, v]), max([node, v]))]
+                if((node, v) in edge_attr):
+                    val = edge_attr[(node, v)]
+                else:
+                    val = edge_attr[(v, node)]
                 if self.operator == "IN":
                     if self.__available_operators[self.operator][0](
                         val, self.attribute_range[0]

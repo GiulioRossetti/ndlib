@@ -20,7 +20,6 @@ setup(name='ndlib',
       url='https://github.com/GiulioRossetti/ndlib',
       author='Giulio Rossetti',
       author_email='giulio.rossetti@gmail.com',
-      use_2to3=True,
       entry_points={
           'console_scripts': [
               'NDQL_translate = scripts.NDQL_translate:translate',
