@@ -56,9 +56,9 @@ class DiffusionPlot(object):
 
             mx = len(l[0])
             if self.normalized:
-                p.line(range(0, mx), l[1] / self.nnodes, line_width=2, legend=self.srev[k], alpha=0.5, color=cols[i])
+                p.line(range(0, mx), l[1] / self.nnodes, line_width=2, legend_label=self.srev[k], alpha=0.5, color=cols[i])
             else:
-                p.line(range(0, mx), l[1], line_width=2, legend=self.srev[k], alpha=0.5, color=cols[i])
+                p.line(range(0, mx), l[1], line_width=2, legend_label=self.srev[k], alpha=0.5, color=cols[i])
 
             i += 1
 
