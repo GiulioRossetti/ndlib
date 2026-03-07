@@ -109,20 +109,20 @@ class DiffusionAnimator(object):
             ]
             ax.legend(handles=legend_elements, loc="upper right", fontsize=9)
 
-        timestep_text = [None]
+        timestep_text = ax.text(
+            0.05,
+            0.95,
+            "",
+            transform=ax.transAxes,
+            fontsize=9,
+            verticalalignment="top",
+            bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5),
+        )
 
         def _update(frame):
             nodes_artist.set_facecolor(self._node_colors[frame])
-            if timestep_text[0] is not None:
-                timestep_text[0].remove()
-            timestep_text[0] = ax.text(
-                0.05,
-                0.95,
-                "Iteration: {}".format(self.iterations[frame]["iteration"]),
-                transform=ax.transAxes,
-                fontsize=9,
-                verticalalignment="top",
-                bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5),
+            timestep_text.set_text(
+                "Iteration: {}".format(self.iterations[frame]["iteration"])
             )
             return (nodes_artist,)
 
@@ -149,4 +149,5 @@ class DiffusionAnimator(object):
             fps=fps,
             savefig_kwargs={"facecolor": "white"},
         )
-        plt.close()
+        animation.event_source.stop()
+        plt.close("all")

@@ -19,15 +19,15 @@ Below is a minimal example for the SIR model.
 .. code-block:: python
 
     import ndlib.models.ModelConfig as mc
-    import ndlib.models.epidemics as ep
+    import ndlib.models.epidemics as epd
     from ndlib.viz.mpl.DiffusionAnimator import DiffusionAnimator
     import networkx as nx
 
     # Network topology
-    g = nx.erdos_renyi_graph(10, 0.2)
+    g = nx.erdos_renyi_graph(20, 0.2)
 
     # Model selection
-    model = ep.SIRModel(g)
+    model = epd.SIRModel(g)
 
     # Model configuration
     cfg = mc.Configuration()
