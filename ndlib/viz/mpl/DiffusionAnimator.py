@@ -9,9 +9,9 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.lines import Line2D
 import networkx as nx
 
-__author__ = "Giulio Rossetti"
+__author__ = "Peter Carragher"
 __license__ = "BSD-2-Clause"
-__email__ = "giulio.rossetti@gmail.com"
+__email__ = "petercarragher6@gmail.com"
 
 # Categorical palette for discrete-state models (SIR-style)
 _DISCRETE_PALETTE = [
