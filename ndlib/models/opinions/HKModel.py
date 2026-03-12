@@ -115,9 +115,9 @@ class HKModel(DiffusionModel):
 
             for neigh in neighbours:
                 # compute the difference between opinions
-                diff_opinion = np.abs((actual_status[n1]) - (actual_status[neigh]))
+                diff_opinion = np.abs((self.status[n1]) - (self.status[neigh]))
                 if diff_opinion < self.params["model"]["epsilon"]:
-                    sum_op += actual_status[neigh]
+                    sum_op += self.status[neigh]
                     # count_in_eps is the number of neighbors in epsilon
                     count_in_eps += 1
 
@@ -125,9 +125,9 @@ class HKModel(DiffusionModel):
                 new_op = sum_op / float(count_in_eps)
             else:
                 # if there aren't neighbors in epsilon, the status of n1 doesn't change
-                new_op = actual_status[n1]
+                new_op = self.status[n1]
 
-        actual_status[n1] = new_op
+            actual_status[n1] = new_op
 
         delta, node_count, status_delta = self.status_delta(actual_status)
         self.status = actual_status
@@ -135,7 +135,7 @@ class HKModel(DiffusionModel):
         if node_status:
             return {
                 "iteration": self.actual_iteration - 1,
-                "status": delta.copy(),
+                "status": self.status.copy(),
                 "node_count": node_count.copy(),
                 "status_delta": status_delta.copy(),
             }

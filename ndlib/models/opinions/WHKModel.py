@@ -271,7 +271,7 @@ class WHKModel(DiffusionModel):
                     key = (n1, neigh)
 
                     # compute the difference between opinions
-                    diff_opinion = np.abs((actual_status[n1]) - (actual_status[neigh]))
+                    diff_opinion = np.abs((self.status[n1]) - (self.status[neigh]))
                     if diff_opinion < self.params["model"]["epsilon"]:
                         jaccard_sim = 0
                         if self.params["model"]["similarity"] == 1:
@@ -298,29 +298,29 @@ class WHKModel(DiffusionModel):
                                 ]
 
                         if self.params["model"]["similarity"] == 1:
-                            sum_op += (actual_status[neigh] * weight) * jaccard_sim
+                            sum_op += (self.status[neigh] * weight) * jaccard_sim
                         else:
-                            sum_op += actual_status[neigh] * weight
+                            sum_op += self.status[neigh] * weight
                         # count_in_eps is the number of neighbors in epsilon
                         count_in_eps += 1
 
                 if count_in_eps > 0:
-                    if actual_status[n1] > 0:
-                        new_op = actual_status[n1] + (
-                            (sum_op / count_in_eps) * (1 - actual_status[n1])
+                    if self.status[n1] > 0:
+                        new_op = self.status[n1] + (
+                            (sum_op / count_in_eps) * (1 - self.status[n1])
                         )
-                    elif actual_status[n1] <= 0:
-                        new_op = actual_status[n1] + (
-                            (sum_op / count_in_eps) * (1 + actual_status[n1])
+                    elif self.status[n1] <= 0:
+                        new_op = self.status[n1] + (
+                            (sum_op / count_in_eps) * (1 + self.status[n1])
                         )
 
                 else:
                     # if there aren't neighbors in epsilon, the status of n1 doesn't change
-                    new_op = actual_status[n1]
+                    new_op = self.status[n1]
             # if n1 is stubborn
             else:
                 # opinion doesn't change
-                new_op = actual_status[n1]
+                new_op = self.status[n1]
 
             actual_status[n1] = new_op
 

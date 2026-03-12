@@ -111,19 +111,19 @@ class ProfileThresholdModel(DiffusionModel):
 
             infected = 0
             for v in neighbors:
-                infected += self.status[v]
+                infected += self.status[v] if self.status[v] != -1 else 0
 
             if infected > 0 and actual_status[u] == 0:
 
                 infected_ratio = float(infected) / len(neighbors)
                 if infected_ratio >= self.params["nodes"]["threshold"][u]:
                     eventp = np.random.random_sample()
-                    if eventp >= self.params["nodes"]["profile"][u]:
+                    if eventp < self.params["nodes"]["profile"][u]:
                         actual_status[u] = 1
                     else:
                         if self.params["model"]["blocked"] != 0:
                             blip = np.random.random_sample()
-                            if blip > self.params["model"]["blocked"]:
+                            if blip < self.params["model"]["blocked"]:
                                 actual_status[u] = -1
 
         delta, node_count, status_delta = self.status_delta(actual_status)

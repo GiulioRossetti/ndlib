@@ -65,7 +65,6 @@ class SWIRModel(DiffusionModel):
         for u in self.graph.nodes:
 
             u_status = self.status[u]
-            eventp = np.random.random_sample()
             neighbors = self.graph.neighbors(u)
             if self.graph.directed:
                 neighbors = self.graph.predecessors(u)
@@ -73,6 +72,7 @@ class SWIRModel(DiffusionModel):
             if u_status == 1:  # Infected
                 for neighbor in neighbors:
                     if self.status[neighbor] == 0:  # Susceptible
+                        eventp = np.random.random_sample()
                         if eventp < self.params["model"]["kappa"]:
                             actual_status[neighbor] = 1  # Infected
                         else:
@@ -80,6 +80,7 @@ class SWIRModel(DiffusionModel):
                             if eventp < self.params["model"]["mu"]:
                                 actual_status[neighbor] = 2  # Weakened
                     elif self.status[neighbor] == 2:  # Weakened
+                        eventp = np.random.random_sample()
                         if eventp < self.params["model"]["nu"]:
                             actual_status[neighbor] = 1  # Infected
                 actual_status[u] = 3  # Removed
