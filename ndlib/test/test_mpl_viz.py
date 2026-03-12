@@ -10,6 +10,7 @@ from ndlib.viz.mpl.PrevalenceComparison import DiffusionPrevalenceComparison
 from ndlib.viz.mpl.TrendComparison import DiffusionTrendComparison
 from ndlib.viz.mpl.DiffusionTrend import DiffusionTrend
 from ndlib.viz.mpl.OpinionEvolution import OpinionEvolution
+from ndlib.viz.mpl.DiffusionAnimator import DiffusionAnimator
 
 import ndlib.models.ModelConfig as mc
 import ndlib.models.epidemics as epd
@@ -156,6 +157,26 @@ class MplVizTest(unittest.TestCase):
         viz = OpinionEvolution(model, iterations)
         viz.plot("opinion_ev.png")
         os.remove("opinion_ev.png")
+
+    def test_diffusion_animator(self):
+        g = nx.erdos_renyi_graph(10, 0.2)
+
+        model = epd.SIRModel(g)
+
+        # Model configuration
+        cfg = mc.Configuration()
+        cfg.add_model_parameter('beta', 0.5)
+        cfg.add_model_parameter('gamma', 0.1)
+        cfg.add_model_parameter("fraction_infected", 0.2)
+        model.set_initial_status(cfg)
+
+        # Simulation execution
+        iterations = model.iteration_bunch(20)
+
+        viz = DiffusionAnimator(model, iterations)
+        anim = viz.plot()
+        viz.save_gif("sir_test.gif", fps=3)
+        os.remove("sir_test.gif")
 
 
 if __name__ == "__main__":
