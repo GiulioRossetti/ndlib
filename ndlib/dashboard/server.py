@@ -289,7 +289,7 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 for it in iterations:
                     formatted_iterations.append({
                         "iteration": int(it["iteration"]),
-                        "status": {str(k): int(v) for k, v in it["status"].items()},
+                        "status": {str(k): (float(v) if isinstance(v, (float, np.floating)) else int(v)) for k, v in it["status"].items()},
                         "node_count": {str(k): int(v) for k, v in it["node_count"].items()},
                         "status_delta": {str(k): int(v) for k, v in it["status_delta"].items()}
                     })

@@ -243,7 +243,9 @@
 
             // Chart & Network refs
             const trendsChartRef = useRef(null);
+            const prevalenceChartRef = useRef(null);
             const phaseChartRef = useRef(null);
+            const opinionChartRef = useRef(null);
             const cytoscapeRef = useRef(null);
             const cyContainerRef = useRef(null);
 
@@ -303,6 +305,7 @@
 
             const handleCategoryChange = (cat) => {
                 setSelectedCategory(cat);
+                setActiveTab("trends");
                 const firstModel = Object.keys(models).find(k => models[k].category === cat);
                 if (firstModel) {
                     selectModel(firstModel);
@@ -376,7 +379,12 @@
                         // Render charts automatically
                         setTimeout(() => {
                             renderTrendsChart(data);
-                            renderPhasePortrait(data);
+                            if (selectedCategory === "Epidemics") {
+                                renderPrevalenceChart(data);
+                                renderPhasePortrait(data);
+                            } else {
+                                renderOpinionEvolution(data);
+                            }
                             initCytoscape(data);
                         }, 50);
                     }
@@ -465,6 +473,175 @@
                         scales: {
                             x: { grid: { color: "#334155" }, ticks: { color: "#94a3b8" } },
                             y: { grid: { color: "#334155" }, ticks: { color: "#94a3b8" } }
+                        }
+                    }
+                });
+            };
+
+            const renderPrevalenceChart = (data) => {
+                if (prevalenceChartRef.current) prevalenceChartRef.current.destroy();
+
+                const canvas = document.getElementById("prevalenceChart");
+                if (!canvas) return;
+                const ctx = canvas.getContext("2d");
+                const iterationsList = data.iterations;
+                const T = iterationsList.length;
+
+                // Map state codes to names
+                const statusNames = {};
+                Object.keys(data.statuses).forEach(k => {
+                    statusNames[data.statuses[k]] = k;
+                });
+
+                const datasets = [];
+                const statusDeltas = {};
+
+                // Initialize counts arrays
+                Object.keys(statusNames).forEach(code => {
+                    statusDeltas[code] = [];
+                });
+
+                iterationsList.forEach(it => {
+                    Object.keys(statusNames).forEach(code => {
+                        statusDeltas[code].push(it.status_delta[code] || 0);
+                    });
+                });
+
+                Object.keys(statusNames).forEach(code => {
+                    datasets.push({
+                        label: `New ${statusNames[code]}`,
+                        data: statusDeltas[code],
+                        borderColor: getStatusColor(parseInt(code)),
+                        backgroundColor: getStatusColor(parseInt(code)) + "20",
+                        borderWidth: 2,
+                        tension: 0.2
+                    });
+                });
+
+                prevalenceChartRef.current = new Chart(ctx, {
+                    type: "line",
+                    data: {
+                        labels: Array.from({ length: T }, (_, i) => i),
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: isDarkMode ? "#f8fafc" : "#1e293b" } }
+                        },
+                        scales: {
+                            x: { 
+                                title: { display: true, text: "Iterations", color: isDarkMode ? "#f8fafc" : "#1e293b" },
+                                grid: { color: isDarkMode ? "#334155" : "#cbd5e1" }, 
+                                ticks: { color: isDarkMode ? "#94a3b8" : "#475569" } 
+                            },
+                            y: { 
+                                title: { display: true, text: "New Nodes (Delta)", color: isDarkMode ? "#f8fafc" : "#1e293b" },
+                                grid: { color: isDarkMode ? "#334155" : "#cbd5e1" }, 
+                                ticks: { color: isDarkMode ? "#94a3b8" : "#475569" } 
+                            }
+                        }
+                    }
+                });
+            };
+
+            const renderOpinionEvolution = (data) => {
+                if (opinionChartRef.current) opinionChartRef.current.destroy();
+
+                const canvas = document.getElementById("opinionChart");
+                if (!canvas) return;
+                const ctx = canvas.getContext("2d");
+                const iterationsList = data.iterations;
+                const T = iterationsList.length;
+
+                // Reconstruct opinion trajectory for each node
+                const nodeTrajectories = {};
+                const lastSeen = {};
+                const initialOpinion = {};
+
+                data.nodes.forEach(n => {
+                    nodeTrajectories[n.id] = Array(T).fill(0);
+                    lastSeen[n.id] = 0;
+                });
+
+                iterationsList.forEach((it, step) => {
+                    Object.keys(it.status).forEach(nodeId => {
+                        const val = it.status[nodeId];
+                        if (step === 0) {
+                            initialOpinion[nodeId] = val;
+                        }
+                        const lastIdx = lastSeen[nodeId];
+                        const lastVal = step > 0 ? nodeTrajectories[nodeId][lastIdx] : initialOpinion[nodeId];
+                        for (let i = lastIdx; i < step; i++) {
+                            nodeTrajectories[nodeId][i] = lastVal;
+                        }
+                        nodeTrajectories[nodeId][step] = val;
+                        lastSeen[nodeId] = step;
+                    });
+                });
+
+                data.nodes.forEach(n => {
+                    const lastIdx = lastSeen[n.id];
+                    const lastVal = nodeTrajectories[n.id][lastIdx];
+                    for (let i = lastIdx; i < T; i++) {
+                        nodeTrajectories[n.id][i] = lastVal;
+                    }
+                });
+
+                const maxLines = 100;
+                const nodeIds = Object.keys(nodeTrajectories);
+                const stepSize = Math.max(1, Math.floor(nodeIds.length / maxLines));
+                const datasets = [];
+
+                nodeIds.forEach((nodeId, idx) => {
+                    if (idx % stepSize !== 0) return;
+
+                    const traj = nodeTrajectories[nodeId];
+                    const finalVal = traj[T - 1];
+                    let color = "#ff0000";
+                    if (finalVal < -0.33 || (selectedCategory !== "Opinions" && finalVal === 0)) {
+                        color = "#ef4444";
+                    } else if (finalVal > 0.33) {
+                        color = "#22c55e";
+                    } else {
+                        color = "#eab308";
+                    }
+
+                    datasets.push({
+                        label: `Node ${nodeId}`,
+                        data: traj,
+                        borderColor: color,
+                        borderWidth: 1,
+                        pointRadius: 0,
+                        fill: false,
+                        alpha: 0.4
+                    });
+                });
+
+                opinionChartRef.current = new Chart(ctx, {
+                    type: "line",
+                    data: {
+                        labels: Array.from({ length: T }, (_, i) => i),
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: { 
+                                title: { display: true, text: "Iterations", color: isDarkMode ? "#f8fafc" : "#1e293b" },
+                                grid: { color: isDarkMode ? "#334155" : "#cbd5e1" }, 
+                                ticks: { color: isDarkMode ? "#94a3b8" : "#475569" } 
+                            },
+                            y: { 
+                                title: { display: true, text: "Opinion Value", color: isDarkMode ? "#f8fafc" : "#1e293b" },
+                                grid: { color: isDarkMode ? "#334155" : "#cbd5e1" }, 
+                                ticks: { color: isDarkMode ? "#94a3b8" : "#475569" } 
+                            }
                         }
                     }
                 });
@@ -622,7 +799,12 @@
             useEffect(() => {
                 if (results) {
                     renderTrendsChart(results);
-                    renderPhasePortrait(results);
+                    if (selectedCategory === "Epidemics") {
+                        renderPrevalenceChart(results);
+                        renderPhasePortrait(results);
+                    } else {
+                        renderOpinionEvolution(results);
+                    }
                     if (cytoscapeRef.current) {
                         cytoscapeRef.current.style()
                             .selector("node")
@@ -702,12 +884,17 @@
             };
 
             const downloadChart = () => {
-                const canvas = document.getElementById(activeTab === "trends" ? "trendsChart" : "phaseChart");
+                let chartId = "trendsChart";
+                if (activeTab === "prevalence") chartId = "prevalenceChart";
+                else if (activeTab === "phase") chartId = "phaseChart";
+                else if (activeTab === "opinion_evolution") chartId = "opinionChart";
+
+                const canvas = document.getElementById(chartId);
                 if (!canvas) return;
                 const imgUrl = canvas.toDataURL("image/png");
                 const downloadAnchor = document.createElement('a');
                 downloadAnchor.setAttribute("href", imgUrl);
-                downloadAnchor.setAttribute("download", `${selectedModelName}_plot.png`);
+                downloadAnchor.setAttribute("download", `${selectedModelName}_plot_${activeTab}.png`);
                 document.body.appendChild(downloadAnchor);
                 downloadAnchor.click();
                 downloadAnchor.remove();
@@ -950,14 +1137,36 @@
                                     onClick={() => setActiveTab("trends")}
                                     class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "trends" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-white"}`}
                                 >
-                                    <i class="fa-solid fa-chart-area mr-2"></i>Trends Plot
+                                    <i class="fa-solid fa-chart-line mr-2"></i>Trends Plot
                                 </button>
-                                <button 
-                                    onClick={() => setActiveTab("phase")}
-                                    class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "phase" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-white"}`}
-                                >
-                                    <i class="fa-solid fa-rotate mr-2"></i>Phase Space
-                                </button>
+
+                                {selectedCategory === "Epidemics" && (
+                                    <button 
+                                        onClick={() => setActiveTab("prevalence")}
+                                        class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "prevalence" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-white"}`}
+                                    >
+                                        <i class="fa-solid fa-chart-bar mr-2"></i>Prevalence
+                                    </button>
+                                )}
+
+                                {selectedCategory === "Epidemics" && (
+                                    <button 
+                                        onClick={() => setActiveTab("phase")}
+                                        class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "phase" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-white"}`}
+                                    >
+                                        <i class="fa-solid fa-rotate mr-2"></i>Phase Space
+                                    </button>
+                                )}
+
+                                {selectedCategory === "Opinions" && (
+                                    <button 
+                                        onClick={() => setActiveTab("opinion_evolution")}
+                                        class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "opinion_evolution" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-white"}`}
+                                    >
+                                        <i class="fa-solid fa-chart-area mr-2"></i>Opinion Evolution
+                                    </button>
+                                )}
+
                                 <button 
                                     onClick={() => setActiveTab("network")}
                                     class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "network" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-white"}`}
@@ -1044,8 +1253,16 @@
                                         <canvas id="trendsChart"></canvas>
                                     </div>
 
+                                    <div class={`flex-grow bg-slate-950/20 border border-slate-800/80 rounded-2xl p-6 relative h-full ${activeTab !== "prevalence" ? "hidden" : ""}`}>
+                                        <canvas id="prevalenceChart"></canvas>
+                                    </div>
+
                                     <div class={`flex-grow bg-slate-950/20 border border-slate-800/80 rounded-2xl p-6 relative h-full ${activeTab !== "phase" ? "hidden" : ""}`}>
                                         <canvas id="phaseChart"></canvas>
+                                    </div>
+
+                                    <div class={`flex-grow bg-slate-950/20 border border-slate-800/80 rounded-2xl p-6 relative h-full ${activeTab !== "opinion_evolution" ? "hidden" : ""}`}>
+                                        <canvas id="opinionChart"></canvas>
                                     </div>
 
                                     <div class={`flex-grow flex flex-col h-full space-y-4 ${activeTab !== "network" ? "hidden" : ""}`}>
