@@ -25,6 +25,12 @@ From the repository root, launch the service with:
 
    python ndlib/dashboard/server.py
 
+If the package is installed, the same service is also exposed as:
+
+.. code-block:: bash
+
+   ndlib-dashboard
+
 Then open the local URL printed by the server in your browser.
 
 The standard workflow is:
@@ -41,6 +47,12 @@ Generate a small graph and simulate an epidemic model:
 .. code-block:: bash
 
    python ndlib/dashboard/server.py
+
+or, if installed as a command:
+
+.. code-block:: bash
+
+   ndlib-dashboard
 
 In the dashboard:
 
@@ -77,4 +89,3 @@ Notes
 =====
 
 The dashboard is a lightweight local service and is meant to complement, not replace, the Python API and the documented visualization modules.
-

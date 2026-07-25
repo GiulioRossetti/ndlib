@@ -60,6 +60,12 @@ Run it from the repository root with:
 python ndlib/dashboard/server.py
 ```
 
+If the package is installed, you can also launch it with the bundled command:
+
+```bash
+ndlib-dashboard
+```
+
 Once the server starts, open the local URL printed in the terminal.
 
 | Configuration view | Network view |
