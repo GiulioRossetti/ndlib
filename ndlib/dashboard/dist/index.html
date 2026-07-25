@@ -263,7 +263,7 @@
 
                 iterationsList.forEach(it => {
                     Object.keys(statusNames).forEach(code => {
-                        statusCounts[code].append(it.node_count[code] || 0);
+                        statusCounts[code].push(it.node_count[code] || 0);
                     });
                 });
 
