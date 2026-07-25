@@ -31,11 +31,16 @@ def sanitize_for_json(obj):
         return obj.__name__
     elif isinstance(obj, (np.int64, np.int32, np.integer)):
         return int(obj)
-    elif isinstance(obj, (np.float64, np.float32, np.floating)):
-        return float(obj)
+    elif isinstance(obj, (float, np.float64, np.float32, np.floating)):
+        val = float(obj)
+        import math
+        if math.isinf(val) or math.isnan(val):
+            return None
+        return val
     elif callable(obj):
         try:
-            return obj()
+            val = obj()
+            return sanitize_for_json(val)
         except Exception:
             return str(obj)
     return obj
