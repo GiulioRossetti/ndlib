@@ -51,6 +51,78 @@
             box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
             border-color: rgba(99, 102, 241, 0.8);
         }
+
+        /* Day Theme Override */
+        body.theme-light {
+            background: radial-gradient(circle at top right, #f8fafc, #e2e8f0) !important;
+            color: #1e293b !important;
+        }
+        body.theme-light ::-webkit-scrollbar-track {
+            background: #cbd5e1;
+        }
+        body.theme-light ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+        }
+        body.theme-light .glass-panel {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+        }
+        body.theme-light input, 
+        body.theme-light select, 
+        body.theme-light textarea {
+            background-color: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            color: #1e293b !important;
+        }
+        body.theme-light .text-slate-400 {
+            color: #64748b !important;
+        }
+        body.theme-light .text-slate-300 {
+            color: #334155 !important;
+        }
+        body.theme-light .text-indigo-400 {
+            color: #4f46e5 !important;
+        }
+        body.theme-light .border-slate-800 {
+            border-color: #e2e8f0 !important;
+        }
+        body.theme-light .border-slate-900 {
+            border-color: #cbd5e1 !important;
+        }
+        body.theme-light .bg-slate-950\/20 {
+            background-color: rgba(255, 255, 255, 0.5) !important;
+            border-color: #cbd5e1 !important;
+        }
+        body.theme-light .bg-slate-950\/40 {
+            background-color: #f1f5f9 !important;
+            border-color: #e2e8f0 !important;
+        }
+        body.theme-light .bg-slate-950\/60 {
+            background-color: rgba(255, 255, 255, 0.8) !important;
+            border-color: #cbd5e1 !important;
+        }
+        body.theme-light .bg-slate-900\/40 {
+            background-color: #f8fafc !important;
+            border-color: #cbd5e1 !important;
+        }
+        body.theme-light .bg-slate-900 {
+            background-color: #ffffff !important;
+        }
+        body.theme-light .text-indigo-300 {
+            color: #4f46e5 !important;
+        }
+        body.theme-light .text-slate-200 {
+            color: #1e293b !important;
+        }
+        body.theme-light .text-slate-100 {
+            color: #0f172a !important;
+        }
+        body.theme-light .hover_bg-slate-900\/50:hover {
+            background-color: #cbd5e1 !important;
+        }
     </style>
 </head>
 <body class="flex flex-col min-height-screen">
@@ -82,6 +154,9 @@
             const [currentPlaybackStep, setCurrentPlaybackStep] = useState(0);
             const [isPlaying, setIsPlaying] = useState(false);
             const playbackIntervalRef = useRef(null);
+
+            const [isDarkMode, setIsDarkMode] = useState(false); // Default false (Day layout)
+            const [networkLayout, setNetworkLayout] = useState("preset");
 
             // Chart & Network refs
             const trendsChartRef = useRef(null);
@@ -364,7 +439,7 @@
                 });
             };
 
-            const initCytoscape = (data) => {
+            const initCytoscape = (data, layoutName = networkLayout) => {
                 const elements = [];
                 // Add nodes
                 data.nodes.forEach(n => {
@@ -383,8 +458,8 @@
                             selector: "node",
                             style: {
                                 "background-color": "#6366f1",
-                                "label": "data(label)",
-                                "color": "#f8fafc",
+                                "label": data.nodes.length > 200 ? "" : "data(label)",
+                                "color": isDarkMode ? "#f8fafc" : "#0f172a",
                                 "font-size": "10px",
                                 "width": "16px",
                                 "height": "16px"
@@ -394,12 +469,12 @@
                             selector: "edge",
                             style: {
                                 "width": 1.5,
-                                "line-color": "#475569",
+                                "line-color": isDarkMode ? "#475569" : "#cbd5e1",
                                 "opacity": 0.4
                             }
                         }
                     ],
-                    layout: { name: "preset" },
+                    layout: { name: layoutName === "preset" ? "preset" : layoutName },
                     userZoomingEnabled: true,
                     userPanningEnabled: true
                 });
@@ -448,6 +523,61 @@
                 }
                 return () => { if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current); };
             }, [isPlaying, results]);
+
+            // Toggle body class for day/night layouts
+            useEffect(() => {
+                if (isDarkMode) {
+                    document.body.classList.remove("theme-light");
+                    document.body.classList.add("theme-dark");
+                } else {
+                    document.body.classList.remove("theme-dark");
+                    document.body.classList.add("theme-light");
+                }
+            }, [isDarkMode]);
+
+            // Re-render plots and styling when theme changes
+            useEffect(() => {
+                if (results) {
+                    renderTrendsChart(results);
+                    renderPhasePortrait(results);
+                    if (cytoscapeRef.current) {
+                        cytoscapeRef.current.style()
+                            .selector("node")
+                            .style({ "color": isDarkMode ? "#f8fafc" : "#0f172a" })
+                            .selector("edge")
+                            .style({ "line-color": isDarkMode ? "#475569" : "#cbd5e1" })
+                            .update();
+                    }
+                }
+            }, [isDarkMode]);
+
+            // Center network visualization when activeTab switches to network
+            useEffect(() => {
+                if (activeTab === "network") {
+                    setTimeout(() => {
+                        if (cytoscapeRef.current) {
+                            cytoscapeRef.current.resize();
+                            cytoscapeRef.current.fit();
+                            cytoscapeRef.current.center();
+                        }
+                    }, 100);
+                }
+            }, [activeTab]);
+
+            const handleLayoutChange = (newLayout) => {
+                setNetworkLayout(newLayout);
+                if (cytoscapeRef.current) {
+                    if (newLayout === "preset") {
+                        cytoscapeRef.current.layout({ name: "preset" }).run();
+                    } else {
+                        cytoscapeRef.current.layout({ name: newLayout, animate: true, animationDuration: 500 }).run();
+                    }
+                    setTimeout(() => {
+                        cytoscapeRef.current.fit();
+                        cytoscapeRef.current.center();
+                    }, 550);
+                }
+            };
 
             const exportJSON = () => {
                 if (!results) return;
@@ -506,9 +636,18 @@
                 <div class="w-full flex-grow flex flex-col md:flex-row h-screen overflow-hidden">
                     {/* Left Sidebar - Configuration */}
                     <div class="w-full md:w-96 glass-panel border-r border-slate-700/50 flex flex-col h-full overflow-y-auto p-6 space-y-6">
-                        <div class="flex items-center space-x-3 pb-4 border-b border-slate-800">
-                            <i class="fa-solid fa-chart-line text-indigo-400 text-2xl"></i>
-                            <h1 class="text-xl font-bold tracking-tight text-white">NDlib Dashboard</h1>
+                        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                            <div class="flex items-center space-x-3">
+                                <i class="fa-solid fa-chart-line text-indigo-400 text-2xl"></i>
+                                <h1 class="text-xl font-bold tracking-tight text-white" id="title-header">NDlib Dashboard</h1>
+                            </div>
+                            <button 
+                                onClick={() => setIsDarkMode(!isDarkMode)} 
+                                class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+                                title="Toggle Theme"
+                            >
+                                {isDarkMode ? <i class="fa-solid fa-sun text-yellow-500"></i> : <i class="fa-solid fa-moon text-indigo-400"></i>}
+                            </button>
                         </div>
 
                         {/* Model Category Tabs */}
@@ -563,8 +702,10 @@
                                         <label class="text-xs text-slate-400 block mb-1">Nodes (N)</label>
                                         <input 
                                             type="number" 
+                                            min="10"
+                                            max="1000"
                                             value={graphParams.n} 
-                                            onChange={(e) => setGraphParams(prev => ({ ...prev, n: parseInt(e.target.value) || 10 }))}
+                                            onChange={(e) => setGraphParams(prev => ({ ...prev, n: Math.min(1000, Math.max(10, parseInt(e.target.value) || 10)) }))}
                                             class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
                                         />
                                     </div>
@@ -603,15 +744,15 @@
                                                 />
                                             </div>
                                             <div class="col-span-2 mt-2">
-                                                <label class="text-xs text-slate-400 block mb-1">Rewiring Prob (p): {graphParams.p}</label>
+                                                <label class="text-xs text-slate-400 block mb-1">Rewiring Prob (p)</label>
                                                 <input 
-                                                    type="range" 
+                                                    type="number" 
                                                     min="0" 
                                                     max="1" 
-                                                    step="0.05"
+                                                    step="0.01"
                                                     value={graphParams.p} 
-                                                    onChange={(e) => setGraphParams(prev => ({ ...prev, p: parseFloat(e.target.value) }))}
-                                                    class="w-full accent-indigo-500"
+                                                    onChange={(e) => setGraphParams(prev => ({ ...prev, p: Math.min(1.0, Math.max(0.0, parseFloat(e.target.value) || 0.0)) }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
                                                 />
                                             </div>
                                         </>
@@ -641,18 +782,15 @@
                                     if (p.range && p.range[0] === 0 && p.range[1] === 1) {
                                         return (
                                             <div key={paramName} class="space-y-1">
-                                                <div class="flex justify-between text-xs font-medium text-slate-300">
-                                                    <span>{paramName} ({p.descr})</span>
-                                                    <span class="text-indigo-400">{(modelParams[paramName] !== undefined && typeof modelParams[paramName] === 'number') ? modelParams[paramName].toFixed(3) : String(modelParams[paramName] !== undefined ? modelParams[paramName] : '')}</span>
-                                                </div>
+                                                <label class="text-xs text-slate-300 block mb-1">{paramName} ({p.descr})</label>
                                                 <input 
-                                                    type="range"
+                                                    type="number"
                                                     min="0"
                                                     max="1"
-                                                    step="0.005"
-                                                    value={modelParams[paramName] || 0}
-                                                    onChange={(e) => setModelParams(prev => ({ ...prev, [paramName]: parseFloat(e.target.value) }))}
-                                                    class="w-full accent-indigo-500"
+                                                    step="0.001"
+                                                    value={modelParams[paramName] !== undefined ? modelParams[paramName] : 0.1}
+                                                    onChange={(e) => setModelParams(prev => ({ ...prev, [paramName]: Math.min(1.0, Math.max(0.0, parseFloat(e.target.value) || 0.0)) }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
                                                 />
                                             </div>
                                         );
@@ -675,18 +813,15 @@
                                     const p = currentModel.parameters.nodes[paramName];
                                     return (
                                         <div key={paramName} class="space-y-1">
-                                            <div class="flex justify-between text-xs font-medium text-slate-300">
-                                                <span>Node config: {paramName} ({p.descr})</span>
-                                                <span class="text-indigo-400">{(modelParams[paramName] !== undefined && typeof modelParams[paramName] === 'number') ? modelParams[paramName].toFixed(2) : String(modelParams[paramName] !== undefined ? modelParams[paramName] : '')}</span>
-                                            </div>
+                                            <label class="text-xs text-slate-300 block mb-1">Node config: {paramName} ({p.descr})</label>
                                             <input 
-                                                type="range"
+                                                type="number"
                                                 min="0"
                                                 max="1"
-                                                step="0.05"
-                                                value={modelParams[paramName] || 0}
-                                                onChange={(e) => setModelParams(prev => ({ ...prev, [paramName]: parseFloat(e.target.value) }))}
-                                                class="w-full accent-indigo-500"
+                                                step="0.01"
+                                                value={modelParams[paramName] !== undefined ? modelParams[paramName] : 0.1}
+                                                onChange={(e) => setModelParams(prev => ({ ...prev, [paramName]: Math.min(1.0, Math.max(0.0, parseFloat(e.target.value) || 0.0)) }))}
+                                                class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
                                             />
                                         </div>
                                     );
@@ -834,32 +969,66 @@
                                     </div>
 
                                     <div class={`flex-grow flex flex-col h-full space-y-4 ${activeTab !== "network" ? "hidden" : ""}`}>
-                                        {/* Playback Controls */}
-                                        <div class="flex items-center space-x-4 bg-slate-950/40 p-4 border border-slate-900 rounded-xl">
-                                            <button 
-                                                onClick={() => setIsPlaying(!isPlaying)}
-                                                class="w-10 h-10 flex items-center justify-center bg-indigo-600 hover:bg-indigo-500 rounded-full text-white transition shadow-lg shadow-indigo-900/20"
-                                            >
-                                                {isPlaying ? <i class="fa-solid fa-pause"></i> : <i class="fa-solid fa-play ml-0.5"></i>}
-                                            </button>
-                                            <div class="flex-grow flex items-center space-x-3">
-                                                <span class="text-xs text-slate-400 w-16">Step {currentPlaybackStep}</span>
-                                                <input 
-                                                    type="range"
-                                                    min="0"
-                                                    max={results.iterations.length - 1}
-                                                    value={currentPlaybackStep}
-                                                    onChange={handlePlaybackSliderChange}
-                                                    class="flex-grow accent-indigo-500"
-                                                />
+                                        {/* Playback & Layout Controls */}
+                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-950/40 p-4 border border-slate-900 rounded-xl">
+                                            <div class="flex items-center space-x-4 flex-grow">
+                                                <button 
+                                                    onClick={() => setIsPlaying(!isPlaying)}
+                                                    class="w-10 h-10 flex flex-shrink-0 items-center justify-center bg-indigo-600 hover:bg-indigo-500 rounded-full text-white transition shadow-lg shadow-indigo-900/20 cursor-pointer"
+                                                >
+                                                    {isPlaying ? <i class="fa-solid fa-pause"></i> : <i class="fa-solid fa-play ml-0.5"></i>}
+                                                </button>
+                                                <div class="flex-grow flex items-center space-x-3 max-w-xl">
+                                                    <span class="text-xs text-slate-400 w-16">Step {currentPlaybackStep}</span>
+                                                    <input 
+                                                        type="range"
+                                                        min="0"
+                                                        max={results.iterations.length - 1}
+                                                        value={currentPlaybackStep}
+                                                        onChange={handlePlaybackSliderChange}
+                                                        class="flex-grow accent-indigo-500 cursor-pointer"
+                                                    />
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Network Layout Dropdown */}
+                                            <div class="flex items-center space-x-2">
+                                                <label class="text-xs text-slate-400 font-semibold uppercase">Layout:</label>
+                                                <select 
+                                                    value={networkLayout}
+                                                    onChange={(e) => handleLayoutChange(e.target.value)}
+                                                    class="bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-200 focus:outline-none cursor-pointer"
+                                                >
+                                                    <option value="preset">Preset (Spring)</option>
+                                                    <option value="cose">Force-Directed</option>
+                                                    <option value="circle">Circle</option>
+                                                    <option value="grid">Grid</option>
+                                                    <option value="concentric">Concentric</option>
+                                                </select>
                                             </div>
                                         </div>
 
-                                        {/* Graph Container */}
-                                        <div 
-                                            ref={cyContainerRef} 
-                                            class="flex-grow bg-slate-950/60 border border-slate-900 rounded-2xl min-h-[400px] h-full"
-                                        ></div>
+                                        {/* Graph Container with Legend */}
+                                        <div class="flex-grow relative border border-slate-900 rounded-2xl min-h-[400px] h-full overflow-hidden">
+                                            <div 
+                                                ref={cyContainerRef} 
+                                                class="absolute inset-0 bg-slate-950/60"
+                                            ></div>
+                                            
+                                            {/* Status Colors Legend */}
+                                            <div class={`absolute bottom-4 left-4 p-4 rounded-xl border z-10 flex flex-col space-y-2 backdrop-blur-md ${isDarkMode ? "bg-slate-900/90 border-slate-800 text-slate-200" : "bg-white/90 border-slate-200 text-slate-800 shadow-lg"}`}>
+                                                <h4 class="text-xs font-bold uppercase tracking-wider mb-1 opacity-80">Status Legend</h4>
+                                                {Object.keys(results.statuses).map(statusName => {
+                                                    const code = results.statuses[statusName];
+                                                    return (
+                                                        <div key={statusName} class="flex items-center space-x-2.5 text-xs font-medium">
+                                                            <span class="w-3.5 h-3.5 rounded-full border border-black/10" style={{ backgroundColor: getStatusColor(code) }}></span>
+                                                            <span>{statusName}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             )}
