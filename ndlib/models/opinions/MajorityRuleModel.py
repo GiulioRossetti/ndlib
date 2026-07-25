@@ -24,7 +24,7 @@ class MajorityRuleModel(DiffusionModel):
             "model": {
                 "q": {
                     "descr": "Number of randomly chosen voters",
-                    "range": [0, len(self.graph.nodes)],
+                    "range": [1, max(1, len(self.graph.nodes))],
                     "optional": False,
                 }
             },
