@@ -22,6 +22,10 @@ from .UTLDRModel import UTLDRModel
 from .SEIR_ct_Model import SEIRctModel
 from .SEIS_ct_Model import SEISctModel
 from .ForestFireModel import ForestFireModel
+from .SIRSModel import SIRSModel
+from .SIRDModel import SIRDModel
+from .SAIRModel import SAIRModel
+from .SVEIRModel import SVEIRModel
 
 __all__ = [
     "GeneralisedThresholdModel",
@@ -44,4 +48,8 @@ __all__ = [
     "SEIRctModel",
     "SEISctModel",
     "ForestFireModel",
+    "SIRSModel",
+    "SIRDModel",
+    "SAIRModel",
+    "SVEIRModel",
 ]

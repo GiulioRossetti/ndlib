@@ -387,6 +387,66 @@ class NdlibTest(unittest.TestCase):
             iterations = model.iteration_bunch(10, node_status=False)
             self.assertEqual(len(iterations), 10)
 
+    def test_sirs_model(self):
+        for g in get_graph(True):
+            model = epd.SIRSModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter("beta", 0.5)
+            config.add_model_parameter("gamma", 0.2)
+            config.add_model_parameter("eta", 0.1)
+            config.add_model_parameter("fraction_infected", 0.1)
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
+    def test_sird_model(self):
+        for g in get_graph(True):
+            model = epd.SIRDModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter("beta", 0.5)
+            config.add_model_parameter("gamma", 0.2)
+            config.add_model_parameter("mu", 0.05)
+            config.add_model_parameter("fraction_infected", 0.1)
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
+    def test_sair_model(self):
+        for g in get_graph(True):
+            model = epd.SAIRModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter("beta", 0.4)
+            config.add_model_parameter("beta_a", 0.2)
+            config.add_model_parameter("p", 0.5)
+            config.add_model_parameter("gamma_i", 0.2)
+            config.add_model_parameter("gamma_a", 0.1)
+            config.add_model_parameter("fraction_infected", 0.1)
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
+    def test_sveir_model(self):
+        for g in get_graph(True):
+            model = epd.SVEIRModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter("beta", 0.4)
+            config.add_model_parameter("theta", 0.05)
+            config.add_model_parameter("sigma", 0.2)
+            config.add_model_parameter("delta", 0.1)
+            config.add_model_parameter("gamma", 0.2)
+            config.add_model_parameter("fraction_infected", 0.1)
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
     def test_forest_fire_model(self):
         for g in get_graph(True):
             model = epd.ForestFireModel(g)
