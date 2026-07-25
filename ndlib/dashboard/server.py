@@ -22,6 +22,25 @@ PORT = 5000
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "dist")
 
 
+def sanitize_for_json(obj):
+    if isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple, set)):
+        return [sanitize_for_json(x) for x in obj]
+    elif isinstance(obj, type):
+        return obj.__name__
+    elif isinstance(obj, (np.int64, np.int32, np.integer)):
+        return int(obj)
+    elif isinstance(obj, (np.float64, np.float32, np.floating)):
+        return float(obj)
+    elif callable(obj):
+        try:
+            return obj()
+        except Exception:
+            return str(obj)
+    return obj
+
+
 def discover_models():
     models = {}
     exclude_classes = ["DiffusionModel", "Configuration", "ConfigurationException", "ContinuousModel", "DynamicDiffusionModel"]
@@ -63,7 +82,7 @@ def discover_models():
                 }
         except Exception:
             pass
-    return models
+    return sanitize_for_json(models)
 
 
 class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
