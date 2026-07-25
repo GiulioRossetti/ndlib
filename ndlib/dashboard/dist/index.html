@@ -631,7 +631,7 @@
                                             <div key={paramName} class="space-y-1">
                                                 <div class="flex justify-between text-xs font-medium text-slate-300">
                                                     <span>{paramName} ({p.descr})</span>
-                                                    <span class="text-indigo-400">{modelParams[paramName] !== undefined ? modelParams[paramName].toFixed(3) : 0.1}</span>
+                                                    <span class="text-indigo-400">{(modelParams[paramName] !== undefined && typeof modelParams[paramName] === 'number') ? modelParams[paramName].toFixed(3) : String(modelParams[paramName] !== undefined ? modelParams[paramName] : '')}</span>
                                                 </div>
                                                 <input 
                                                     type="range"
@@ -665,7 +665,7 @@
                                         <div key={paramName} class="space-y-1">
                                             <div class="flex justify-between text-xs font-medium text-slate-300">
                                                 <span>Node config: {paramName} ({p.descr})</span>
-                                                <span class="text-indigo-400">{modelParams[paramName] !== undefined ? modelParams[paramName].toFixed(2) : 0.1}</span>
+                                                <span class="text-indigo-400">{(modelParams[paramName] !== undefined && typeof modelParams[paramName] === 'number') ? modelParams[paramName].toFixed(2) : String(modelParams[paramName] !== undefined ? modelParams[paramName] : '')}</span>
                                             </div>
                                             <input 
                                                 type="range"
