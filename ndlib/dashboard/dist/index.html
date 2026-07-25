@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NDlib Interactive Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Outfit) -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Cytoscape.js for Graph rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel standalone for JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        /* Glassmorphism utility */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.45);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .neon-border-glow:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+            border-color: rgba(99, 102, 241, 0.8);
+        }
+    </style>
+</head>
+<body class="flex flex-col min-height-screen">
+
+    <div id="root" class="w-full flex-grow flex flex-col"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function App() {
+            const [models, setModels] = useState({});
+            const [selectedCategory, setSelectedCategory] = useState("Epidemics");
+            const [selectedModelName, setSelectedModelName] = useState("");
+            const [modelParams, setModelParams] = useState({});
+            const [graphType, setGraphType] = useState("erdos_renyi");
+            const [graphParams, setGraphParams] = useState({ n: 100, p: 0.1, m: 2, k: 4, file_content: "", file_format: "graphml", file_name: "" });
+            const [iterations, setIterations] = useState(50);
+            const [activeTab, setActiveTab] = useState("trends");
+
+            // Simulation results
+            const [results, setResults] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState("");
+
+            // Playback controls for network visualization
+            const [currentPlaybackStep, setCurrentPlaybackStep] = useState(0);
+            const [isPlaying, setIsPlaying] = useState(false);
+            const playbackIntervalRef = useRef(null);
+
+            // Chart & Network refs
+            const trendsChartRef = useRef(null);
+            const phaseChartRef = useRef(null);
+            const cytoscapeRef = useRef(null);
+            const cyContainerRef = useRef(null);
+
+            // Fetch available models on mount
+            useEffect(() => {
+                fetch("/api/models")
+                    .then(res => res.json())
+                    .then(data => {
+                        setModels(data);
+                        // Select first model of selected category as default
+                        const firstModel = Object.keys(data).find(k => data[k].category === "Epidemics");
+                        if (firstModel) {
+                            selectModel(firstModel, data);
+                        }
+                    })
+                    .catch(err => setError("Failed to fetch models list from server."));
+            }, []);
+
+            const selectModel = (name, modelsList = models) => {
+                setSelectedModelName(name);
+                const model = modelsList[name];
+                if (!model) return;
+
+                // Build default parameters
+                const defaults = {};
+                // Model level
+                Object.keys(model.parameters.model).forEach(k => {
+                    defaults[k] = model.parameters.model[k].default !== undefined ? model.parameters.model[k].default : 0.1;
+                });
+                // Node level
+                Object.keys(model.parameters.nodes).forEach(k => {
+                    defaults[k] = model.parameters.nodes[k].default !== undefined ? model.parameters.nodes[k].default : 0.1;
+                });
+                // Edge level
+                Object.keys(model.parameters.edges).forEach(k => {
+                    defaults[k] = model.parameters.edges[k].default !== undefined ? model.parameters.edges[k].default : 1;
+                });
+
+                // Ensure initial infection fraction is set
+                if (model.parameters.model["fraction_infected"] && defaults["fraction_infected"] === undefined) {
+                    defaults["fraction_infected"] = 0.05;
+                }
+
+                setModelParams(defaults);
+            };
+
+            const handleCategoryChange = (cat) => {
+                setSelectedCategory(cat);
+                const firstModel = Object.keys(models).find(k => models[k].category === cat);
+                if (firstModel) {
+                    selectModel(firstModel);
+                }
+            };
+
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    let format = "graphml";
+                    if (ext === "gml") format = "gml";
+                    else if (ext === "txt" || ext === "csv") format = "edgelist";
+
+                    setGraphParams(prev => ({
+                        ...prev,
+                        file_content: event.target.result,
+                        file_format: format,
+                        file_name: file.name
+                    }));
+                };
+                reader.readAsText(file);
+            };
+
+            const runSimulation = () => {
+                setLoading(true);
+                setError("");
+                setResults(null);
+                setIsPlaying(false);
+                if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
+
+                const payload = {
+                    model_class: selectedModelName,
+                    category: selectedCategory,
+                    graph_type: graphType,
+                    graph_params: graphParams,
+                    model_params: modelParams,
+                    iterations: iterations
+                };
+
+                fetch("/api/simulate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    setLoading(false);
+                    if (data.error) {
+                        setError(data.error);
+                    } else {
+                        setResults(data);
+                        setCurrentPlaybackStep(0);
+                        // Render charts automatically
+                        setTimeout(() => {
+                            renderTrendsChart(data);
+                            renderPhasePortrait(data);
+                            initCytoscape(data);
+                        }, 50);
+                    }
+                })
+                .catch(err => {
+                    setLoading(false);
+                    setError("Network error while running simulation.");
+                });
+            };
+
+            // Color Palette for Compartments / Opinions
+            const getStatusColor = (statusCode, value = null, statuses = {}) => {
+                // If opinions (floating values)
+                if (selectedCategory === "Opinions" && value !== null) {
+                    // Continuous spectrum from Red (-1) -> Yellow (0) -> Green/Blue (1)
+                    // Normalize value to [0, 1]
+                    const norm = (value + 1) / 2; // assuming [-1, 1]
+                    const r = Math.floor((1 - norm) * 255);
+                    const g = Math.floor(norm * 255);
+                    const b = 150;
+                    return `rgb(${r}, ${g}, ${b})`;
+                }
+
+                // Epidemic classes
+                const colors = {
+                    0: "#38bdf8", // Susceptible (Sky Blue)
+                    1: "#f97316", // Infected / Asymptomatic (Orange)
+                    2: "#ef4444", // Infected (Symptomatic) (Red)
+                    3: "#22c55e", // Removed / Recovered (Green)
+                    4: "#10b981", // Removed/Recovered (Emerald)
+                    "-1": "#64748b", // Blocked (Slate)
+                };
+                return colors[statusCode] || "#6366f1";
+            };
+
+            const renderTrendsChart = (data) => {
+                if (trendsChartRef.current) trendsChartRef.current.destroy();
+
+                const ctx = document.getElementById("trendsChart").getContext("2d");
+                const iterationsList = data.iterations;
+                const T = iterationsList.length;
+
+                // Map state codes to names
+                const statusNames = {};
+                Object.keys(data.statuses).forEach(k => {
+                    statusNames[data.statuses[k]] = k;
+                });
+
+                const datasets = [];
+                const statusCounts = {};
+
+                // Initialize counts arrays
+                Object.keys(statusNames).forEach(code => {
+                    statusCounts[code] = [];
+                });
+
+                iterationsList.forEach(it => {
+                    Object.keys(statusNames).forEach(code => {
+                        statusCounts[code].append(it.node_count[code] || 0);
+                    });
+                });
+
+                Object.keys(statusNames).forEach(code => {
+                    datasets.push({
+                        label: statusNames[code],
+                        data: statusCounts[code],
+                        borderColor: getStatusColor(parseInt(code)),
+                        backgroundColor: getStatusColor(parseInt(code)) + "20",
+                        borderWidth: 2,
+                        tension: 0.2
+                    });
+                });
+
+                trendsChartRef.current = new Chart(ctx, {
+                    type: "line",
+                    data: {
+                        labels: Array.from({ length: T }, (_, i) => i),
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: "#f8fafc" } }
+                        },
+                        scales: {
+                            x: { grid: { color: "#334155" }, ticks: { color: "#94a3b8" } },
+                            y: { grid: { color: "#334155" }, ticks: { color: "#94a3b8" } }
+                        }
+                    }
+                });
+            };
+
+            const renderPhasePortrait = (data) => {
+                if (phaseChartRef.current) phaseChartRef.current.destroy();
+
+                const canvas = document.getElementById("phaseChart");
+                if (!canvas) return;
+                const ctx = canvas.getContext("2d");
+                const iterationsList = data.iterations;
+
+                // Use Susceptible vs Infected
+                const susCode = data.statuses["Susceptible"] !== undefined ? data.statuses["Susceptible"] : 0;
+                const infCode = data.statuses["Infected"] !== undefined ? data.statuses["Infected"] : 1;
+
+                const points = iterationsList.map(it => ({
+                    x: it.node_count[susCode] || 0,
+                    y: it.node_count[infCode] || 0
+                }));
+
+                phaseChartRef.current = new Chart(ctx, {
+                    type: "scatter",
+                    data: {
+                        datasets: [{
+                            label: "S vs I Trajectory",
+                            data: points,
+                            showLine: true,
+                            borderColor: "#a855f7",
+                            backgroundColor: "#c084fc",
+                            borderWidth: 2,
+                            pointRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: "#f8fafc" } }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: "Susceptible Nodes", color: "#f8fafc" },
+                                grid: { color: "#334155" },
+                                ticks: { color: "#94a3b8" }
+                            },
+                            y: {
+                                title: { display: true, text: "Infected Nodes", color: "#f8fafc" },
+                                grid: { color: "#334155" },
+                                ticks: { color: "#94a3b8" }
+                            }
+                        }
+                    }
+                });
+            };
+
+            const initCytoscape = (data) => {
+                const elements = [];
+                // Add nodes
+                data.nodes.forEach(n => {
+                    elements.push({ data: { id: n.id, label: n.label }, position: { x: n.x, y: n.y } });
+                });
+                // Add edges
+                data.edges.forEach(e => {
+                    elements.push({ data: { source: e.source, target: e.target } });
+                });
+
+                cytoscapeRef.current = cytoscape({
+                    container: cyContainerRef.current,
+                    elements: elements,
+                    style: [
+                        {
+                            selector: "node",
+                            style: {
+                                "background-color": "#6366f1",
+                                "label": "data(label)",
+                                "color": "#f8fafc",
+                                "font-size": "10px",
+                                "width": "16px",
+                                "height": "16px"
+                            }
+                        },
+                        {
+                            selector: "edge",
+                            style: {
+                                "width": 1.5,
+                                "line-color": "#475569",
+                                "opacity": 0.4
+                            }
+                        }
+                    ],
+                    layout: { name: "preset" },
+                    userZoomingEnabled: true,
+                    userPanningEnabled: true
+                });
+
+                updateNetworkColors(0, data);
+            };
+
+            const updateNetworkColors = (step, data = results) => {
+                if (!cytoscapeRef.current || !data) return;
+
+                const stepData = data.iterations[step];
+                if (!stepData) return;
+
+                const nodeStatus = stepData.status;
+
+                cytoscapeRef.current.nodes().forEach(node => {
+                    const id = node.id();
+                    const statusVal = nodeStatus[id] !== undefined ? nodeStatus[id] : 0;
+                    // For opinion dynamics, pass continuous value to getStatusColor
+                    const color = getStatusColor(statusVal, selectedCategory === "Opinions" ? statusVal : null, data.statuses);
+                    node.style("background-color", color);
+                });
+            };
+
+            const handlePlaybackSliderChange = (e) => {
+                const val = parseInt(e.target.value);
+                setCurrentPlaybackStep(val);
+                updateNetworkColors(val);
+            };
+
+            // Playback automation
+            useEffect(() => {
+                if (isPlaying) {
+                    playbackIntervalRef.current = setInterval(() => {
+                        setCurrentPlaybackStep(prev => {
+                            const next = prev + 1;
+                            if (next >= results.iterations.length) {
+                                setIsPlaying(false);
+                                clearInterval(playbackIntervalRef.current);
+                                return prev;
+                            }
+                            updateNetworkColors(next);
+                            return next;
+                        });
+                    }, 300);
+                } else {
+                    if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
+                }
+                return () => { if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current); };
+            }, [isPlaying, results]);
+
+            const exportJSON = () => {
+                if (!results) return;
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(json.dumps(results));
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", `${selectedModelName}_simulation.json`);
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+            };
+
+            const exportCSV = () => {
+                if (!results) return;
+                // Header: Iteration, Compartment counts
+                const statusNames = {};
+                Object.keys(results.statuses).forEach(k => {
+                    statusNames[results.statuses[k]] = k;
+                });
+
+                const headers = ["Iteration", ...Object.values(statusNames)];
+                let csvRows = [headers.join(",")];
+
+                results.iterations.forEach(it => {
+                    const row = [it.iteration];
+                    Object.keys(statusNames).forEach(code => {
+                        row.push(it.node_count[code] || 0);
+                    });
+                    csvRows.push(row.join(","));
+                });
+
+                const csvStr = "data:text/csv;charset=utf-8," + encodeURIComponent(csvRows.join("\n"));
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", csvStr);
+                downloadAnchor.setAttribute("download", `${selectedModelName}_trends.csv`);
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+            };
+
+            const downloadChart = () => {
+                const canvas = document.getElementById(activeTab === "trends" ? "trendsChart" : "phaseChart");
+                if (!canvas) return;
+                const imgUrl = canvas.toDataURL("image/png");
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", imgUrl);
+                downloadAnchor.setAttribute("download", `${selectedModelName}_plot.png`);
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+            };
+
+            const currentModel = models[selectedModelName];
+
+            return (
+                <div class="w-full flex-grow flex flex-col md:flex-row h-screen overflow-hidden">
+                    {/* Left Sidebar - Configuration */}
+                    <div class="w-full md:w-96 glass-panel border-r border-slate-700/50 flex flex-col h-full overflow-y-auto p-6 space-y-6">
+                        <div class="flex items-center space-x-3 pb-4 border-b border-slate-800">
+                            <i class="fa-solid fa-chart-line text-indigo-400 text-2xl"></i>
+                            <h1 class="text-xl font-bold tracking-tight text-white">NDlib Dashboard</h1>
+                        </div>
+
+                        {/* Model Category Tabs */}
+                        <div class="flex bg-slate-900/60 p-1 rounded-lg border border-slate-800">
+                            <button 
+                                onClick={() => handleCategoryChange("Epidemics")}
+                                class={`flex-1 py-1.5 text-sm font-medium rounded-md transition ${selectedCategory === "Epidemics" ? "bg-indigo-600 text-white shadow" : "text-slate-400 hover:text-white"}`}
+                            >
+                                Epidemic Models
+                            </button>
+                            <button 
+                                onClick={() => handleCategoryChange("Opinions")}
+                                class={`flex-1 py-1.5 text-sm font-medium rounded-md transition ${selectedCategory === "Opinions" ? "bg-indigo-600 text-white shadow" : "text-slate-400 hover:text-white"}`}
+                            >
+                                Opinion Models
+                            </button>
+                        </div>
+
+                        {/* Model Selector */}
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Select Propagation Model</label>
+                            <select 
+                                value={selectedModelName}
+                                onChange={(e) => selectModel(e.target.value)}
+                                class="w-full bg-slate-900/80 border border-slate-800 rounded-lg p-2.5 text-slate-200 neon-border-glow"
+                            >
+                                {Object.keys(models).filter(k => models[k].category === selectedCategory).map(k => (
+                                    <option key={k} value={k}>{models[k].name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Graph Selection & Generation */}
+                        <div class="space-y-3 pt-2 border-t border-slate-800">
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Network Topology</label>
+                            <select 
+                                value={graphType}
+                                onChange={(e) => setGraphType(e.target.value)}
+                                class="w-full bg-slate-900/80 border border-slate-800 rounded-lg p-2.5 text-slate-200 neon-border-glow"
+                            >
+                                <option value="erdos_renyi">Erdos-Renyi (Random)</option>
+                                <option value="barabasi_albert">Barabasi-Albert (Scale-Free)</option>
+                                <option value="watts_strogatz">Watts-Strogatz (Small-World)</option>
+                                <option value="complete">Complete Graph (Clique)</option>
+                                <option value="upload">Upload Custom Graph File</option>
+                            </select>
+
+                            {/* Topology Parameters */}
+                            {graphType !== "upload" ? (
+                                <div class="grid grid-cols-2 gap-3 bg-slate-950/40 p-3 rounded-lg border border-slate-900">
+                                    <div>
+                                        <label class="text-xs text-slate-400 block mb-1">Nodes (N)</label>
+                                        <input 
+                                            type="number" 
+                                            value={graphParams.n} 
+                                            onChange={(e) => setGraphParams(prev => ({ ...prev, n: parseInt(e.target.value) || 10 }))}
+                                            class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                        />
+                                    </div>
+                                    {graphType === "erdos_renyi" && (
+                                        <div>
+                                            <label class="text-xs text-slate-400 block mb-1">Probability (p)</label>
+                                            <input 
+                                                type="number" 
+                                                step="0.01" 
+                                                value={graphParams.p} 
+                                                onChange={(e) => setGraphParams(prev => ({ ...prev, p: parseFloat(e.target.value) || 0.1 }))}
+                                                class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                            />
+                                        </div>
+                                    )}
+                                    {graphType === "barabasi_albert" && (
+                                        <div>
+                                            <label class="text-xs text-slate-400 block mb-1">Edges Attached (m)</label>
+                                            <input 
+                                                type="number" 
+                                                value={graphParams.m} 
+                                                onChange={(e) => setGraphParams(prev => ({ ...prev, m: parseInt(e.target.value) || 2 }))}
+                                                class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                            />
+                                        </div>
+                                    )}
+                                    {graphType === "watts_strogatz" && (
+                                        <>
+                                            <div>
+                                                <label class="text-xs text-slate-400 block mb-1">k Neighbors</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={graphParams.k} 
+                                                    onChange={(e) => setGraphParams(prev => ({ ...prev, k: parseInt(e.target.value) || 4 }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                                />
+                                            </div>
+                                            <div class="col-span-2 mt-2">
+                                                <label class="text-xs text-slate-400 block mb-1">Rewiring Prob (p): {graphParams.p}</label>
+                                                <input 
+                                                    type="range" 
+                                                    min="0" 
+                                                    max="1" 
+                                                    step="0.05"
+                                                    value={graphParams.p} 
+                                                    onChange={(e) => setGraphParams(prev => ({ ...prev, p: parseFloat(e.target.value) }))}
+                                                    class="w-full accent-indigo-500"
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            ) : (
+                                <div class="bg-slate-950/40 p-3 rounded-lg border border-slate-900 space-y-2">
+                                    <label class="text-xs text-slate-400 block">Upload GML / GraphML / EdgeList</label>
+                                    <input 
+                                        type="file" 
+                                        onChange={handleFileUpload}
+                                        class="w-full text-xs text-slate-400 file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer"
+                                    />
+                                    {graphParams.file_name && (
+                                        <p class="text-xs text-indigo-400"><i class="fa-solid fa-file-circle-check"></i> Loaded: {graphParams.file_name}</p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Model Configuration Parameters */}
+                        <div class="space-y-4 pt-2 border-t border-slate-800 flex-grow">
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Propagation Parameters</label>
+                            <div class="space-y-4">
+                                {currentModel && Object.keys(currentModel.parameters.model).map(paramName => {
+                                    const p = currentModel.parameters.model[paramName];
+                                    if (p.range && p.range[0] === 0 && p.range[1] === 1) {
+                                        return (
+                                            <div key={paramName} class="space-y-1">
+                                                <div class="flex justify-between text-xs font-medium text-slate-300">
+                                                    <span>{paramName} ({p.descr})</span>
+                                                    <span class="text-indigo-400">{modelParams[paramName] !== undefined ? modelParams[paramName].toFixed(3) : 0.1}</span>
+                                                </div>
+                                                <input 
+                                                    type="range"
+                                                    min="0"
+                                                    max="1"
+                                                    step="0.005"
+                                                    value={modelParams[paramName] || 0}
+                                                    onChange={(e) => setModelParams(prev => ({ ...prev, [paramName]: parseFloat(e.target.value) }))}
+                                                    class="w-full accent-indigo-500"
+                                                />
+                                            </div>
+                                        );
+                                    }
+                                    return (
+                                        <div key={paramName} class="flex justify-between items-center text-xs">
+                                            <span class="text-slate-300">{paramName} ({p.descr})</span>
+                                            <input 
+                                                type="number"
+                                                value={modelParams[paramName] || 0}
+                                                onChange={(e) => setModelParams(prev => ({ ...prev, [paramName]: parseFloat(e.target.value) }))}
+                                                class="w-24 bg-slate-900 border border-slate-800 rounded-md p-1 text-slate-200 text-right neon-border-glow"
+                                            />
+                                        </div>
+                                    );
+                                })}
+
+                                {/* Node Configuration Parameters (e.g. stubbornness / zealot) */}
+                                {currentModel && Object.keys(currentModel.parameters.nodes).map(paramName => {
+                                    const p = currentModel.parameters.nodes[paramName];
+                                    return (
+                                        <div key={paramName} class="space-y-1">
+                                            <div class="flex justify-between text-xs font-medium text-slate-300">
+                                                <span>Node config: {paramName} ({p.descr})</span>
+                                                <span class="text-indigo-400">{modelParams[paramName] !== undefined ? modelParams[paramName].toFixed(2) : 0.1}</span>
+                                            </div>
+                                            <input 
+                                                type="range"
+                                                min="0"
+                                                max="1"
+                                                step="0.05"
+                                                value={modelParams[paramName] || 0}
+                                                onChange={(e) => setModelParams(prev => ({ ...prev, [paramName]: parseFloat(e.target.value) }))}
+                                                class="w-full accent-indigo-500"
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Simulation Length & Run Button */}
+                        <div class="space-y-4 pt-4 border-t border-slate-800 mt-auto">
+                            <div class="flex justify-between items-center">
+                                <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Iterations</label>
+                                <input 
+                                    type="number" 
+                                    value={iterations} 
+                                    onChange={(e) => setIterations(parseInt(e.target.value) || 10)}
+                                    class="w-20 bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-center text-slate-200 neon-border-glow"
+                                />
+                            </div>
+
+                            <button 
+                                onClick={runSimulation}
+                                disabled={loading}
+                                class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-indigo-900/30 transition flex items-center justify-center space-x-2"
+                            >
+                                {loading ? (
+                                    <>
+                                        <i class="fa-solid fa-spinner animate-spin"></i>
+                                        <span>Simulating...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <i class="fa-solid fa-play"></i>
+                                        <span>Run Simulation</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Right Panel - Outputs */}
+                    <div class="flex-grow flex flex-col h-full overflow-hidden">
+                        {/* Tabs Bar */}
+                        <div class="bg-slate-900/50 border-b border-slate-800/80 px-6 py-4 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+                            <div class="flex space-x-4">
+                                <button 
+                                    onClick={() => setActiveTab("trends")}
+                                    class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "trends" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-white"}`}
+                                >
+                                    <i class="fa-solid fa-chart-area mr-2"></i>Trends Plot
+                                </button>
+                                <button 
+                                    onClick={() => setActiveTab("phase")}
+                                    class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "phase" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-white"}`}
+                                >
+                                    <i class="fa-solid fa-rotate mr-2"></i>Phase Space
+                                </button>
+                                <button 
+                                    onClick={() => setActiveTab("network")}
+                                    class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "network" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-white"}`}
+                                >
+                                    <i class="fa-solid fa-network-wired mr-2"></i>Network Graph
+                                </button>
+                            </div>
+
+                            {/* Export Buttons */}
+                            {results && (
+                                <div class="flex space-x-2">
+                                    <button 
+                                        onClick={exportJSON}
+                                        class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold py-1.5 px-3 rounded-lg transition"
+                                    >
+                                        <i class="fa-solid fa-download mr-1"></i>JSON
+                                    </button>
+                                    <button 
+                                        onClick={exportCSV}
+                                        class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold py-1.5 px-3 rounded-lg transition"
+                                    >
+                                        <i class="fa-solid fa-file-csv mr-1"></i>CSV
+                                    </button>
+                                    {(activeTab === "trends" || activeTab === "phase") && (
+                                        <button 
+                                            onClick={downloadChart}
+                                            class="bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold py-1.5 px-3 rounded-lg transition text-white"
+                                        >
+                                            <i class="fa-solid fa-image mr-1"></i>Plot PNG
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Error Alert */}
+                        {error && (
+                            <div class="bg-red-500/10 border border-red-500/30 text-red-200 px-6 py-4 mx-6 mt-6 rounded-xl flex items-center space-x-3">
+                                <i class="fa-solid fa-triangle-exclamation text-red-500 text-xl"></i>
+                                <span>{error}</span>
+                            </div>
+                        )}
+
+                        {/* Visualizer Area */}
+                        <div class="flex-grow p-6 overflow-hidden flex flex-col">
+                            {!results && !loading && (
+                                <div class="flex-grow flex flex-col justify-center items-center text-slate-500 space-y-4">
+                                    <i class="fa-solid fa-network-wired text-6xl text-slate-600"></i>
+                                    <p class="text-lg">Configure settings and click <strong>Run Simulation</strong> to view results.</p>
+                                </div>
+                            )}
+
+                            {loading && (
+                                <div class="flex-grow flex flex-col justify-center items-center text-indigo-400 space-y-4">
+                                    <i class="fa-solid fa-spinner animate-spin text-5xl"></i>
+                                    <p class="text-lg">Executing network simulation...</p>
+                                </div>
+                            )}
+
+                            {/* Charts & Graph Rendering */}
+                            {results && !loading && (
+                                <div class="flex-grow flex flex-col h-full">
+                                    {activeTab === "trends" && (
+                                        <div class="flex-grow bg-slate-950/20 border border-slate-800/80 rounded-2xl p-6 relative h-full">
+                                            <canvas id="trendsChart"></canvas>
+                                        </div>
+                                    )}
+
+                                    {activeTab === "phase" && (
+                                        <div class="flex-grow bg-slate-950/20 border border-slate-800/80 rounded-2xl p-6 relative h-full">
+                                            <canvas id="phaseChart"></canvas>
+                                        </div>
+                                    )}
+
+                                    {activeTab === "network" && (
+                                        <div class="flex-grow flex flex-col h-full space-y-4">
+                                            {/* Playback Controls */}
+                                            <div class="flex items-center space-x-4 bg-slate-950/40 p-4 border border-slate-900 rounded-xl">
+                                                <button 
+                                                    onClick={() => setIsPlaying(!isPlaying)}
+                                                    class="w-10 h-10 flex items-center justify-center bg-indigo-600 hover:bg-indigo-500 rounded-full text-white transition shadow-lg shadow-indigo-900/20"
+                                                >
+                                                    {isPlaying ? <i class="fa-solid fa-pause"></i> : <i class="fa-solid fa-play ml-0.5"></i>}
+                                                </button>
+                                                <div class="flex-grow flex items-center space-x-3">
+                                                    <span class="text-xs text-slate-400 w-16">Step {currentPlaybackStep}</span>
+                                                    <input 
+                                                        type="range"
+                                                        min="0"
+                                                        max={results.iterations.length - 1}
+                                                        value={currentPlaybackStep}
+                                                        onChange={handlePlaybackSliderChange}
+                                                        class="flex-grow accent-indigo-500"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Graph Container */}
+                                            <div 
+                                                ref={cyContainerRef} 
+                                                class="flex-grow bg-slate-950/60 border border-slate-900 rounded-2xl min-h-[400px] h-full"
+                                            ></div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+</body>
+</html>
