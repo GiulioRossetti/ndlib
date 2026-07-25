@@ -169,6 +169,11 @@ Pyplot Viz
    viz/mpl/DiffusionTrend.rst
    viz/mpl/DiffusionPrevalence.rst
    viz/mpl/OpinionEvolution.rst
+   viz/mpl/OpinionDensityViz.rst
+   viz/mpl/PolarizationMetricsViz.rst
+   viz/mpl/PhasePortraitViz.rst
+   viz/mpl/PeakMetricsViz.rst
+   viz/mpl/TransmissionTreeViz.rst
 
 
 **Model Comparison Visualizations**
