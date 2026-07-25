@@ -36,7 +36,7 @@ class NLSModel(DiffusionModel):
                 },
                 "threshold": {
                     "descr": "Node threshold (resistance to change)",
-                    "range": [-100, 100],
+                    "range": [0, 1],
                     "optional": True,
                     "default": 0.0,
                 }

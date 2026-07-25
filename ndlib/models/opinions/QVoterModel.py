@@ -25,7 +25,7 @@ class QVoterModel(DiffusionModel):
             "model": {
                 "q": {
                     "descr": "Number of neighbours that affect the opinion of an agent",
-                    "range": [0, len(self.graph.nodes)],
+                    "range": [1, max(1, len(self.graph.nodes))],
                     "optional": False,
                 }
             },

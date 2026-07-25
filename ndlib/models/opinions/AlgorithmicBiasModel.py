@@ -89,8 +89,8 @@ class AlgorithmicBiasModel(DiffusionModel):
         max_edgees = (
             self.graph.number_of_nodes() * (self.graph.number_of_nodes() - 1)
         ) / 2
-        nids = np.array(list(self.status.items()))
-        self.ids = nids[:, 0]
+        nids = np.array(list(self.status.items()), dtype=object)
+        self.ids = np.array(list(self.status.keys()), dtype=object)
 
         if max_edgees == self.graph.number_of_edges():
             self.sts = nids[:, 1]
@@ -98,8 +98,8 @@ class AlgorithmicBiasModel(DiffusionModel):
         else:
             for i in self.graph.nodes:
                 i_neigh = list(self.graph.neighbors(i))
-                i_ids = nids[:, 0][i_neigh]
-                i_sts = nids[:, 1][i_neigh]
+                i_ids = np.array(i_neigh, dtype=object)
+                i_sts = np.array([self.status[id] for id in i_neigh])
                 # non uso mai node_data[:,1]
                 # per tenere aggiornato node_data() all'interno del for dovrei ciclare ogni item=nodo
                 # e se uno dei suoi vicini è n1 o n2 aggiornare l'array sts
@@ -169,15 +169,19 @@ class AlgorithmicBiasModel(DiffusionModel):
 
             # ho rimesso la selezione del nodo a random
             # n1 = list(self.graph.nodes)[np.random.randint(0, n)]
-            n1 = int(choice(self.ids))
+            if len(self.node_data) == 0:
+                n1_idx = np.random.randint(0, len(self.ids))
+                n1 = self.ids[n1_idx]
+            else:
+                n1 = choice(self.ids)
 
             if len(self.node_data) == 0:
                 sts = self.sts
                 ids = self.ids
                 # toglie se stesso dalla lista degli id e degli status perché mi sembra rimanesse
                 # e quindi con gamma alto a volte sceglieva se stesso per interagire
-                neigh_sts = np.delete(sts, n1)
-                neigh_ids = np.delete(ids, n1)
+                neigh_sts = np.delete(sts, n1_idx)
+                neigh_ids = np.delete(ids, n1_idx)
             else:
                 neigh_ids = self.node_data[n1][0]
                 neigh_sts = np.array([actual_status[id] for id in neigh_ids])

@@ -41,6 +41,37 @@ Alternatively use pip:
 sudo pip install ndlib
 ```
 
+## Interactive Dashboard
+
+NDlib includes a browser-based dashboard service for quick, code-free experimentation with diffusion and opinion models.
+
+The dashboard lets you:
+
+- build or load a network
+- configure model and graph parameters from the UI
+- run simulations in a three-step workflow
+- inspect network state, trends, prevalence, and opinion evolution
+- select infected seeds directly from the graph preview for epidemic models
+- use community-aware layouts to expose modular structure
+
+Run it from the repository root with:
+
+```bash
+python ndlib/dashboard/server.py
+```
+
+If the package is installed, you can also launch it with the bundled command:
+
+```bash
+ndlib-dashboard
+```
+
+Once the server starts, open the local URL printed in the terminal.
+
+| Configuration view | Network view |
+| --- | --- |
+| ![NDlib dashboard configuration view](docs/_static/dashboard/dashboard-config.png) | ![NDlib dashboard network view](docs/_static/dashboard/dashboard-network.png) |
+
 ## Documentation, Tutorials and Online Environments
 
 For examples, tutorials and a complete reference visit the project documentation website on [ReadTheDocs](http://ndlib.readthedocs.io).
@@ -71,4 +102,3 @@ Do you want to be part of the NDlib community to discuss enhancements, desiderat
 [<img align="middle" width="150" src="docs/join-slack-team.png">](https://join.slack.com/t/ndlib/shared_invite/enQtNTA2ODk1MzQzODE0LTU2YWEzZjAzNDFiNTBlY2QxN2IyODAwMjgyMDBmYjQ2NzhjZjA4NzA1M2U0ZmZlN2I1NGM5OTI2N2I4ZTFmMzQ)
 
 We are a welcoming community... just follow the [Code of Conduct](https://github.com/GiulioRossetti/ndlib/blob/master/.github/CODE_OF_CONDUCT.md).
-

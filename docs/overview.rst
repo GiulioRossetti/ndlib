@@ -28,6 +28,8 @@ The Python NDlib library
 
 Most importantly, ``NDlib``, as well as the Python programming language, is free, well-supported, and a joy to use.
 
+For an interactive, browser-based workflow, see the `Interactive Dashboard <dashboard.html>`_ documentation page.
+
 -------------
 Free software
 -------------
