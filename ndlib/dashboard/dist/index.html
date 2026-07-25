@@ -199,6 +199,20 @@
                     if (data.error) {
                         setError(data.error);
                     } else {
+                        // Accumulate state changes over iterations to build absolute status history
+                        const history = [];
+                        const currentStatus = {};
+                        data.nodes.forEach(n => {
+                            currentStatus[n.id] = 0;
+                        });
+                        data.iterations.forEach(it => {
+                            Object.keys(it.status).forEach(nodeId => {
+                                currentStatus[nodeId] = it.status[nodeId];
+                            });
+                            history.push({ ...currentStatus });
+                        });
+                        data.absoluteStatusHistory = history;
+
                         setResults(data);
                         setCurrentPlaybackStep(0);
                         // Render charts automatically
@@ -394,12 +408,10 @@
             };
 
             const updateNetworkColors = (step, data = results) => {
-                if (!cytoscapeRef.current || !data) return;
+                if (!cytoscapeRef.current || !data || !data.absoluteStatusHistory) return;
 
-                const stepData = data.iterations[step];
-                if (!stepData) return;
-
-                const nodeStatus = stepData.status;
+                const nodeStatus = data.absoluteStatusHistory[step];
+                if (!nodeStatus) return;
 
                 cytoscapeRef.current.nodes().forEach(node => {
                     const id = node.id();
