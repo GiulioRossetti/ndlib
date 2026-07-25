@@ -44,6 +44,7 @@ NDlib Dev Team
    :hidden:
 
    overview.rst
+   dashboard.rst
    download.rst
    installing.rst
    tutorial.rst
