@@ -74,6 +74,9 @@
             const [results, setResults] = useState(null);
             const [loading, setLoading] = useState(false);
             const [error, setError] = useState("");
+            const [apiBaseUrl, setApiBaseUrl] = useState(
+                window.location.protocol === "file:" ? "http://127.0.0.1:5000" : ""
+            );
 
             // Playback controls for network visualization
             const [currentPlaybackStep, setCurrentPlaybackStep] = useState(0);
@@ -86,11 +89,15 @@
             const cytoscapeRef = useRef(null);
             const cyContainerRef = useRef(null);
 
-            // Fetch available models on mount
-            useEffect(() => {
-                fetch("/api/models")
-                    .then(res => res.json())
+            const loadModels = (baseUrl = apiBaseUrl) => {
+                setError("");
+                fetch(baseUrl + "/api/models")
+                    .then(res => {
+                        if (!res.ok) throw new Error("Server returned status " + res.status);
+                        return res.json();
+                    })
                     .then(data => {
+                        if (data.error) throw new Error(data.error);
                         setModels(data);
                         // Select first model of selected category as default
                         const firstModel = Object.keys(data).find(k => data[k].category === "Epidemics");
@@ -98,7 +105,14 @@
                             selectModel(firstModel, data);
                         }
                     })
-                    .catch(err => setError("Failed to fetch models list from server."));
+                    .catch(err => {
+                        setError("Failed to fetch models list from server. Connection error or invalid URL: " + err.message);
+                    });
+            };
+
+            // Fetch available models on mount
+            useEffect(() => {
+                loadModels();
             }, []);
 
             const selectModel = (name, modelsList = models) => {
@@ -174,7 +188,7 @@
                     iterations: iterations
                 };
 
-                fetch("/api/simulate", {
+                fetch(apiBaseUrl + "/api/simulate", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
@@ -754,9 +768,29 @@
 
                         {/* Error Alert */}
                         {error && (
-                            <div class="bg-red-500/10 border border-red-500/30 text-red-200 px-6 py-4 mx-6 mt-6 rounded-xl flex items-center space-x-3">
-                                <i class="fa-solid fa-triangle-exclamation text-red-500 text-xl"></i>
-                                <span>{error}</span>
+                            <div class="bg-red-500/10 border border-red-500/30 text-red-200 px-6 py-4 mx-6 mt-6 rounded-xl flex flex-col space-y-3">
+                                <div class="flex items-center space-x-3">
+                                    <i class="fa-solid fa-triangle-exclamation text-red-500 text-xl"></i>
+                                    <span>{error}</span>
+                                </div>
+                                {Object.keys(models).length === 0 && (
+                                    <div class="flex items-center space-x-3 mt-2 bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                                        <label class="text-xs text-slate-400 font-semibold uppercase">API URL:</label>
+                                        <input 
+                                            type="text" 
+                                            value={apiBaseUrl} 
+                                            onChange={(e) => setApiBaseUrl(e.target.value)}
+                                            placeholder="e.g. http://127.0.0.1:5000"
+                                            class="bg-slate-950 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-200 focus:outline-none w-64"
+                                        />
+                                        <button 
+                                            onClick={() => loadModels(apiBaseUrl)}
+                                            class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-1 rounded"
+                                        >
+                                            Reconnect
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
 

@@ -102,54 +102,64 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        # API endpoints
-        if self.path == "/api/models":
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            try:
-                models = discover_models()
-                self.wfile.write(json.dumps(models).encode("utf-8"))
-            except Exception as e:
-                self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
-            return
-
-        # Serve static files
-        clean_path = self.path.split("?")[0]
-        if clean_path == "/" or clean_path == "":
-            file_path = os.path.join(FRONTEND_DIR, "index.html")
-        else:
-            file_path = os.path.join(FRONTEND_DIR, clean_path.lstrip("/"))
-
-        if os.path.exists(file_path) and not os.path.isdir(file_path):
-            self.send_response(200)
-            # Guess MIME type
-            if file_path.endswith(".html"):
-                self.send_header("Content-type", "text/html")
-            elif file_path.endswith(".js"):
-                self.send_header("Content-type", "application/javascript")
-            elif file_path.endswith(".css"):
-                self.send_header("Content-type", "text/css")
-            elif file_path.endswith(".png"):
-                self.send_header("Content-type", "image/png")
-            elif file_path.endswith(".svg"):
-                self.send_header("Content-type", "image/svg+xml")
-            self.end_headers()
-            with open(file_path, "rb") as f:
-                self.wfile.write(f.read())
-        else:
-            # SPA fallback to index.html
-            fallback_index = os.path.join(FRONTEND_DIR, "index.html")
-            if os.path.exists(fallback_index):
+        try:
+            # API endpoints
+            if self.path == "/api/models":
                 self.send_response(200)
-                self.send_header("Content-type", "text/html")
+                self.send_header("Content-type", "application/json")
                 self.end_headers()
-                with open(fallback_index, "rb") as f:
+                try:
+                    models = discover_models()
+                    self.wfile.write(json.dumps(models).encode("utf-8"))
+                except Exception as e:
+                    self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+                return
+
+            # Serve static files
+            clean_path = self.path.split("?")[0]
+            if clean_path == "/" or clean_path == "":
+                file_path = os.path.join(FRONTEND_DIR, "index.html")
+            else:
+                file_path = os.path.join(FRONTEND_DIR, clean_path.lstrip("/"))
+
+            if os.path.exists(file_path) and not os.path.isdir(file_path):
+                self.send_response(200)
+                # Guess MIME type
+                if file_path.endswith(".html"):
+                    self.send_header("Content-type", "text/html")
+                elif file_path.endswith(".js"):
+                    self.send_header("Content-type", "application/javascript")
+                elif file_path.endswith(".css"):
+                    self.send_header("Content-type", "text/css")
+                elif file_path.endswith(".png"):
+                    self.send_header("Content-type", "image/png")
+                elif file_path.endswith(".svg"):
+                    self.send_header("Content-type", "image/svg+xml")
+                self.end_headers()
+                with open(file_path, "rb") as f:
                     self.wfile.write(f.read())
             else:
-                self.send_response(404)
+                # SPA fallback to index.html
+                fallback_index = os.path.join(FRONTEND_DIR, "index.html")
+                if os.path.exists(fallback_index):
+                    self.send_response(200)
+                    self.send_header("Content-type", "text/html")
+                    self.end_headers()
+                    with open(fallback_index, "rb") as f:
+                        self.wfile.write(f.read())
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+                    self.wfile.write(b"Frontend assets not found. Run frontend build first.")
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            try:
+                self.send_response(500)
                 self.end_headers()
-                self.wfile.write(b"Frontend assets not found. Run frontend build first.")
+                self.wfile.write(str(e).encode("utf-8"))
+            except Exception:
+                pass
 
     def do_POST(self):
         if self.path == "/api/simulate":
