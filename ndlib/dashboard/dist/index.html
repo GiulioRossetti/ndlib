@@ -813,48 +813,42 @@
                             {/* Charts & Graph Rendering */}
                             {results && !loading && (
                                 <div class="flex-grow flex flex-col h-full">
-                                    {activeTab === "trends" && (
-                                        <div class="flex-grow bg-slate-950/20 border border-slate-800/80 rounded-2xl p-6 relative h-full">
-                                            <canvas id="trendsChart"></canvas>
-                                        </div>
-                                    )}
+                                    <div class={`flex-grow bg-slate-950/20 border border-slate-800/80 rounded-2xl p-6 relative h-full ${activeTab !== "trends" ? "hidden" : ""}`}>
+                                        <canvas id="trendsChart"></canvas>
+                                    </div>
 
-                                    {activeTab === "phase" && (
-                                        <div class="flex-grow bg-slate-950/20 border border-slate-800/80 rounded-2xl p-6 relative h-full">
-                                            <canvas id="phaseChart"></canvas>
-                                        </div>
-                                    )}
+                                    <div class={`flex-grow bg-slate-950/20 border border-slate-800/80 rounded-2xl p-6 relative h-full ${activeTab !== "phase" ? "hidden" : ""}`}>
+                                        <canvas id="phaseChart"></canvas>
+                                    </div>
 
-                                    {activeTab === "network" && (
-                                        <div class="flex-grow flex flex-col h-full space-y-4">
-                                            {/* Playback Controls */}
-                                            <div class="flex items-center space-x-4 bg-slate-950/40 p-4 border border-slate-900 rounded-xl">
-                                                <button 
-                                                    onClick={() => setIsPlaying(!isPlaying)}
-                                                    class="w-10 h-10 flex items-center justify-center bg-indigo-600 hover:bg-indigo-500 rounded-full text-white transition shadow-lg shadow-indigo-900/20"
-                                                >
-                                                    {isPlaying ? <i class="fa-solid fa-pause"></i> : <i class="fa-solid fa-play ml-0.5"></i>}
-                                                </button>
-                                                <div class="flex-grow flex items-center space-x-3">
-                                                    <span class="text-xs text-slate-400 w-16">Step {currentPlaybackStep}</span>
-                                                    <input 
-                                                        type="range"
-                                                        min="0"
-                                                        max={results.iterations.length - 1}
-                                                        value={currentPlaybackStep}
-                                                        onChange={handlePlaybackSliderChange}
-                                                        class="flex-grow accent-indigo-500"
-                                                    />
-                                                </div>
+                                    <div class={`flex-grow flex flex-col h-full space-y-4 ${activeTab !== "network" ? "hidden" : ""}`}>
+                                        {/* Playback Controls */}
+                                        <div class="flex items-center space-x-4 bg-slate-950/40 p-4 border border-slate-900 rounded-xl">
+                                            <button 
+                                                onClick={() => setIsPlaying(!isPlaying)}
+                                                class="w-10 h-10 flex items-center justify-center bg-indigo-600 hover:bg-indigo-500 rounded-full text-white transition shadow-lg shadow-indigo-900/20"
+                                            >
+                                                {isPlaying ? <i class="fa-solid fa-pause"></i> : <i class="fa-solid fa-play ml-0.5"></i>}
+                                            </button>
+                                            <div class="flex-grow flex items-center space-x-3">
+                                                <span class="text-xs text-slate-400 w-16">Step {currentPlaybackStep}</span>
+                                                <input 
+                                                    type="range"
+                                                    min="0"
+                                                    max={results.iterations.length - 1}
+                                                    value={currentPlaybackStep}
+                                                    onChange={handlePlaybackSliderChange}
+                                                    class="flex-grow accent-indigo-500"
+                                                />
                                             </div>
-
-                                            {/* Graph Container */}
-                                            <div 
-                                                ref={cyContainerRef} 
-                                                class="flex-grow bg-slate-950/60 border border-slate-900 rounded-2xl min-h-[400px] h-full"
-                                            ></div>
                                         </div>
-                                    )}
+
+                                        {/* Graph Container */}
+                                        <div 
+                                            ref={cyContainerRef} 
+                                            class="flex-grow bg-slate-950/60 border border-slate-900 rounded-2xl min-h-[400px] h-full"
+                                        ></div>
+                                    </div>
                                 </div>
                             )}
                         </div>
