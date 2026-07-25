@@ -38,6 +38,10 @@ In ``NDlib`` are implemented the following **Epidemic** models:
    models/epidemics/SIm.rst
    models/epidemics/SIS.rst
    models/epidemics/SIR.rst
+   models/epidemics/SIRS.rst
+   models/epidemics/SIRD.rst
+   models/epidemics/SAIR.rst
+   models/epidemics/SVEIR.rst
    models/epidemics/SEIR.rst
    models/epidemics/SEIR_ct.rst
    models/epidemics/SEIS.rst
@@ -91,6 +95,10 @@ In ``NDlib`` are implemented the following **Opinion Dynamics** models:
    models/opinion/ARWHK.rst
    models/opinion/WHK.rst
    models/opinion/HK.rst
+   models/opinion/FJ.rst
+   models/opinion/Altafini.rst
+   models/opinion/VoterZealot.rst
+   models/opinion/NLS.rst
 
 
 
@@ -161,6 +169,11 @@ Pyplot Viz
    viz/mpl/DiffusionTrend.rst
    viz/mpl/DiffusionPrevalence.rst
    viz/mpl/OpinionEvolution.rst
+   viz/mpl/OpinionDensityViz.rst
+   viz/mpl/PolarizationMetricsViz.rst
+   viz/mpl/PhasePortraitViz.rst
+   viz/mpl/PeakMetricsViz.rst
+   viz/mpl/TransmissionTreeViz.rst
 
 
 **Model Comparison Visualizations**

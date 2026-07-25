@@ -69,12 +69,24 @@ class OpinionEvolution(object):
                         node2col[n] = "#0000ff"
 
         mx = 0
+        added_labels = set()
         for k, l in future.utils.iteritems(nodes2opinions):
             if mx < last_seen[k]:
                 mx = last_seen[k]
             x = list(range(0, last_seen[k]))
             y = l[0 : last_seen[k]]
-            plt.plot(x, y, lw=1, alpha=0.5, color=node2col[k])
+            color = node2col[k]
+            if color not in added_labels:
+                if color == "#ff0000":
+                    label = "Low"
+                elif color == "#00ff00":
+                    label = "Medium"
+                else:
+                    label = "High"
+                added_labels.add(color)
+                plt.plot(x, y, lw=1, alpha=0.5, color=color, label=label)
+            else:
+                plt.plot(x, y, lw=1, alpha=0.5, color=color)
 
         plt.title(descr)
         plt.xlabel("Iterations", fontsize=24)

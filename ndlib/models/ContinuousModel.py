@@ -477,7 +477,7 @@ class ContinuousModel(DiffusionModel):
             "means": means,
         }
 
-    def plot(self, trends, n, delta=None, delta_mean=None):
+    def plot(self, trends, n, delta=None, delta_mean=None, filename=None):
         """
         Create and show different plots of the trends
 
@@ -485,6 +485,7 @@ class ContinuousModel(DiffusionModel):
         :param n: integer amount of iterations to show
         :param delta: boolean indicating whether to show the mean change per variable per iteration
         :param delta_mean: boolean indicating whether to show the mean value of changed variables per iteration
+        :param filename: Output filename
         """
         x = np.arange(0, n)
 
@@ -520,7 +521,11 @@ class ContinuousModel(DiffusionModel):
             axs[i].set_title("Mean value of changed variables per iteration")
             axs[i].legend()
 
-        plt.show()
+        if filename is not None:
+            plt.savefig(filename)
+            plt.clf()
+        else:
+            plt.show()
 
     def create_frames(self, iterations):
         """
@@ -602,7 +607,7 @@ class ContinuousModel(DiffusionModel):
 
         n = int(len(iterations) / self.visualization_configuration["plot_interval"])
 
-        cm = plt.cm.get_cmap(self.visualization_configuration["color_scale"])
+        cm = mpl.colormaps[self.visualization_configuration["color_scale"]]
         vmin = self.visualization_configuration["variable_limits"][
             self.visualization_configuration["plot_variable"]
         ][0]
@@ -629,7 +634,11 @@ class ContinuousModel(DiffusionModel):
                 )
                 bin_centers = 0.5 * (bins[:-1] + bins[1:])
                 col = bin_centers - min(bin_centers)
-                col /= max(col)
+                max_col = max(col)
+                if max_col > 0:
+                    col /= max_col
+                else:
+                    col = np.zeros_like(col)
                 for c, p in zip(col, patches):
                     plt.setp(p, "facecolor", cm(c))
                 ax.set_title(statuses[i])

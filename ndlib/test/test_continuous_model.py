@@ -259,7 +259,10 @@ class NdlibContinuousModelTest(unittest.TestCase):
         iterations = model.iteration_bunch(2, node_status=True)
 
         trends = model.build_trends(iterations)
-        model.plot(trends, len(iterations), delta=True, delta_mean=True)
+        plot_path = "./test_plot.png"
+        model.plot(trends, len(iterations), delta=True, delta_mean=True, filename=plot_path)
+        self.assertTrue(os.path.isfile(plot_path))
+        os.remove(plot_path)
 
         ### Plots / data manipulation
         model.visualize(iterations)
