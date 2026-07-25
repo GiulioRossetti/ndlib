@@ -367,6 +367,7 @@
                         let minOp = 0;
                         let maxOp = 1;
                         let firstOp = true;
+                        let isCont = false;
 
                         data.nodes.forEach(n => {
                             currentStatus[n.id] = 0;
@@ -376,20 +377,27 @@
                                 const val = it.status[nodeId];
                                 currentStatus[nodeId] = val;
                                 
-                                if (selectedCategory === "Opinions" && typeof val === "number") {
-                                    if (firstOp) {
-                                        minOp = val;
-                                        maxOp = val;
-                                        firstOp = false;
-                                    } else {
-                                        if (val < minOp) minOp = val;
-                                        if (val > maxOp) maxOp = val;
+                                if (typeof val === "number") {
+                                    if (!Number.isInteger(val)) {
+                                        isCont = true;
+                                    }
+                                    if (selectedCategory === "Opinions") {
+                                        if (firstOp) {
+                                            minOp = val;
+                                            maxOp = val;
+                                            firstOp = false;
+                                        } else {
+                                            if (val < minOp) minOp = val;
+                                            if (val > maxOp) maxOp = val;
+                                        }
                                     }
                                 }
                             });
                             history.push({ ...currentStatus });
                         });
                         data.absoluteStatusHistory = history;
+                        data.isContinuous = isCont;
+                        
                         if (selectedCategory === "Opinions") {
                             if (maxOp - minOp < 1e-5) {
                                 minOp = 0;
@@ -421,13 +429,15 @@
             };
 
             // Color Palette for Compartments / Opinions
-            const getStatusColor = (statusCode, value = null, statuses = {}, minOp = 0, maxOp = 1) => {
-                // If opinions (floating values)
-                if (selectedCategory === "Opinions" && value !== null) {
-                    // Map value to [0, 1] range
+            const getStatusColor = (statusCode, value = null, statuses = {}, minOp = 0, maxOp = 1, isContinuous = false) => {
+                // If continuous opinions (floating values)
+                if (isContinuous && value !== null) {
                     const norm = (maxOp === minOp) ? 0.5 : (value - minOp) / (maxOp - minOp);
-                    const hue = Math.round(norm * 120); // 0 (red) to 120 (green)
-                    return `hsl(${hue}, 85%, 45%)`;
+                    // Blue rgb(59, 130, 246) to Red rgb(239, 68, 68)
+                    const r = Math.floor(59 + norm * (239 - 59));
+                    const g = Math.floor(130 + norm * (68 - 130));
+                    const b = Math.floor(246 + norm * (68 - 246));
+                    return `rgb(${r}, ${g}, ${b})`;
                 }
 
                 // Epidemic classes
@@ -843,16 +853,17 @@
 
             // Center network visualization when activeTab switches to network
             useEffect(() => {
-                if (activeTab === "network") {
+                if (activeTab === "network" && results) {
                     setTimeout(() => {
                         if (cytoscapeRef.current) {
                             cytoscapeRef.current.resize();
                             cytoscapeRef.current.fit();
                             cytoscapeRef.current.center();
+                            updateNetworkColors(currentPlaybackStep, results);
                         }
                     }, 100);
                 }
-            }, [activeTab]);
+            }, [activeTab, currentPlaybackStep, results]);
 
             const handleLayoutChange = (newLayout) => {
                 setNetworkLayout(newLayout);
@@ -1340,18 +1351,18 @@
                                             {/* Status Colors Legend */}
                                             <div class={`absolute bottom-4 left-4 p-4 rounded-xl border z-10 flex flex-col space-y-2 backdrop-blur-md ${isDarkMode ? "bg-slate-900/90 border-slate-800 text-slate-200" : "bg-white/90 border-slate-200 text-slate-800 shadow-lg"} w-48`}>
                                                 <h4 class="text-xs font-bold uppercase tracking-wider mb-1 opacity-80">Status Legend</h4>
-                                                {selectedCategory === "Opinions" ? (
+                                                {results && results.isContinuous ? (
                                                     <div class="space-y-2">
                                                         <div class="h-3.5 w-full rounded border border-black/10" style={{
-                                                            background: 'linear-gradient(to right, hsl(0, 85%, 45%), hsl(60, 85%, 45%), hsl(120, 85%, 45%))'
+                                                            background: 'linear-gradient(to right, rgb(59, 130, 246), rgb(149, 99, 157), rgb(239, 68, 68))'
                                                         }}></div>
                                                         <div class="flex justify-between text-[10px] font-semibold opacity-70">
-                                                            <span>Low ({results?.minOpinion !== undefined ? results.minOpinion.toFixed(2) : "-1.0"})</span>
-                                                            <span>High ({results?.maxOpinion !== undefined ? results.maxOpinion.toFixed(2) : "1.0"})</span>
+                                                            <span>Low ({results.minOpinion !== undefined ? results.minOpinion.toFixed(2) : "-1.0"})</span>
+                                                            <span>High ({results.maxOpinion !== undefined ? results.maxOpinion.toFixed(2) : "1.0"})</span>
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    Object.keys(results.statuses).map(statusName => {
+                                                    results && Object.keys(results.statuses).map(statusName => {
                                                         const code = results.statuses[statusName];
                                                         return (
                                                             <div key={statusName} class="flex items-center space-x-2.5 text-xs font-medium">
