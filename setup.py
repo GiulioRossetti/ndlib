@@ -23,7 +23,8 @@ setup(name='ndlib',
       entry_points={
           'console_scripts': [
               'NDQL_translate = scripts.NDQL_translate:translate',
-              'NDQL_execute = scripts.NDQL_execute:execute'
+              'NDQL_execute = scripts.NDQL_execute:execute',
+              'ndlib-dashboard = ndlib.dashboard.server:main'
           ],
       },
       classifiers=[
@@ -52,4 +53,7 @@ setup(name='ndlib',
       long_description_content_type='text/markdown',
       install_requires=['netdispatch', 'igraph', 'numpy', 'networkx', 'dynetx', 'scipy', 'bokeh', 'future'],
       packages=find_packages(exclude=["*.test", "*.test.*", "test.*", "test", "ndlib.test", "ndlib.test.*"]),
+      package_data={
+          'ndlib.dashboard': ['dist/*.html'],
+      },
       )
