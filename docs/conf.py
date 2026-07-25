@@ -20,7 +20,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 try:
     from ndlib import __version__
 except ImportError:
-    __version__ = u'5.2.0'
+    __version__ = u'6.0.0'
 
 html_theme = "sphinx_rtd_theme"
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
@@ -85,6 +85,5 @@ html_logo = 'ndlib_2024.png'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
-
 
 
