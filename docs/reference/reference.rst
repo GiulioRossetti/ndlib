@@ -91,6 +91,10 @@ In ``NDlib`` are implemented the following **Opinion Dynamics** models:
    models/opinion/ARWHK.rst
    models/opinion/WHK.rst
    models/opinion/HK.rst
+   models/opinion/FJ.rst
+   models/opinion/Altafini.rst
+   models/opinion/VoterZealot.rst
+   models/opinion/NLS.rst
 
 
 

@@ -16,3 +16,7 @@ from .VoterModel import VoterModel
 from .WHKModel import WHKModel
 from .ARWHKModel import ARWHKModel
 from .HKModel import HKModel
+from .FJModel import FJModel
+from .AltafiniModel import AltafiniModel
+from .VoterZealotModel import VoterZealotModel
+from .NLSModel import NLSModel

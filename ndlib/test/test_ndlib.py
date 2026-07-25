@@ -218,6 +218,80 @@ class NdlibTest(unittest.TestCase):
             iterations = model.iteration_bunch(10, node_status=False)
             self.assertEqual(len(iterations), 10)
 
+    def test_fj_model(self):
+        for g in get_graph():
+            model = opn.FJModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter("init_dist_lower", -0.5)
+            config.add_model_parameter("init_dist_upper", 0.5)
+            if isinstance(g, nx.Graph):
+                nodes = g.nodes
+            else:
+                nodes = g.vs["name"]
+            for node in nodes:
+                config.add_node_configuration("stubbornness", node, 0.2)
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
+    def test_altafini_model(self):
+        for g in get_graph():
+            model = opn.AltafiniModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter("init_dist_lower", -1.0)
+            config.add_model_parameter("init_dist_upper", 1.0)
+            if isinstance(g, nx.Graph):
+                edges = g.edges()
+            else:
+                edges = [
+                    (g.vs[e.tuple[0]]["name"], g.vs[e.tuple[1]]["name"]) for e in g.es
+                ]
+            for edge in edges:
+                config.add_edge_configuration("sign", edge, 1)
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
+    def test_voter_zealot_model(self):
+        for g in get_graph():
+            model = opn.VoterZealotModel(g, seed=0)
+            config = mc.Configuration()
+            config.add_model_parameter("fraction_infected", 0.2)
+            if isinstance(g, nx.Graph):
+                nodes = list(g.nodes)
+            else:
+                nodes = list(g.vs["name"])
+            for i, node in enumerate(nodes):
+                config.add_node_configuration("zealot", node, 1 if i < 10 else 0)
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
+    def test_nls_model(self):
+        for g in get_graph():
+            model = opn.NLSModel(g, seed=0)
+            config = mc.Configuration()
+            config.add_model_parameter("alpha", 2.0)
+            config.add_model_parameter("fraction_infected", 0.3)
+            if isinstance(g, nx.Graph):
+                nodes = g.nodes
+            else:
+                nodes = g.vs["name"]
+            for node in nodes:
+                config.add_node_configuration("strength", node, 1.0)
+                config.add_node_configuration("threshold", node, 0.0)
+            model.set_initial_status(config)
+            iterations = model.iteration_bunch(5)
+            self.assertEqual(len(iterations), 5)
+            iterations = model.iteration_bunch(5, node_status=False)
+            self.assertEqual(len(iterations), 5)
+
     def test_whk_model(self):
         for g in get_graph():
             model = opn.WHKModel(g)
