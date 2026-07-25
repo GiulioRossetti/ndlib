@@ -151,7 +151,7 @@ class UTLDRModel(DiffusionModel):
                 },
                 "icu_b": {
                     "descr": "Beds availability in ICU (absolute value)",
-                    "range": [0, np.infty],
+                    "range": [0, np.inf],
                     "optional": True,
                     "default": self.graph.number_of_nodes(),
                 },

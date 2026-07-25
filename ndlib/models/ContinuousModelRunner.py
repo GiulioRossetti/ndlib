@@ -2,7 +2,7 @@
 # - Parallel execution
 # - Add sensitivity analysis options
 
-from SALib.sample import saltelli
+from SALib.sample import sobol as sobol_sample
 from SALib.analyze import sobol
 from ndlib.models.compartments.enums.SAType import SAType
 import numpy as np
@@ -66,7 +66,7 @@ class ContinuousModelRunner(object):
             "bounds": [[lower, upper] for _, (lower, upper) in bounds.items()],
         }
 
-        param_values = saltelli.sample(problem, n, calc_second_order=second_order)
+        param_values = sobol_sample.sample(problem, n, calc_second_order=second_order)
 
         outputs = []
 
