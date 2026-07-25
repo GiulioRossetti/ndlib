@@ -224,6 +224,9 @@
             const [graphParams, setGraphParams] = useState({ n: 100, p: 0.1, m: 2, k: 4, file_content: "", file_format: "graphml", file_name: "" });
             const [iterations, setIterations] = useState(50);
             const [activeTab, setActiveTab] = useState("trends");
+            const [networkPreview, setNetworkPreview] = useState(null);
+            const [loadingMessage, setLoadingMessage] = useState("");
+            const [selectedSeedNodes, setSelectedSeedNodes] = useState([]);
 
             // Simulation results
             const [results, setResults] = useState(null);
@@ -248,6 +251,86 @@
             const opinionChartRef = useRef(null);
             const cytoscapeRef = useRef(null);
             const cyContainerRef = useRef(null);
+            const communityDetectionOptions = [
+                { value: "louvain_communities", label: "Louvain" },
+                { value: "greedy_modularity_communities", label: "Greedy Modularity" },
+                { value: "naive_greedy_modularity_communities", label: "Naive Greedy Modularity" },
+                { value: "label_propagation_communities", label: "Label Propagation" },
+                { value: "asyn_lpa_communities", label: "Async Label Propagation" },
+                { value: "fast_label_propagation_communities", label: "Fast Label Propagation" },
+                { value: "girvan_newman", label: "Girvan-Newman" },
+                { value: "asyn_fluidc", label: "Async Fluid Communities" },
+            ];
+
+            const clearPlayState = () => {
+                setIsPlaying(false);
+                setCurrentPlaybackStep(0);
+                if (playbackIntervalRef.current) {
+                    clearInterval(playbackIntervalRef.current);
+                }
+            };
+
+            const clearSeedSelection = () => {
+                setSelectedSeedNodes([]);
+            };
+
+            const resetGraphState = () => {
+                clearPlayState();
+                clearSeedSelection();
+                setResults(null);
+                setNetworkPreview(null);
+                if (cytoscapeRef.current) {
+                    cytoscapeRef.current.destroy();
+                    cytoscapeRef.current = null;
+                }
+            };
+
+            const getGraphPayload = () => ({
+                graph_type: graphType,
+                graph_params: graphParams
+            });
+
+            const getCurrentGraphNodeCount = () => {
+                if (results && Array.isArray(results.nodes)) {
+                    return results.nodes.length;
+                }
+                if (networkPreview && Array.isArray(networkPreview.nodes)) {
+                    return networkPreview.nodes.length;
+                }
+                return 0;
+            };
+
+            const currentGraphNodeCount = getCurrentGraphNodeCount();
+            const isNetworkTabAllowed = currentGraphNodeCount > 0 && currentGraphNodeCount < 1500;
+
+            const renderNetworkPreview = (data) => {
+                if (!data || !Array.isArray(data.nodes) || !Array.isArray(data.edges)) return;
+                initCytoscape(data);
+            };
+
+            const toggleSeedNode = (nodeId) => {
+                if (selectedCategory !== "Epidemics" || !currentModel || currentModel.discrete_state === false || results) return;
+                const nodeKey = String(nodeId);
+                setSelectedSeedNodes(prev => (
+                    prev.includes(nodeKey)
+                        ? prev.filter(id => id !== nodeKey)
+                        : [...prev, nodeKey]
+                ));
+            };
+
+            const syncSeedSelection = () => {
+                if (!cytoscapeRef.current) return;
+                const selected = new Set(selectedSeedNodes.map(String));
+                cytoscapeRef.current.batch(() => {
+                    cytoscapeRef.current.nodes().forEach(node => {
+                        const isSelected = selected.has(String(node.id()));
+                        node.toggleClass("selected-seed", isSelected);
+                        if (!results) {
+                            node.data("statusColor", isSelected ? "#ef4444" : "#6366f1");
+                        }
+                    });
+                });
+            };
 
             const loadModels = (baseUrl = apiBaseUrl) => {
                 setError("");
@@ -299,13 +382,25 @@
                 if (model.parameters.model["fraction_infected"] && defaults["fraction_infected"] === undefined) {
                     defaults["fraction_infected"] = 0.05;
                 }
+                if (model.discrete_state !== false &&
+                    defaults["fraction_infected"] === undefined &&
+                    defaults["percentage_infected"] === undefined) {
+                    defaults["percentage_infected"] = 5;
+                }
+                if (model.requires_community_assignment) {
+                    defaults["community_detection_algorithm"] = model.community_detection_default || "louvain_communities";
+                    defaults["community_detection_k"] = 2;
+                }
 
+                clearPlayState();
+                clearSeedSelection();
+                setResults(null);
                 setModelParams(defaults);
+                setActiveTab(model.discrete_state === false ? "opinion_evolution" : "trends");
             };
 
             const handleCategoryChange = (cat) => {
                 setSelectedCategory(cat);
-                setActiveTab("trends");
                 const firstModel = Object.keys(models).find(k => models[k].category === cat);
                 if (firstModel) {
                     selectModel(firstModel);
@@ -315,6 +410,7 @@
             const handleFileUpload = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
+                resetGraphState();
 
                 const reader = new FileReader();
                 reader.onload = (event) => {
@@ -333,99 +429,166 @@
                 reader.readAsText(file);
             };
 
-            const runSimulation = () => {
-                setLoading(true);
+            const handleGraphTypeChange = (value) => {
+                resetGraphState();
+                setGraphType(value);
+            };
+
+            const updateGraphParams = (updater) => {
+                resetGraphState();
+                setGraphParams(updater);
+            };
+
+            const getGraphSignature = () => JSON.stringify({
+                graphType,
+                graphParams
+            });
+
+            const generateNetwork = async ({ silent = false } = {}) => {
+                if (!silent) {
+                    setLoading(true);
+                    setLoadingMessage("Generating network...");
+                }
                 setError("");
-                setResults(null);
-                setIsPlaying(false);
-                if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
-
-                const payload = {
-                    model_class: selectedModelName,
-                    category: selectedCategory,
-                    graph_type: graphType,
-                    graph_params: graphParams,
-                    model_params: modelParams,
-                    iterations: iterations
-                };
-
-                fetch(apiBaseUrl + "/api/simulate", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                })
-                .then(res => res.json())
-                .then(data => {
-                    setLoading(false);
+                try {
+                    clearSeedSelection();
+                    const payload = getGraphPayload();
+                    const res = await fetch(apiBaseUrl + "/api/network", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
                     if (data.error) {
-                        setError(data.error);
-                    } else {
-                        // Accumulate state changes over iterations to build absolute status history
-                        const history = [];
-                        const currentStatus = {};
-                        
-                        let minOp = 0;
-                        let maxOp = 1;
-                        let firstOp = true;
-                        let isCont = false;
-
-                        data.nodes.forEach(n => {
-                            currentStatus[n.id] = 0;
-                        });
-                        data.iterations.forEach(it => {
-                            Object.keys(it.status).forEach(nodeId => {
-                                const val = it.status[nodeId];
-                                currentStatus[nodeId] = val;
-                                
-                                if (typeof val === "number") {
-                                    if (!Number.isInteger(val)) {
-                                        isCont = true;
-                                    }
-                                    if (selectedCategory === "Opinions") {
-                                        if (firstOp) {
-                                            minOp = val;
-                                            maxOp = val;
-                                            firstOp = false;
-                                        } else {
-                                            if (val < minOp) minOp = val;
-                                            if (val > maxOp) maxOp = val;
-                                        }
-                                    }
-                                }
-                            });
-                            history.push({ ...currentStatus });
-                        });
-                        data.absoluteStatusHistory = history;
-                        data.isContinuous = isCont;
-                        
-                        if (selectedCategory === "Opinions") {
-                            if (maxOp - minOp < 1e-5) {
-                                minOp = 0;
-                                maxOp = 1;
-                            }
-                            data.minOpinion = minOp;
-                            data.maxOpinion = maxOp;
-                        }
-
-                        setResults(data);
-                        setCurrentPlaybackStep(0);
-                        // Render charts automatically
+                        throw new Error(data.error);
+                    }
+                    data.signature = getGraphSignature();
+                    setNetworkPreview(data);
+                    setResults(null);
+                    setCurrentPlaybackStep(0);
+                    setActiveTab("network");
+                    if (data.node_count < 1500) {
                         setTimeout(() => {
-                            renderTrendsChart(data);
-                            if (selectedCategory === "Epidemics") {
-                                renderPrevalenceChart(data);
-                                renderPhasePortrait(data);
-                            } else {
-                                renderOpinionEvolution(data);
-                            }
-                            initCytoscape(data);
+                            renderNetworkPreview(data);
                         }, 50);
                     }
-                })
-                .catch(err => {
+                    return data;
+                } catch (err) {
+                    setError(err.message || "Network generation failed.");
+                    return null;
+                } finally {
+                    if (!silent) {
+                        setLoading(false);
+                        setLoadingMessage("");
+                    }
+                }
+            };
+
+            const runSimulation = async () => {
+                setLoading(true);
+                setLoadingMessage("Executing network simulation...");
+                setError("");
+                setResults(null);
+                clearPlayState();
+
+                try {
+                    const preview = networkPreview && networkPreview.signature === getGraphSignature()
+                        ? networkPreview
+                        : await generateNetwork({ silent: true });
+
+                    if (!preview) {
+                        return;
+                    }
+
+                    const payload = {
+                        model_class: selectedModelName,
+                        category: selectedCategory,
+                        graph_data: preview,
+                        model_params: modelParams,
+                        selected_seed_nodes: selectedSeedNodes,
+                        iterations: iterations
+                    };
+
+                    const res = await fetch(apiBaseUrl + "/api/simulate", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+
+                    if (data.error) {
+                        setError(data.error);
+                        return;
+                    }
+
+                    data.continuousVariable = detectContinuousVariable(data);
+
+                    // Accumulate state changes over iterations to build absolute status history
+                    const history = [];
+                    const currentStatus = {};
+                    
+                    let minOp = 0;
+                    let maxOp = 1;
+                    let firstOp = true;
+                    data.nodes.forEach(n => {
+                        currentStatus[n.id] = 0;
+                    });
+                    data.iterations.forEach(it => {
+                        Object.keys(it.status).forEach(nodeId => {
+                            const val = data.discrete_state === false
+                                ? getContinuousValue(it.status[nodeId], data.continuousVariable)
+                                : it.status[nodeId];
+                            currentStatus[nodeId] = val;
+                            
+                            if (typeof val === "number" && Number.isFinite(val)) {
+                                if (selectedCategory === "Opinions") {
+                                    if (firstOp) {
+                                        minOp = val;
+                                        maxOp = val;
+                                        firstOp = false;
+                                    } else {
+                                        if (val < minOp) minOp = val;
+                                        if (val > maxOp) maxOp = val;
+                                    }
+                                }
+                            }
+                        });
+                        history.push({ ...currentStatus });
+                    });
+                    data.absoluteStatusHistory = history;
+                    data.isContinuous = data.discrete_state === false;
+                    
+                    if (selectedCategory === "Opinions") {
+                        if (maxOp - minOp < 1e-5) {
+                            minOp = 0;
+                            maxOp = 1;
+                        }
+                        data.minOpinion = minOp;
+                        data.maxOpinion = maxOp;
+                    }
+
+                    setResults(data);
+                    setCurrentPlaybackStep(0);
+                    setActiveTab(data.discrete_state === false ? "opinion_evolution" : "trends");
+                    // Render charts automatically
+                    setTimeout(() => {
+                        if (data.discrete_state !== false) {
+                            renderTrendsChart(data);
+                        }
+                        if (selectedCategory === "Epidemics") {
+                            renderPrevalenceChart(data);
+                            renderPhasePortrait(data);
+                        } else if (data.discrete_state === false) {
+                            renderOpinionEvolution(data);
+                        }
+                        initCytoscape(data);
+                    }, 50);
+                } catch (err) {
+                    setError(err.message || "Network error while running simulation.");
+                } finally {
                     setLoading(false);
-                    setError("Network error while running simulation.");
-                });
+                    setLoadingMessage("");
+                }
             };
 
             // Color Palette for Compartments / Opinions
@@ -452,8 +615,95 @@
                 return colors[statusCode] || "#6366f1";
             };
 
+            const getContinuousValue = (state, preferredKey = null) => {
+                if (typeof state === "number" && Number.isFinite(state)) {
+                    return state;
+                }
+
+                if (!state || typeof state !== "object") {
+                    return 0;
+                }
+
+                if (preferredKey !== null && state[preferredKey] !== undefined) {
+                    const preferredValue = state[preferredKey];
+                    if (typeof preferredValue === "number" && Number.isFinite(preferredValue)) {
+                        return preferredValue;
+                    }
+                }
+
+                for (const value of Object.values(state)) {
+                    if (typeof value === "number" && Number.isFinite(value)) {
+                        return value;
+                    }
+                }
+
+                for (const value of Object.values(state)) {
+                    if (value && typeof value === "object" && !Array.isArray(value)) {
+                        const nestedValue = getContinuousValue(value, preferredKey);
+                        if (typeof nestedValue === "number" && Number.isFinite(nestedValue)) {
+                            return nestedValue;
+                        }
+                    }
+                }
+
+                return 0;
+            };
+
+            const getContinuousBinColor = (value, minOp = 0, maxOp = 1, bins = 10) => {
+                if (typeof value !== "number" || !Number.isFinite(value)) {
+                    return "#64748b";
+                }
+
+                const clampedBins = Math.max(2, bins);
+                const span = maxOp - minOp;
+                const normalized = span === 0 ? 0.5 : (value - minOp) / span;
+                const safeNormalized = Math.min(1, Math.max(0, normalized));
+                const binIndex = Math.min(
+                    clampedBins - 1,
+                    Math.max(0, Math.floor(safeNormalized * clampedBins))
+                );
+
+                const palette = [
+                    "#2563eb",
+                    "#3b82f6",
+                    "#6366f1",
+                    "#8b5cf6",
+                    "#a855f7",
+                    "#d946ef",
+                    "#ec4899",
+                    "#f43f5e",
+                    "#ef4444",
+                    "#f97316",
+                ];
+
+                return palette[Math.min(binIndex, palette.length - 1)];
+            };
+
+            const detectContinuousVariable = (data) => {
+                if (!data || data.discrete_state !== false || !Array.isArray(data.iterations)) {
+                    return null;
+                }
+
+                for (const it of data.iterations) {
+                    if (!it || !it.status) continue;
+                    for (const nodeState of Object.values(it.status)) {
+                        if (nodeState && typeof nodeState === "object" && !Array.isArray(nodeState)) {
+                            const numericKeys = Object.keys(nodeState).filter(
+                                key => typeof nodeState[key] === "number" && Number.isFinite(nodeState[key])
+                            );
+                            if (numericKeys.length > 0) {
+                                return numericKeys[0];
+                            }
+                        }
+                    }
+                }
+
+                return null;
+            };
+
             const renderTrendsChart = (data) => {
                 if (trendsChartRef.current) trendsChartRef.current.destroy();
+                if (data.discrete_state === false) return;
 
                 const ctx = document.getElementById("trendsChart").getContext("2d");
                 const iterationsList = data.iterations;
@@ -580,44 +830,40 @@
 
             const renderOpinionEvolution = (data) => {
                 if (opinionChartRef.current) opinionChartRef.current.destroy();
+                if (data.discrete_state !== false) return;
 
                 const canvas = document.getElementById("opinionChart");
                 if (!canvas) return;
                 const ctx = canvas.getContext("2d");
-                const iterationsList = data.iterations;
+                const iterationsList = Array.isArray(data.absoluteStatusHistory)
+                    ? data.absoluteStatusHistory
+                    : data.iterations;
                 const T = iterationsList.length;
 
                 // Reconstruct opinion trajectory for each node
                 const nodeTrajectories = {};
-                const lastSeen = {};
-                const initialOpinion = {};
 
                 data.nodes.forEach(n => {
                     nodeTrajectories[n.id] = Array(T).fill(0);
-                    lastSeen[n.id] = 0;
                 });
 
-                iterationsList.forEach((it, step) => {
-                    Object.keys(it.status).forEach(nodeId => {
-                        const val = it.status[nodeId];
-                        if (step === 0) {
-                            initialOpinion[nodeId] = val;
-                        }
-                        const lastIdx = lastSeen[nodeId];
-                        const lastVal = step > 0 ? nodeTrajectories[nodeId][lastIdx] : initialOpinion[nodeId];
-                        for (let i = lastIdx; i < step; i++) {
-                            nodeTrajectories[nodeId][i] = lastVal;
-                        }
-                        nodeTrajectories[nodeId][step] = val;
-                        lastSeen[nodeId] = step;
+                iterationsList.forEach((snapshot, step) => {
+                    data.nodes.forEach(n => {
+                        nodeTrajectories[n.id][step] = getContinuousValue(
+                            snapshot[n.id],
+                            data.continuousVariable
+                        );
                     });
                 });
 
                 data.nodes.forEach(n => {
-                    const lastIdx = lastSeen[n.id];
-                    const lastVal = nodeTrajectories[n.id][lastIdx];
-                    for (let i = lastIdx; i < T; i++) {
-                        nodeTrajectories[n.id][i] = lastVal;
+                    let lastVal = nodeTrajectories[n.id][0];
+                    for (let i = 0; i < T; i++) {
+                        if (typeof nodeTrajectories[n.id][i] === "number" && Number.isFinite(nodeTrajectories[n.id][i])) {
+                            lastVal = nodeTrajectories[n.id][i];
+                        } else {
+                            nodeTrajectories[n.id][i] = lastVal;
+                        }
                     }
                 });
 
@@ -735,7 +981,7 @@
                 const elements = [];
                 // Add nodes
                 data.nodes.forEach(n => {
-                    elements.push({ data: { id: n.id, label: n.label }, position: { x: n.x, y: n.y } });
+                    elements.push({ data: { id: n.id, label: n.label, statusColor: "#6366f1" }, position: { x: n.x, y: n.y } });
                 });
                 // Add edges
                 data.edges.forEach(e => {
@@ -749,12 +995,24 @@
                         {
                             selector: "node",
                             style: {
-                                "background-color": "#6366f1",
+                                "background-color": "data(statusColor)",
                                 "label": data.nodes.length > 200 ? "" : "data(label)",
                                 "color": isDarkMode ? "#f8fafc" : "#0f172a",
                                 "font-size": "10px",
                                 "width": "16px",
                                 "height": "16px"
+                            }
+                        },
+                        {
+                            selector: "node.selected-seed",
+                            style: {
+                                "border-width": 4,
+                                "border-color": "#ffffff",
+                                "background-color": "#ef4444",
+                                "overlay-color": "#ef4444",
+                                "overlay-opacity": 0.2,
+                                "overlay-padding": 6,
+                                "z-index": 999,
                             }
                         },
                         {
@@ -771,24 +1029,55 @@
                     userPanningEnabled: true
                 });
 
+                cytoscapeRef.current.on("tap", "node", (evt) => {
+                    if (results || selectedCategory !== "Epidemics" || !currentModel || currentModel.discrete_state === false) return;
+                    toggleSeedNode(evt.target.id());
+                });
+
+                cytoscapeRef.current.on("tap", (evt) => {
+                    if (results || selectedCategory !== "Epidemics" || !currentModel || currentModel.discrete_state === false) return;
+                    if (evt.target === cytoscapeRef.current) {
+                        clearSeedSelection();
+                    }
+                });
+
                 updateNetworkColors(0, data);
+                syncSeedSelection();
             };
 
             const updateNetworkColors = (step, data = results) => {
                 if (!cytoscapeRef.current || !data || !data.absoluteStatusHistory) return;
 
-                const nodeStatus = data.absoluteStatusHistory[step];
+                const safeStep = Math.max(0, Math.min(step, data.absoluteStatusHistory.length - 1));
+                const nodeStatus = data.absoluteStatusHistory[safeStep];
                 if (!nodeStatus) return;
 
                 const minOp = data.minOpinion !== undefined ? data.minOpinion : 0;
                 const maxOp = data.maxOpinion !== undefined ? data.maxOpinion : 1;
 
-                cytoscapeRef.current.nodes().forEach(node => {
-                    const id = node.id();
-                    const statusVal = nodeStatus[id] !== undefined ? nodeStatus[id] : 0;
-                    // For opinion dynamics, pass continuous value to getStatusColor with dynamic min/max bounds
-                    const color = getStatusColor(statusVal, selectedCategory === "Opinions" ? statusVal : null, data.statuses, minOp, maxOp);
-                    node.style("background-color", color);
+                const isContinuous = data.isContinuous === true || data.discrete_state === false;
+                cytoscapeRef.current.batch(() => {
+                    cytoscapeRef.current.nodes().forEach(node => {
+                        const id = node.id();
+                        const statusVal = nodeStatus[id] !== undefined
+                            ? getContinuousValue(nodeStatus[id], data.continuousVariable)
+                            : 0;
+                        const color = isContinuous
+                            ? getContinuousBinColor(statusVal, minOp, maxOp, 10)
+                            : getStatusColor(
+                                statusVal,
+                                null,
+                                data.statuses,
+                                minOp,
+                                maxOp,
+                                false
+                            );
+                        node.data("statusColor", color);
+                        node.style({
+                            "background-color": color,
+                            "border-color": color,
+                        });
+                    });
                 });
             };
 
@@ -833,11 +1122,13 @@
             // Re-render plots and styling when theme changes
             useEffect(() => {
                 if (results) {
-                    renderTrendsChart(results);
+                    if (results.discrete_state !== false) {
+                        renderTrendsChart(results);
+                    }
                     if (selectedCategory === "Epidemics") {
                         renderPrevalenceChart(results);
                         renderPhasePortrait(results);
-                    } else {
+                    } else if (results.discrete_state === false) {
                         renderOpinionEvolution(results);
                     }
                     if (cytoscapeRef.current) {
@@ -865,6 +1156,24 @@
                 }
             }, [activeTab, currentPlaybackStep, results]);
 
+            useEffect(() => {
+                if (results && cytoscapeRef.current) {
+                    updateNetworkColors(currentPlaybackStep, results);
+                }
+            }, [results, currentPlaybackStep]);
+
+            useEffect(() => {
+                if (!results && cytoscapeRef.current) {
+                    syncSeedSelection();
+                }
+            }, [selectedSeedNodes, results]);
+
+            useEffect(() => {
+                if (!results && !loading && networkPreview && isNetworkTabAllowed) {
+                    renderNetworkPreview(networkPreview);
+                }
+            }, [networkPreview, results, loading, networkLayout]);
+
             const handleLayoutChange = (newLayout) => {
                 setNetworkLayout(newLayout);
                 if (cytoscapeRef.current) {
@@ -882,7 +1191,7 @@
 
             const exportJSON = () => {
                 if (!results) return;
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(json.dumps(results));
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(results, null, 2));
                 const downloadAnchor = document.createElement('a');
                 downloadAnchor.setAttribute("href", dataStr);
                 downloadAnchor.setAttribute("download", `${selectedModelName}_simulation.json`);
@@ -937,6 +1246,7 @@
             };
 
             const currentModel = models[selectedModelName];
+            const isContinuousModel = currentModel && currentModel.discrete_state === false;
 
             return (
                 <div class="w-full flex-grow flex flex-col md:flex-row h-screen overflow-hidden">
@@ -988,7 +1298,7 @@
                             <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Network Topology</label>
                             <select 
                                 value={graphType}
-                                onChange={(e) => setGraphType(e.target.value)}
+                                onChange={(e) => handleGraphTypeChange(e.target.value)}
                                 class="w-full bg-slate-900/80 border border-slate-800 rounded-lg p-2.5 text-slate-200 neon-border-glow"
                             >
                                 <option value="erdos_renyi">Erdos-Renyi (Random)</option>
@@ -1008,43 +1318,43 @@
                                             min="10"
                                             max="1000"
                                             value={graphParams.n} 
-                                            onChange={(e) => setGraphParams(prev => ({ ...prev, n: Math.min(1000, Math.max(10, parseInt(e.target.value) || 10)) }))}
+                                            onChange={(e) => updateGraphParams(prev => ({ ...prev, n: Math.min(1000, Math.max(10, parseInt(e.target.value) || 10)) }))}
                                             class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
                                         />
                                     </div>
                                     {graphType === "erdos_renyi" && (
                                         <div>
                                             <label class="text-xs text-slate-400 block mb-1">Probability (p)</label>
-                                            <input 
-                                                type="number" 
-                                                step="0.01" 
-                                                value={graphParams.p} 
-                                                onChange={(e) => setGraphParams(prev => ({ ...prev, p: parseFloat(e.target.value) || 0.1 }))}
-                                                class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
-                                            />
+                                                <input 
+                                                    type="number" 
+                                                    step="0.01" 
+                                                    value={graphParams.p} 
+                                                    onChange={(e) => updateGraphParams(prev => ({ ...prev, p: parseFloat(e.target.value) || 0.1 }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                                />
                                         </div>
                                     )}
                                     {graphType === "barabasi_albert" && (
                                         <div>
                                             <label class="text-xs text-slate-400 block mb-1">Edges Attached (m)</label>
-                                            <input 
-                                                type="number" 
-                                                value={graphParams.m} 
-                                                onChange={(e) => setGraphParams(prev => ({ ...prev, m: parseInt(e.target.value) || 2 }))}
-                                                class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
-                                            />
+                                                <input 
+                                                    type="number" 
+                                                    value={graphParams.m} 
+                                                    onChange={(e) => updateGraphParams(prev => ({ ...prev, m: parseInt(e.target.value) || 2 }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                                />
                                         </div>
                                     )}
                                     {graphType === "watts_strogatz" && (
                                         <>
                                             <div>
                                                 <label class="text-xs text-slate-400 block mb-1">k Neighbors</label>
-                                                <input 
-                                                    type="number" 
-                                                    value={graphParams.k} 
-                                                    onChange={(e) => setGraphParams(prev => ({ ...prev, k: parseInt(e.target.value) || 4 }))}
-                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
-                                                />
+                                                    <input 
+                                                        type="number" 
+                                                        value={graphParams.k} 
+                                                        onChange={(e) => updateGraphParams(prev => ({ ...prev, k: parseInt(e.target.value) || 4 }))}
+                                                        class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                                    />
                                             </div>
                                             <div class="col-span-2 mt-2">
                                                 <label class="text-xs text-slate-400 block mb-1">Rewiring Prob (p)</label>
@@ -1054,7 +1364,7 @@
                                                     max="1" 
                                                     step="0.01"
                                                     value={graphParams.p} 
-                                                    onChange={(e) => setGraphParams(prev => ({ ...prev, p: Math.min(1.0, Math.max(0.0, parseFloat(e.target.value) || 0.0)) }))}
+                                                    onChange={(e) => updateGraphParams(prev => ({ ...prev, p: Math.min(1.0, Math.max(0.0, parseFloat(e.target.value) || 0.0)) }))}
                                                     class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
                                                 />
                                             </div>
@@ -1074,6 +1384,15 @@
                                     )}
                                 </div>
                             )}
+
+                            <button 
+                                onClick={() => generateNetwork()}
+                                disabled={loading}
+                                class="w-full bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-100 font-semibold py-3 px-4 rounded-xl border border-slate-700 transition flex items-center justify-center space-x-2"
+                            >
+                                <i class="fa-solid fa-diagram-project"></i>
+                                <span>1. Generate / Load Network</span>
+                            </button>
                         </div>
 
                         {/* Model Configuration Parameters */}
@@ -1082,6 +1401,7 @@
                             <div class="space-y-4">
                                 {currentModel && Object.keys(currentModel.parameters.model).map(paramName => {
                                     const p = currentModel.parameters.model[paramName];
+                                    const isCountParam = ["q", "k", "iterations"].includes(paramName);
                                     if (p.range && p.range[0] === 0 && p.range[1] === 1) {
                                         return (
                                             <div key={paramName} class="space-y-1">
@@ -1103,27 +1423,110 @@
                                             <span class="text-slate-300">{paramName} ({p.descr})</span>
                                             <input 
                                                 type="number"
+                                                step={isCountParam ? "1" : "0.01"}
                                                 value={modelParams[paramName] || 0}
-                                                onChange={(e) => setModelParams(prev => ({ ...prev, [paramName]: parseFloat(e.target.value) }))}
+                                                onChange={(e) => setModelParams(prev => ({
+                                                    ...prev,
+                                                    [paramName]: isCountParam
+                                                        ? Math.max(1, parseInt(e.target.value) || 1)
+                                                        : parseFloat(e.target.value)
+                                                }))}
                                                 class="w-24 bg-slate-900 border border-slate-800 rounded-md p-1 text-slate-200 text-right neon-border-glow"
                                             />
                                         </div>
                                     );
                                 })}
 
+                                {currentModel && selectedCategory === "Epidemics" && currentModel.discrete_state !== false && selectedSeedNodes.length === 0 && currentModel.parameters.model["fraction_infected"] === undefined && currentModel.parameters.model["percentage_infected"] === undefined && (
+                                    <div class="flex justify-between items-center text-xs gap-3">
+                                        <span class="text-slate-300">Initial infected (%)</span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            step="1"
+                                            value={modelParams["percentage_infected"] !== undefined ? modelParams["percentage_infected"] : 5}
+                                            onChange={(e) => setModelParams(prev => ({
+                                                ...prev,
+                                                percentage_infected: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0))
+                                            }))}
+                                            class="w-24 bg-slate-900 border border-slate-800 rounded-md p-1 text-slate-200 text-right neon-border-glow"
+                                        />
+                                    </div>
+                                )}
+
+                                {currentModel && selectedCategory === "Epidemics" && selectedSeedNodes.length > 0 && (
+                                    <div class="space-y-2 p-3 rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-xs text-slate-200">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <span class="font-semibold">Selected infected seeds: {selectedSeedNodes.length}</span>
+                                            <button
+                                                type="button"
+                                                onClick={clearSeedSelection}
+                                                class="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-slate-900 border border-slate-700 hover:bg-slate-800 transition"
+                                            >
+                                                Clear selection
+                                            </button>
+                                        </div>
+                                        <p class="text-slate-400">Click nodes in the network preview to toggle the initial infected set.</p>
+                                    </div>
+                                )}
+
+                                {currentModel && currentModel.requires_community_assignment && (
+                                    <div class="space-y-3 p-3 rounded-lg border border-slate-800 bg-slate-950/40">
+                                        <div class="space-y-1">
+                                            <label class="text-xs text-slate-300 block mb-1">Community detection algorithm</label>
+                                            <select
+                                                value={modelParams["community_detection_algorithm"] || "louvain_communities"}
+                                                onChange={(e) => setModelParams(prev => ({
+                                                    ...prev,
+                                                    community_detection_algorithm: e.target.value
+                                                }))}
+                                                class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                            >
+                                                {communityDetectionOptions.map(option => (
+                                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        {modelParams["community_detection_algorithm"] === "asyn_fluidc" && (
+                                            <div class="flex justify-between items-center text-xs">
+                                                <span class="text-slate-300">Number of communities</span>
+                                                <input
+                                                    type="number"
+                                                    min="2"
+                                                    max={graphParams.n}
+                                                    step="1"
+                                                    value={modelParams["community_detection_k"] || 2}
+                                                    onChange={(e) => setModelParams(prev => ({
+                                                        ...prev,
+                                                        community_detection_k: Math.max(2, parseInt(e.target.value) || 2)
+                                                    }))}
+                                                    class="w-24 bg-slate-900 border border-slate-800 rounded-md p-1 text-slate-200 text-right neon-border-glow"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                                 {/* Node Configuration Parameters (e.g. stubbornness / zealot) */}
                                 {currentModel && Object.keys(currentModel.parameters.nodes).map(paramName => {
                                     const p = currentModel.parameters.nodes[paramName];
+                                    const isBinaryParam = p.range && p.range[0] === 0 && p.range[1] === 1;
                                     return (
                                         <div key={paramName} class="space-y-1">
                                             <label class="text-xs text-slate-300 block mb-1">Node config: {paramName} ({p.descr})</label>
                                             <input 
                                                 type="number"
-                                                min="0"
-                                                max="1"
-                                                step="0.01"
-                                                value={modelParams[paramName] !== undefined ? modelParams[paramName] : 0.1}
-                                                onChange={(e) => setModelParams(prev => ({ ...prev, [paramName]: Math.min(1.0, Math.max(0.0, parseFloat(e.target.value) || 0.0)) }))}
+                                                min={isBinaryParam ? "0" : undefined}
+                                                max={isBinaryParam ? "1" : undefined}
+                                                step={isBinaryParam ? "1" : "0.01"}
+                                                value={modelParams[paramName] !== undefined ? modelParams[paramName] : (isBinaryParam ? 0 : 0.1)}
+                                                onChange={(e) => setModelParams(prev => ({
+                                                    ...prev,
+                                                    [paramName]: isBinaryParam
+                                                        ? Math.min(1, Math.max(0, parseInt(e.target.value) || 0))
+                                                        : Math.min(1.0, Math.max(0.0, parseFloat(e.target.value) || 0.0))
+                                                }))}
                                                 class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
                                             />
                                         </div>
@@ -1157,7 +1560,7 @@
                                 ) : (
                                     <>
                                         <i class="fa-solid fa-play"></i>
-                                        <span>Run Simulation</span>
+                                        <span>3. Run Simulation</span>
                                     </>
                                 )}
                             </button>
@@ -1167,16 +1570,19 @@
                     {/* Right Panel - Outputs */}
                     <div class="flex-grow flex flex-col h-full overflow-hidden">
                         {/* Tabs Bar */}
+                        {(results || networkPreview) && (
                         <div class="bg-slate-900/50 border-b border-slate-800/80 px-6 py-4 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
                             <div class="flex space-x-4">
-                                <button 
-                                    onClick={() => setActiveTab("trends")}
-                                    class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "trends" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-white"}`}
-                                >
-                                    <i class="fa-solid fa-chart-line mr-2"></i>Trends Plot
-                                </button>
+                                {results && !isContinuousModel && (
+                                    <button 
+                                        onClick={() => setActiveTab("trends")}
+                                        class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "trends" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-white"}`}
+                                    >
+                                        <i class="fa-solid fa-chart-line mr-2"></i>Trends Plot
+                                    </button>
+                                )}
 
-                                {selectedCategory === "Epidemics" && (
+                                {results && selectedCategory === "Epidemics" && (
                                     <button 
                                         onClick={() => setActiveTab("prevalence")}
                                         class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "prevalence" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-white"}`}
@@ -1185,7 +1591,7 @@
                                     </button>
                                 )}
 
-                                {selectedCategory === "Epidemics" && (
+                                {results && selectedCategory === "Epidemics" && (
                                     <button 
                                         onClick={() => setActiveTab("phase")}
                                         class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "phase" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-white"}`}
@@ -1194,7 +1600,7 @@
                                     </button>
                                 )}
 
-                                {selectedCategory === "Opinions" && (
+                                {results && isContinuousModel && (
                                     <button 
                                         onClick={() => setActiveTab("opinion_evolution")}
                                         class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "opinion_evolution" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-white"}`}
@@ -1203,12 +1609,14 @@
                                     </button>
                                 )}
 
-                                <button 
-                                    onClick={() => setActiveTab("network")}
-                                    class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "network" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-white"}`}
-                                >
-                                    <i class="fa-solid fa-network-wired mr-2"></i>Network Graph
-                                </button>
+                                {isNetworkTabAllowed && (
+                                    <button 
+                                        onClick={() => setActiveTab("network")}
+                                        class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "network" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-white"}`}
+                                    >
+                                        <i class="fa-solid fa-network-wired mr-2"></i>Network Graph
+                                    </button>
+                                )}
                             </div>
 
                             {/* Export Buttons */}
@@ -1226,7 +1634,7 @@
                                     >
                                         <i class="fa-solid fa-file-csv mr-1"></i>CSV
                                     </button>
-                                    {(activeTab === "trends" || activeTab === "phase") && (
+                                    {(activeTab === "trends" || activeTab === "phase" || activeTab === "opinion_evolution") && (
                                         <button 
                                             onClick={downloadChart}
                                             class="bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold py-1.5 px-3 rounded-lg transition text-white"
@@ -1237,6 +1645,7 @@
                                 </div>
                             )}
                         </div>
+                        )}
 
                         {/* Error Alert */}
                         {error && (
@@ -1268,24 +1677,34 @@
 
                         {/* Visualizer Area */}
                         <div class="flex-grow p-6 overflow-hidden flex flex-col">
-                            {!results && !loading && (
+                            {!results && !loading && !networkPreview && (
                                 <div class="flex-grow flex flex-col justify-center items-center text-slate-500 space-y-4">
                                     <i class="fa-solid fa-network-wired text-6xl text-slate-600"></i>
-                                    <p class="text-lg">Configure settings and click <strong>Run Simulation</strong> to view results.</p>
+                                    <p class="text-lg">Step 1: generate or load a network, then configure the model and run the simulation.</p>
                                 </div>
                             )}
 
                             {loading && (
                                 <div class="flex-grow flex flex-col justify-center items-center text-indigo-400 space-y-4">
                                     <i class="fa-solid fa-spinner animate-spin text-5xl"></i>
-                                    <p class="text-lg">Executing network simulation...</p>
+                                    <p class="text-lg">{loadingMessage || "Executing network simulation..."}</p>
+                                </div>
+                            )}
+
+                            {!results && !loading && networkPreview && !isNetworkTabAllowed && (
+                                <div class="flex-grow flex flex-col justify-center items-center text-slate-400 space-y-4">
+                                    <i class="fa-solid fa-network-wired text-6xl text-slate-600"></i>
+                                    <div class="text-center space-y-2">
+                                        <p class="text-lg">Network generated.</p>
+                                        <p class="text-sm text-slate-500">The graph has {currentGraphNodeCount} nodes, so the Network Graph tab is hidden.</p>
+                                    </div>
                                 </div>
                             )}
 
                             {/* Charts & Graph Rendering */}
                             {results && !loading && (
                                 <div class="flex-grow flex flex-col h-full">
-                                    <div class={`flex-grow bg-slate-950/20 border border-slate-800/80 rounded-2xl p-6 relative h-full ${activeTab !== "trends" ? "hidden" : ""}`}>
+                                    <div class={`flex-grow bg-slate-950/20 border border-slate-800/80 rounded-2xl p-6 relative h-full ${activeTab !== "trends" || isContinuousModel ? "hidden" : ""}`}>
                                         <canvas id="trendsChart"></canvas>
                                     </div>
 
@@ -1297,7 +1716,7 @@
                                         <canvas id="phaseChart"></canvas>
                                     </div>
 
-                                    <div class={`flex-grow bg-slate-950/20 border border-slate-800/80 rounded-2xl p-6 relative h-full ${activeTab !== "opinion_evolution" ? "hidden" : ""}`}>
+                                    <div class={`flex-grow bg-slate-950/20 border border-slate-800/80 rounded-2xl p-6 relative h-full ${activeTab !== "opinion_evolution" || !isContinuousModel ? "hidden" : ""}`}>
                                         <canvas id="opinionChart"></canvas>
                                     </div>
 
@@ -1319,6 +1738,7 @@
                                                         max={results.iterations.length - 1}
                                                         value={currentPlaybackStep}
                                                         onChange={handlePlaybackSliderChange}
+                                                        onInput={handlePlaybackSliderChange}
                                                         class="flex-grow accent-indigo-500 cursor-pointer"
                                                     />
                                                 </div>
@@ -1373,6 +1793,46 @@
                                                     })
                                                 )}
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {!results && !loading && networkPreview && isNetworkTabAllowed && (
+                                <div class="flex-grow flex flex-col h-full">
+                                    <div class={`flex-grow flex flex-col h-full space-y-4 ${activeTab !== "network" ? "hidden" : ""}`}>
+                                        {/* Playback & Layout Controls */}
+                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-950/40 p-4 border border-slate-900 rounded-xl">
+                                            <div class="flex items-center space-x-4 flex-grow">
+                                                <div class="flex-grow flex items-center space-x-3 max-w-xl">
+                                                    <span class="text-xs text-slate-400 w-16">Preview</span>
+                                                    <span class="text-xs text-slate-400">No simulation results yet</span>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Network Layout Dropdown */}
+                                            <div class="flex items-center space-x-2">
+                                                <label class="text-xs text-slate-400 font-semibold uppercase">Layout:</label>
+                                                <select 
+                                                    value={networkLayout}
+                                                    onChange={(e) => handleLayoutChange(e.target.value)}
+                                                    class="bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-200 focus:outline-none cursor-pointer"
+                                                >
+                                                    <option value="preset">Preset (Spring)</option>
+                                                    <option value="cose">Force-Directed</option>
+                                                    <option value="circle">Circle</option>
+                                                    <option value="grid">Grid</option>
+                                                    <option value="concentric">Concentric</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {/* Graph Container with Legend */}
+                                        <div class="flex-grow relative border border-slate-900 rounded-2xl min-h-[400px] h-full overflow-hidden">
+                                            <div 
+                                                ref={cyContainerRef} 
+                                                class="absolute inset-0 bg-slate-950/60"
+                                            ></div>
                                         </div>
                                     </div>
                                 </div>

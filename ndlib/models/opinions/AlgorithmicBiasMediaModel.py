@@ -52,7 +52,7 @@ class AlgorithmicBiasMediaModel(DiffusionModel):
                 },
                 "k": {
                     "descr": "number of media",
-                    "range": [0, self.graph.number_of_nodes],
+                    "range": [0, self.graph.number_of_nodes()],
                     "optional": False,
                 },
                 "init_dist_lower" : {
@@ -96,14 +96,14 @@ class AlgorithmicBiasMediaModel(DiffusionModel):
         max_edgees = (
             self.graph.number_of_nodes() * (self.graph.number_of_nodes() - 1)
         ) / 2
-        nids = np.array(list(self.status.items()))
-        self.ids = nids[:, 0]
+        nids = np.array(list(self.status.items()), dtype=object)
+        self.ids = np.array(list(self.status.keys()), dtype=object)
 
         max_edgees = (
             self.graph.number_of_nodes() * (self.graph.number_of_nodes() - 1)
         ) / 2
-        nids = np.array(list(self.status.items()))
-        self.ids = nids[:, 0]
+        nids = np.array(list(self.status.items()), dtype=object)
+        self.ids = np.array(list(self.status.keys()), dtype=object)
 
         if max_edgees == self.graph.number_of_edges():
             self.sts = nids[:, 1]
@@ -111,8 +111,8 @@ class AlgorithmicBiasMediaModel(DiffusionModel):
         else:
             for i in self.graph.nodes:
                 i_neigh = list(self.graph.neighbors(i))
-                i_ids = nids[:, 0][i_neigh]
-                i_sts = nids[:, 1][i_neigh]
+                i_ids = np.array(i_neigh, dtype=object)
+                i_sts = np.array([self.status[id] for id in i_neigh])
                 self.node_data[i] = (i_ids, i_sts)
 
         self.stsmedia = np.random.rand(self.params["model"]["k"])
@@ -173,11 +173,13 @@ class AlgorithmicBiasMediaModel(DiffusionModel):
         for n1 in range(0, n):
 
             if len(self.node_data) == 0:
+                n1_idx = n1
                 sts = self.sts
                 ids = self.ids
-                neigh_sts = np.delete(sts, n1)
-                neigh_ids = np.delete(ids, n1)
+                neigh_sts = np.delete(sts, n1_idx)
+                neigh_ids = np.delete(ids, n1_idx)
             else:
+                n1 = random.choice(self.ids)
                 neigh_ids = self.node_data[n1][0]
                 neigh_sts = np.array([actual_status[id] for id in neigh_ids])
 
