@@ -64,6 +64,20 @@ def sanitize_for_json(obj):
     return obj
 
 
+def is_threshold_parameter(param, p_info):
+    name = str(param or "").lower()
+    descr = str((p_info or {}).get("descr", "")).lower()
+    return "threshold" in name or "threshold" in descr or name == "epsilon"
+
+
+def clamp_unit_float(value, fallback=0.1):
+    try:
+        val = float(value)
+    except (TypeError, ValueError):
+        return float(fallback)
+    return min(1.0, max(0.0, val))
+
+
 def coerce_model_parameter_value(param, val, p_info):
     """
     Coerce dashboard payload values to the type expected by the model.
@@ -84,6 +98,9 @@ def coerce_model_parameter_value(param, val, p_info):
 
     range_info = p_info.get("range")
     int_params = {"q", "k", "iterations"}
+
+    if is_threshold_parameter(param, p_info) or range_info == [0, 1]:
+        return clamp_unit_float(val, p_info.get("default", 0.1))
 
     if isinstance(default_val, float) or range_info == [0, 1] or range_info == [-1, 1]:
         return float(val)
@@ -261,24 +278,115 @@ def resolve_model_class(category, model_class_name):
 
 
 def build_graph_from_payload(graph_type, graph_params):
+    seed = 42
     if graph_type == "erdos_renyi":
         g = nx.erdos_renyi_graph(
             int(graph_params.get("n", 100)),
-            float(graph_params.get("p", 0.1))
+            float(graph_params.get("p", 0.1)),
+            seed=seed
         )
     elif graph_type == "barabasi_albert":
         g = nx.barabasi_albert_graph(
             int(graph_params.get("n", 100)),
-            int(graph_params.get("m", 2))
+            int(graph_params.get("m", 2)),
+            seed=seed
         )
     elif graph_type == "watts_strogatz":
         g = nx.watts_strogatz_graph(
             int(graph_params.get("n", 100)),
             int(graph_params.get("k", 4)),
-            float(graph_params.get("p", 0.1))
+            float(graph_params.get("p", 0.1)),
+            seed=seed
         )
     elif graph_type == "complete":
         g = nx.complete_graph(int(graph_params.get("n", 100)))
+    elif graph_type == "lfr":
+        n = int(graph_params.get("n", 100))
+        tau1 = float(graph_params.get("tau1", 2.0))
+        tau2 = float(graph_params.get("tau2", 1.5))
+        mu = float(graph_params.get("mu", 0.1))
+        average_degree = int(graph_params.get("average_degree", 8))
+        min_degree = int(graph_params.get("min_degree", 3))
+        min_community = int(graph_params.get("min_community", 20))
+        max_iters = int(graph_params.get("max_iters", 500))
+
+        lfr_candidates = []
+        requested_min_community = max(2, min(min_community, n - 1))
+        for candidate_min_community in [
+            requested_min_community,
+            max(requested_min_community, max(4, n // 5)),
+            max(requested_min_community, max(4, n // 4)),
+            max(requested_min_community, max(4, n // 3)),
+            max(requested_min_community, max(4, n // 2)),
+        ]:
+            candidate_min_community = min(candidate_min_community, n - 1)
+            lfr_candidates.append({
+                "mu": mu,
+                "average_degree": max(2, min(average_degree, n - 1)),
+                "min_community": candidate_min_community,
+            })
+            lfr_candidates.append({
+                "mu": mu,
+                "min_degree": max(1, min(min_degree, n - 1)),
+                "min_community": candidate_min_community,
+            })
+
+        g = None
+        for candidate in lfr_candidates:
+            try:
+                g = nx.LFR_benchmark_graph(
+                    n,
+                    tau1,
+                    tau2,
+                    candidate["mu"],
+                    average_degree=candidate.get("average_degree"),
+                    min_degree=candidate.get("min_degree"),
+                    min_community=candidate["min_community"],
+                    max_iters=max_iters,
+                    seed=seed
+                )
+                break
+            except Exception:
+                continue
+
+        if g is None:
+            raise ValueError("Unable to generate an LFR benchmark graph with the selected parameters")
+        g = nx.Graph(g)
+        community_lookup = {}
+        next_community_id = 0
+        for node, attrs in g.nodes(data=True):
+            community = attrs.get("community")
+            if community is None:
+                attrs["com"] = 0
+                continue
+            community_key = frozenset(community)
+            if community_key not in community_lookup:
+                community_lookup[community_key] = next_community_id
+                next_community_id += 1
+            attrs["com"] = community_lookup[community_key]
+        for node in g.nodes():
+            g.nodes[node]["com"] = g.nodes[node].get("com", 0)
+    elif graph_type == "planted_partition":
+        groups = int(graph_params.get("community_groups", 4))
+        group_size = int(graph_params.get("community_size", 25))
+        p_in = float(graph_params.get("p_in", 0.25))
+        p_out = float(graph_params.get("p_out", 0.02))
+        g = nx.planted_partition_graph(groups, group_size, p_in, p_out, seed=seed)
+        for node in g.nodes():
+            g.nodes[node]["com"] = int(node // group_size)
+    elif graph_type == "stochastic_block_model":
+        groups = int(graph_params.get("community_groups", 4))
+        group_size = int(graph_params.get("community_size", 25))
+        p_in = float(graph_params.get("p_in", 0.25))
+        p_out = float(graph_params.get("p_out", 0.02))
+        sizes = [group_size for _ in range(groups)]
+        probs = [[p_in if i == j else p_out for j in range(groups)] for i in range(groups)]
+        g = nx.stochastic_block_model(sizes, probs, seed=seed)
+        start = 0
+        for community_id, size in enumerate(sizes):
+            for node in range(start, start + size):
+                g.nodes[node]["com"] = community_id
+            start += size
     elif graph_type == "upload":
         content = graph_params.get("file_content", "")
         fmt = graph_params.get("file_format", "graphml")
@@ -312,11 +420,13 @@ def serialize_graph_for_frontend(g):
     pos = nx.spring_layout(g)
     nodes_data = []
     for n in g.nodes():
+        attrs = g.nodes[n]
         nodes_data.append({
             "id": str(n),
             "label": str(n),
             "x": float(pos[n][0] * 500),
             "y": float(pos[n][1] * 500),
+            "com": int(attrs["com"]) if "com" in attrs and attrs["com"] is not None else None,
         })
 
     edges_data = []
@@ -346,11 +456,18 @@ def build_graph_from_serialized(graph_data):
     for node in nodes:
         if isinstance(node, dict):
             node_id = node.get("id")
+            node_attrs = {}
+            if node.get("com") is not None:
+                try:
+                    node_attrs["com"] = int(node.get("com"))
+                except (TypeError, ValueError):
+                    node_attrs["com"] = node.get("com")
         else:
             node_id = node
+            node_attrs = {}
         node_id = deserialize_node_id(node_id)
         if node_id is not None:
-            g.add_node(node_id)
+            g.add_node(node_id, **node_attrs)
 
     for edge in graph_data.get("edges", []):
         if isinstance(edge, dict):

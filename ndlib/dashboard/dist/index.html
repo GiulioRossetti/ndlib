@@ -221,7 +221,26 @@
             const [selectedModelName, setSelectedModelName] = useState("");
             const [modelParams, setModelParams] = useState({});
             const [graphType, setGraphType] = useState("erdos_renyi");
-            const [graphParams, setGraphParams] = useState({ n: 100, p: 0.1, m: 2, k: 4, file_content: "", file_format: "graphml", file_name: "" });
+            const [graphParams, setGraphParams] = useState({
+                n: 100,
+                p: 0.1,
+                m: 2,
+                k: 4,
+                community_groups: 4,
+                community_size: 25,
+                p_in: 0.25,
+                p_out: 0.02,
+                tau1: 2.0,
+                tau2: 1.5,
+                mu: 0.1,
+                average_degree: 8,
+                min_degree: 3,
+                min_community: 20,
+                max_iters: 500,
+                file_content: "",
+                file_format: "graphml",
+                file_name: ""
+            });
             const [iterations, setIterations] = useState(50);
             const [activeTab, setActiveTab] = useState("trends");
             const [networkPreview, setNetworkPreview] = useState(null);
@@ -326,7 +345,13 @@
                         const isSelected = selected.has(String(node.id()));
                         node.toggleClass("selected-seed", isSelected);
                         if (!results) {
-                            node.data("statusColor", isSelected ? "#ef4444" : "#6366f1");
+                            const baseColor = getCommunityColor(node.data("com"));
+                            const color = isSelected ? "#ef4444" : baseColor;
+                            node.data("statusColor", color);
+                            node.style({
+                                "background-color": color,
+                                "border-color": color,
+                            });
                         }
                     });
                 });
@@ -679,6 +704,116 @@
                 return palette[Math.min(binIndex, palette.length - 1)];
             };
 
+            const isThresholdParameter = (paramName, paramInfo = {}) => {
+                const name = String(paramName || "").toLowerCase();
+                const descr = String(paramInfo.descr || "").toLowerCase();
+                return (
+                    name.includes("threshold") ||
+                    descr.includes("threshold") ||
+                    name === "epsilon"
+                );
+            };
+
+            const clampUnitFloat = (value, fallback = 0.1) => {
+                const parsed = parseFloat(value);
+                if (!Number.isFinite(parsed)) return fallback;
+                return Math.min(1.0, Math.max(0.0, parsed));
+            };
+
+            const getCommunityColor = (communityId) => {
+                if (communityId === undefined || communityId === null || Number.isNaN(Number(communityId))) {
+                    return "#6366f1";
+                }
+
+                const palette = [
+                    "#6366f1",
+                    "#06b6d4",
+                    "#10b981",
+                    "#f59e0b",
+                    "#ef4444",
+                    "#8b5cf6",
+                    "#ec4899",
+                    "#14b8a6",
+                    "#f97316",
+                    "#84cc16",
+                ];
+
+                return palette[Math.abs(parseInt(communityId, 10)) % palette.length];
+            };
+
+            const buildCommunityLayoutPositions = (data) => {
+                if (!data || !Array.isArray(data.nodes) || data.nodes.length === 0) {
+                    return {};
+                }
+
+                const communities = new Map();
+                data.nodes.forEach((node, index) => {
+                    const communityKey = node.com !== undefined && node.com !== null ? String(node.com) : "__default__";
+                    if (!communities.has(communityKey)) {
+                        communities.set(communityKey, []);
+                    }
+                    communities.get(communityKey).push({ node, index });
+                });
+
+                const communityKeys = Array.from(communities.keys()).sort((a, b) => {
+                    if (a === "__default__") return 1;
+                    if (b === "__default__") return -1;
+                    return parseInt(a, 10) - parseInt(b, 10);
+                });
+
+                const count = communityKeys.length;
+                const centerRadius = Math.max(180, Math.min(420, Math.sqrt(data.nodes.length) * 55));
+                const positions = {};
+
+                communityKeys.forEach((communityKey, communityIndex) => {
+                    const members = communities.get(communityKey);
+                    const angle = (2 * Math.PI * communityIndex) / Math.max(1, count);
+                    const centerX = Math.cos(angle) * centerRadius;
+                    const centerY = Math.sin(angle) * centerRadius;
+                    const memberRadius = Math.max(45, Math.min(140, 14 * Math.sqrt(members.length + 1)));
+
+                    members.forEach((entry, memberIndex) => {
+                        const memberAngle = (2 * Math.PI * memberIndex) / Math.max(1, members.length);
+                        positions[entry.node.id] = {
+                            x: centerX + Math.cos(memberAngle) * memberRadius,
+                            y: centerY + Math.sin(memberAngle) * memberRadius
+                        };
+                    });
+                });
+
+                return positions;
+            };
+
+            const applyNetworkLayout = (cy, layoutName, data) => {
+                if (!cy) return;
+
+                if (layoutName === "community_clusters") {
+                    const positions = buildCommunityLayoutPositions(data);
+                    cy.batch(() => {
+                        cy.nodes().forEach(node => {
+                            const pos = positions[node.id()];
+                            if (pos) {
+                                node.position(pos);
+                            }
+                        });
+                    });
+                    cy.fit();
+                    cy.center();
+                    return;
+                }
+
+                if (layoutName === "preset") {
+                    cy.layout({ name: "preset" }).run();
+                } else {
+                    cy.layout({ name: layoutName, animate: true, animationDuration: 500 }).run();
+                }
+
+                setTimeout(() => {
+                    cy.fit();
+                    cy.center();
+                }, 550);
+            };
+
             const detectContinuousVariable = (data) => {
                 if (!data || data.discrete_state !== false || !Array.isArray(data.iterations)) {
                     return null;
@@ -981,7 +1116,16 @@
                 const elements = [];
                 // Add nodes
                 data.nodes.forEach(n => {
-                    elements.push({ data: { id: n.id, label: n.label, statusColor: "#6366f1" }, position: { x: n.x, y: n.y } });
+                    const communityColor = getCommunityColor(n.com);
+                    elements.push({
+                        data: {
+                            id: n.id,
+                            label: n.label,
+                            com: n.com,
+                            statusColor: communityColor
+                        },
+                        position: { x: n.x, y: n.y }
+                    });
                 });
                 // Add edges
                 data.edges.forEach(e => {
@@ -1024,7 +1168,7 @@
                             }
                         }
                     ],
-                    layout: { name: layoutName === "preset" ? "preset" : layoutName },
+                    layout: { name: "preset" },
                     userZoomingEnabled: true,
                     userPanningEnabled: true
                 });
@@ -1041,6 +1185,7 @@
                     }
                 });
 
+                applyNetworkLayout(cytoscapeRef.current, layoutName, data);
                 updateNetworkColors(0, data);
                 syncSeedSelection();
             };
@@ -1054,6 +1199,11 @@
 
                 const minOp = data.minOpinion !== undefined ? data.minOpinion : 0;
                 const maxOp = data.maxOpinion !== undefined ? data.maxOpinion : 1;
+                const stepValues = Object.values(nodeStatus)
+                    .map(value => getContinuousValue(value, data.continuousVariable))
+                    .filter(value => typeof value === "number" && Number.isFinite(value));
+                const stepMin = stepValues.length ? Math.min(...stepValues) : minOp;
+                const stepMax = stepValues.length ? Math.max(...stepValues) : maxOp;
 
                 const isContinuous = data.isContinuous === true || data.discrete_state === false;
                 cytoscapeRef.current.batch(() => {
@@ -1063,7 +1213,7 @@
                             ? getContinuousValue(nodeStatus[id], data.continuousVariable)
                             : 0;
                         const color = isContinuous
-                            ? getContinuousBinColor(statusVal, minOp, maxOp, 10)
+                            ? getContinuousBinColor(statusVal, stepMin, stepMax, 10)
                             : getStatusColor(
                                 statusVal,
                                 null,
@@ -1079,6 +1229,7 @@
                         });
                     });
                 });
+                cytoscapeRef.current.style().update();
             };
 
             const handlePlaybackSliderChange = (e) => {
@@ -1177,15 +1328,7 @@
             const handleLayoutChange = (newLayout) => {
                 setNetworkLayout(newLayout);
                 if (cytoscapeRef.current) {
-                    if (newLayout === "preset") {
-                        cytoscapeRef.current.layout({ name: "preset" }).run();
-                    } else {
-                        cytoscapeRef.current.layout({ name: newLayout, animate: true, animationDuration: 500 }).run();
-                    }
-                    setTimeout(() => {
-                        cytoscapeRef.current.fit();
-                        cytoscapeRef.current.center();
-                    }, 550);
+                    applyNetworkLayout(cytoscapeRef.current, newLayout, results || networkPreview);
                 }
             };
 
@@ -1281,7 +1424,7 @@
 
                         {/* Model Selector */}
                         <div class="space-y-2">
-                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Select Propagation Model</label>
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Simulation Model</label>
                             <select 
                                 value={selectedModelName}
                                 onChange={(e) => selectModel(e.target.value)}
@@ -1301,42 +1444,175 @@
                                 onChange={(e) => handleGraphTypeChange(e.target.value)}
                                 class="w-full bg-slate-900/80 border border-slate-800 rounded-lg p-2.5 text-slate-200 neon-border-glow"
                             >
-                                <option value="erdos_renyi">Erdos-Renyi (Random)</option>
-                                <option value="barabasi_albert">Barabasi-Albert (Scale-Free)</option>
-                                <option value="watts_strogatz">Watts-Strogatz (Small-World)</option>
-                                <option value="complete">Complete Graph (Clique)</option>
-                                <option value="upload">Upload Custom Graph File</option>
+                                <option value="erdos_renyi">Erdos-Renyi random graph</option>
+                                <option value="barabasi_albert">Barabasi-Albert scale-free graph</option>
+                                <option value="watts_strogatz">Watts-Strogatz small-world graph</option>
+                                <option value="lfr">LFR benchmark graph with communities</option>
+                                <option value="planted_partition">Planted partition graph</option>
+                                <option value="stochastic_block_model">Stochastic block model graph</option>
+                                <option value="complete">Complete graph</option>
+                                <option value="upload">Upload a custom graph</option>
                             </select>
 
                             {/* Topology Parameters */}
                             {graphType !== "upload" ? (
                                 <div class="grid grid-cols-2 gap-3 bg-slate-950/40 p-3 rounded-lg border border-slate-900">
-                                    <div>
-                                        <label class="text-xs text-slate-400 block mb-1">Nodes (N)</label>
-                                        <input 
-                                            type="number" 
-                                            min="10"
-                                            max="1000"
-                                            value={graphParams.n} 
-                                            onChange={(e) => updateGraphParams(prev => ({ ...prev, n: Math.min(1000, Math.max(10, parseInt(e.target.value) || 10)) }))}
-                                            class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
-                                        />
-                                    </div>
+                                    {graphType !== "planted_partition" && graphType !== "stochastic_block_model" && (
+                                        <div>
+                                            <label class="text-xs text-slate-400 block mb-1">Number of nodes</label>
+                                            <input 
+                                                type="number" 
+                                                min="10"
+                                                max="1000"
+                                                value={graphParams.n} 
+                                                onChange={(e) => updateGraphParams(prev => ({ ...prev, n: Math.min(1000, Math.max(10, parseInt(e.target.value) || 10)) }))}
+                                                class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                            />
+                                        </div>
+                                    )}
                                     {graphType === "erdos_renyi" && (
                                         <div>
-                                            <label class="text-xs text-slate-400 block mb-1">Probability (p)</label>
+                                            <label class="text-xs text-slate-400 block mb-1">Connection probability</label>
                                                 <input 
                                                     type="number" 
                                                     step="0.01" 
                                                     value={graphParams.p} 
                                                     onChange={(e) => updateGraphParams(prev => ({ ...prev, p: parseFloat(e.target.value) || 0.1 }))}
                                                     class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
-                                                />
+                                            />
                                         </div>
+                                    )}
+                                    {graphType === "lfr" && (
+                                        <>
+                                            <div>
+                                                <label class="text-xs text-slate-400 block mb-1">Degree exponent (tau1)</label>
+                                                <input 
+                                                    type="number" 
+                                                    min="1.1"
+                                                    step="0.1"
+                                                    value={graphParams.tau1} 
+                                                    onChange={(e) => updateGraphParams(prev => ({ ...prev, tau1: parseFloat(e.target.value) || 2.0 }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label class="text-xs text-slate-400 block mb-1">Community exponent (tau2)</label>
+                                                <input 
+                                                    type="number" 
+                                                    min="1.0"
+                                                    step="0.1"
+                                                    value={graphParams.tau2} 
+                                                    onChange={(e) => updateGraphParams(prev => ({ ...prev, tau2: parseFloat(e.target.value) || 1.5 }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label class="text-xs text-slate-400 block mb-1">Community mixing ratio</label>
+                                                <input 
+                                                    type="number" 
+                                                    min="0"
+                                                    max="1"
+                                                    step="0.01"
+                                                    value={graphParams.mu} 
+                                                    onChange={(e) => updateGraphParams(prev => ({ ...prev, mu: Math.min(1.0, Math.max(0.0, parseFloat(e.target.value) || 0.1)) }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label class="text-xs text-slate-400 block mb-1">Average node degree</label>
+                                                <input 
+                                                    type="number" 
+                                                    min="2"
+                                                    value={graphParams.average_degree} 
+                                                    onChange={(e) => updateGraphParams(prev => ({ ...prev, average_degree: Math.max(2, parseInt(e.target.value) || 8) }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label class="text-xs text-slate-400 block mb-1">Minimum node degree</label>
+                                                <input 
+                                                    type="number" 
+                                                    min="1"
+                                                    value={graphParams.min_degree} 
+                                                    onChange={(e) => updateGraphParams(prev => ({ ...prev, min_degree: Math.max(1, parseInt(e.target.value) || 3) }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label class="text-xs text-slate-400 block mb-1">Minimum community size</label>
+                                                <input 
+                                                    type="number" 
+                                                    min="2"
+                                                    value={graphParams.min_community} 
+                                                    onChange={(e) => updateGraphParams(prev => ({ ...prev, min_community: Math.max(2, parseInt(e.target.value) || 20) }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label class="text-xs text-slate-400 block mb-1">LFR solver iterations</label>
+                                                <input 
+                                                    type="number" 
+                                                    min="100"
+                                                    value={graphParams.max_iters} 
+                                                    onChange={(e) => updateGraphParams(prev => ({ ...prev, max_iters: Math.max(100, parseInt(e.target.value) || 500) }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+                                    {(graphType === "planted_partition" || graphType === "stochastic_block_model") && (
+                                        <>
+                                            <div>
+                                                <label class="text-xs text-slate-400 block mb-1">Number of communities</label>
+                                                <input 
+                                                    type="number" 
+                                                    min="2"
+                                                    max="20"
+                                                    value={graphParams.community_groups} 
+                                                    onChange={(e) => updateGraphParams(prev => ({ ...prev, community_groups: Math.max(2, parseInt(e.target.value) || 4) }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label class="text-xs text-slate-400 block mb-1">Community size</label>
+                                                <input 
+                                                    type="number" 
+                                                    min="2"
+                                                    max="200"
+                                                    value={graphParams.community_size} 
+                                                    onChange={(e) => updateGraphParams(prev => ({ ...prev, community_size: Math.max(2, parseInt(e.target.value) || 25) }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label class="text-xs text-slate-400 block mb-1">Within-community edge probability</label>
+                                                <input 
+                                                    type="number" 
+                                                    min="0"
+                                                    max="1"
+                                                    step="0.01"
+                                                    value={graphParams.p_in} 
+                                                    onChange={(e) => updateGraphParams(prev => ({ ...prev, p_in: Math.min(1.0, Math.max(0.0, parseFloat(e.target.value) || 0.25)) }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label class="text-xs text-slate-400 block mb-1">Between-community edge probability</label>
+                                                <input 
+                                                    type="number" 
+                                                    min="0"
+                                                    max="1"
+                                                    step="0.01"
+                                                    value={graphParams.p_out} 
+                                                    onChange={(e) => updateGraphParams(prev => ({ ...prev, p_out: Math.min(1.0, Math.max(0.0, parseFloat(e.target.value) || 0.02)) }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                                />
+                                            </div>
+                                        </>
                                     )}
                                     {graphType === "barabasi_albert" && (
                                         <div>
-                                            <label class="text-xs text-slate-400 block mb-1">Edges Attached (m)</label>
+                                            <label class="text-xs text-slate-400 block mb-1">Edges added per new node</label>
                                                 <input 
                                                     type="number" 
                                                     value={graphParams.m} 
@@ -1348,7 +1624,7 @@
                                     {graphType === "watts_strogatz" && (
                                         <>
                                             <div>
-                                                <label class="text-xs text-slate-400 block mb-1">k Neighbors</label>
+                                                <label class="text-xs text-slate-400 block mb-1">Neighbors per node</label>
                                                     <input 
                                                         type="number" 
                                                         value={graphParams.k} 
@@ -1357,7 +1633,7 @@
                                                     />
                                             </div>
                                             <div class="col-span-2 mt-2">
-                                                <label class="text-xs text-slate-400 block mb-1">Rewiring Prob (p)</label>
+                                                <label class="text-xs text-slate-400 block mb-1">Rewiring probability</label>
                                                 <input 
                                                     type="number" 
                                                     min="0" 
@@ -1373,7 +1649,7 @@
                                 </div>
                             ) : (
                                 <div class="bg-slate-950/40 p-3 rounded-lg border border-slate-900 space-y-2">
-                                    <label class="text-xs text-slate-400 block">Upload GML / GraphML / EdgeList</label>
+                                    <label class="text-xs text-slate-400 block">Upload a GML, GraphML, or edge list file</label>
                                     <input 
                                         type="file" 
                                         onChange={handleFileUpload}
@@ -1391,28 +1667,46 @@
                                 class="w-full bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-100 font-semibold py-3 px-4 rounded-xl border border-slate-700 transition flex items-center justify-center space-x-2"
                             >
                                 <i class="fa-solid fa-diagram-project"></i>
-                                <span>1. Generate / Load Network</span>
+                                <span>1. Build / Load Network</span>
                             </button>
                         </div>
 
                         {/* Model Configuration Parameters */}
                         <div class="space-y-4 pt-2 border-t border-slate-800 flex-grow">
-                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Propagation Parameters</label>
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Model Parameters</label>
                             <div class="space-y-4">
                                 {currentModel && Object.keys(currentModel.parameters.model).map(paramName => {
                                     const p = currentModel.parameters.model[paramName];
                                     const isCountParam = ["q", "k", "iterations"].includes(paramName);
+                                    const isThresholdParam = isThresholdParameter(paramName, p);
+                                    const isFractionParam = isThresholdParam || (p.range && p.range[0] === 0 && p.range[1] === 1);
                                     if (p.range && p.range[0] === 0 && p.range[1] === 1) {
                                         return (
                                             <div key={paramName} class="space-y-1">
-                                                <label class="text-xs text-slate-300 block mb-1">{paramName} ({p.descr})</label>
+                                                <label class="text-xs text-slate-300 block mb-1">{paramName} - {p.descr}</label>
                                                 <input 
                                                     type="number"
                                                     min="0"
                                                     max="1"
                                                     step="0.001"
                                                     value={modelParams[paramName] !== undefined ? modelParams[paramName] : 0.1}
-                                                    onChange={(e) => setModelParams(prev => ({ ...prev, [paramName]: Math.min(1.0, Math.max(0.0, parseFloat(e.target.value) || 0.0)) }))}
+                                                    onChange={(e) => setModelParams(prev => ({ ...prev, [paramName]: clampUnitFloat(e.target.value, 0.1) }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
+                                                />
+                                            </div>
+                                        );
+                                    }
+                                    if (isThresholdParam || isFractionParam) {
+                                        return (
+                                            <div key={paramName} class="space-y-1">
+                                                <label class="text-xs text-slate-300 block mb-1">{paramName} - {p.descr}</label>
+                                                <input 
+                                                    type="number"
+                                                    min="0"
+                                                    max="1"
+                                                    step="0.001"
+                                                    value={modelParams[paramName] !== undefined ? modelParams[paramName] : 0.1}
+                                                    onChange={(e) => setModelParams(prev => ({ ...prev, [paramName]: clampUnitFloat(e.target.value, 0.1) }))}
                                                     class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow"
                                                 />
                                             </div>
@@ -1420,7 +1714,7 @@
                                     }
                                     return (
                                         <div key={paramName} class="flex justify-between items-center text-xs">
-                                            <span class="text-slate-300">{paramName} ({p.descr})</span>
+                                            <span class="text-slate-300">{paramName} - {p.descr}</span>
                                             <input 
                                                 type="number"
                                                 step={isCountParam ? "1" : "0.01"}
@@ -1439,7 +1733,7 @@
 
                                 {currentModel && selectedCategory === "Epidemics" && currentModel.discrete_state !== false && selectedSeedNodes.length === 0 && currentModel.parameters.model["fraction_infected"] === undefined && currentModel.parameters.model["percentage_infected"] === undefined && (
                                     <div class="flex justify-between items-center text-xs gap-3">
-                                        <span class="text-slate-300">Initial infected (%)</span>
+                                        <span class="text-slate-300">Initial infected share (%)</span>
                                         <input
                                             type="number"
                                             min="0"
@@ -1467,14 +1761,14 @@
                                                 Clear selection
                                             </button>
                                         </div>
-                                        <p class="text-slate-400">Click nodes in the network preview to toggle the initial infected set.</p>
+                                        <p class="text-slate-400">Click nodes in the preview to choose infection seeds. Selected nodes will be painted red.</p>
                                     </div>
                                 )}
 
                                 {currentModel && currentModel.requires_community_assignment && (
                                     <div class="space-y-3 p-3 rounded-lg border border-slate-800 bg-slate-950/40">
                                         <div class="space-y-1">
-                                            <label class="text-xs text-slate-300 block mb-1">Community detection algorithm</label>
+                                            <label class="text-xs text-slate-300 block mb-1">Community detection method</label>
                                             <select
                                                 value={modelParams["community_detection_algorithm"] || "louvain_communities"}
                                                 onChange={(e) => setModelParams(prev => ({
@@ -1490,7 +1784,7 @@
                                         </div>
                                         {modelParams["community_detection_algorithm"] === "asyn_fluidc" && (
                                             <div class="flex justify-between items-center text-xs">
-                                                <span class="text-slate-300">Number of communities</span>
+                                                <span class="text-slate-300">Target number of communities</span>
                                                 <input
                                                     type="number"
                                                     min="2"
@@ -1514,7 +1808,7 @@
                                     const isBinaryParam = p.range && p.range[0] === 0 && p.range[1] === 1;
                                     return (
                                         <div key={paramName} class="space-y-1">
-                                            <label class="text-xs text-slate-300 block mb-1">Node config: {paramName} ({p.descr})</label>
+                                            <label class="text-xs text-slate-300 block mb-1">Node parameter: {paramName} - {p.descr}</label>
                                             <input 
                                                 type="number"
                                                 min={isBinaryParam ? "0" : undefined}
@@ -1538,7 +1832,7 @@
                         {/* Simulation Length & Run Button */}
                         <div class="space-y-4 pt-4 border-t border-slate-800 mt-auto">
                             <div class="flex justify-between items-center">
-                                <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Iterations</label>
+                                <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Simulation length</label>
                                 <input 
                                     type="number" 
                                     value={iterations} 
@@ -1656,19 +1950,19 @@
                                 </div>
                                 {Object.keys(models).length === 0 && (
                                     <div class="flex items-center space-x-3 mt-2 bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                                        <label class="text-xs text-slate-400 font-semibold uppercase">API URL:</label>
+                                        <label class="text-xs text-slate-400 font-semibold uppercase">Server URL:</label>
                                         <input 
                                             type="text" 
                                             value={apiBaseUrl} 
                                             onChange={(e) => setApiBaseUrl(e.target.value)}
-                                            placeholder="e.g. http://127.0.0.1:5000"
+                                            placeholder="http://127.0.0.1:5000"
                                             class="bg-slate-950 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-200 focus:outline-none w-64"
                                         />
                                         <button 
                                             onClick={() => loadModels(apiBaseUrl)}
                                             class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-1 rounded"
                                         >
-                                            Reconnect
+                                            Connect
                                         </button>
                                     </div>
                                 )}
@@ -1680,7 +1974,7 @@
                             {!results && !loading && !networkPreview && (
                                 <div class="flex-grow flex flex-col justify-center items-center text-slate-500 space-y-4">
                                     <i class="fa-solid fa-network-wired text-6xl text-slate-600"></i>
-                                    <p class="text-lg">Step 1: generate or load a network, then configure the model and run the simulation.</p>
+                                    <p class="text-lg">Step 1: build or load a network, then configure the model and run the simulation.</p>
                                 </div>
                             )}
 
@@ -1731,7 +2025,7 @@
                                                     {isPlaying ? <i class="fa-solid fa-pause"></i> : <i class="fa-solid fa-play ml-0.5"></i>}
                                                 </button>
                                                 <div class="flex-grow flex items-center space-x-3 max-w-xl">
-                                                    <span class="text-xs text-slate-400 w-16">Step {currentPlaybackStep}</span>
+                                                    <span class="text-xs text-slate-400 w-24">Simulation step {currentPlaybackStep}</span>
                                                     <input 
                                                         type="range"
                                                         min="0"
@@ -1746,14 +2040,17 @@
                                             
                                             {/* Network Layout Dropdown */}
                                             <div class="flex items-center space-x-2">
-                                                <label class="text-xs text-slate-400 font-semibold uppercase">Layout:</label>
+                                                <label class="text-xs text-slate-400 font-semibold uppercase">Graph layout:</label>
                                                 <select 
                                                     value={networkLayout}
                                                     onChange={(e) => handleLayoutChange(e.target.value)}
                                                     class="bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-200 focus:outline-none cursor-pointer"
                                                 >
-                                                    <option value="preset">Preset (Spring)</option>
-                                                    <option value="cose">Force-Directed</option>
+                                                    <option value="preset">Preset spring layout</option>
+                                                    <option value="cose">Force-directed layout</option>
+                                                    <option value="community_clusters">Community clusters</option>
+                                                    <option value="breadthfirst">Breadth-first</option>
+                                                    <option value="random">Random</option>
                                                     <option value="circle">Circle</option>
                                                     <option value="grid">Grid</option>
                                                     <option value="concentric">Concentric</option>
@@ -1812,14 +2109,17 @@
                                             
                                             {/* Network Layout Dropdown */}
                                             <div class="flex items-center space-x-2">
-                                                <label class="text-xs text-slate-400 font-semibold uppercase">Layout:</label>
+                                                <label class="text-xs text-slate-400 font-semibold uppercase">Graph layout:</label>
                                                 <select 
                                                     value={networkLayout}
                                                     onChange={(e) => handleLayoutChange(e.target.value)}
                                                     class="bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-200 focus:outline-none cursor-pointer"
                                                 >
-                                                    <option value="preset">Preset (Spring)</option>
-                                                    <option value="cose">Force-Directed</option>
+                                                    <option value="preset">Preset spring layout</option>
+                                                    <option value="cose">Force-directed layout</option>
+                                                    <option value="community_clusters">Community clusters</option>
+                                                    <option value="breadthfirst">Breadth-first</option>
+                                                    <option value="random">Random</option>
                                                     <option value="circle">Circle</option>
                                                     <option value="grid">Grid</option>
                                                     <option value="concentric">Concentric</option>
