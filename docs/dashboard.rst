@@ -15,6 +15,8 @@ Main features
 - Select initial epidemic seeds by clicking nodes in the graph preview.
 - Use community-aware graph layouts to highlight structural groups.
 - Visualize trends, opinion evolution, prevalence, and network state.
+- Build custom models with a use-case-aware visual editor that filters the available blocks by model family.
+- Start from example templates for ``SIR``, ``Algorithmic Bias``, ``Majority Rule``, and a coupled starter layout.
 
 Quick start
 ===========
@@ -64,62 +66,73 @@ In the dashboard:
 
 For epidemic models, you can seed the outbreak by clicking nodes in the preview graph. If no nodes are selected, the dashboard uses the ``Initial infected share (%)`` field instead.
 
+Opinion-only custom models now initialize their own status ratios directly, so they do not require an epidemic ``Infected`` class.
+
 Visual Model Builder
 ====================
 
-The dashboard includes an interactive visual programming canvas to build custom compartmental models. This allows modeling complex diffusion scenarios by composing and branching rules using flowcharts.
+The dashboard includes an interactive visual programming canvas to build custom compartmental models. It now separates the builder into use cases so that the palette only exposes blocks that are meaningful for the selected family.
+
+The supported use cases are:
+
+* **Epidemics**: compartmental models such as ``SIR`` and variants based on infection, threshold, and attribute-driven conditions.
+* **Continuous Opinions**: numeric-opinion workflows centered on continuous variables, numerical checks, and conditional routing.
+* **Discrete Opinions**: label-based opinion workflows that favor categorical and stochastic influence blocks.
+* **Coupled / Advanced**: a mixed workspace that exposes all blocks for more expressive custom experiments.
+
+Each use case also provides starter templates so the canvas can be populated with a working example in one click.
 
 Available Blocks
 ----------------
 
-* **Status Node**: Declares a state value.
-  * *Parameters*: ``Identifier/Name`` (alphanumeric name), ``Status Code`` (integer index).
-  * *Example*: Create ``S`` (code 0), ``I`` (code 1), and ``R`` (code 2) statuses for a standard SIR simulation.
+The builder palette is filtered per use case, but the available blocks are:
 
-* **Node Stochastic**: Propagates infection stochastically from matching neighbor statuses.
-  * *Parameters*: ``Transmission Rate (rate)`` (probability in [0, 1]), ``Triggering Status`` (the neighbor status that triggers the check).
-  * *Example*: A rate of ``0.05`` and trigger status ``Infected`` transitions Susceptible to Infected.
+* **Status Node**: declares a compartment state.
+* **Node Stochastic**: propagates a state change stochastically if neighboring nodes match a status.
+* **Node Threshold**: activates a change when the triggering fraction exceeds a threshold.
+* **Edge Stochastic**: evaluates link-level propagation conditions.
+* **Count Down**: implements fixed iteration-based delays.
+* **Node Categorical Attribute**: checks categorical node properties.
+* **Node Numerical Attribute**: performs numerical checks on node attributes.
+* **Node Numerical Variable**: checks a numeric node variable or opinion-like quantity.
+* **Conditional Composition**: composes a condition with true/false branches.
 
-* **Node Threshold**: Activates state change if the fraction of infected neighbors exceeds a threshold.
-  * *Parameters*: ``Threshold`` (float in [0, 1]), ``Triggering Status``.
-  * *Example*: A threshold of ``0.20`` and trigger status ``Infected`` means the node transitions if >=20% of its neighbors are infected.
+The right-hand property panel adapts to the selected block. Parameters are edited in place and the live NDQL preview updates immediately.
 
-* **Edge Stochastic**: Stochastically propagates state change across individual active links.
-  * *Parameters*: ``Threshold`` (float in [0, 1]), ``Triggering Status``.
-  * *Example*: Implements link-level stochastics based on active interaction links.
+Starter templates
+-----------------
 
-* **Count Down**: Implements fixed iteration-based delays.
-  * *Parameters*: ``Count Down Iterations`` (integer >= 1).
-  * *Example*: Recovering after exactly 10 simulation steps.
+The builder includes ready-made templates that can be loaded from the sidebar:
 
-* **Node Categorical Attribute**: Checks categorical node properties from the NetworkX network configuration.
-  * *Parameters*: ``Attribute Name`` (string), ``Value`` (expected string), ``Success Probability`` (probability of passing if attributes match).
-  * *Example*: ``gender`` equals ``female`` with probability ``0.80``.
-
-* **Node Numerical Attribute**: Compares numerical node parameters.
-  * *Parameters*: ``Attribute Name`` (string), ``Operator`` (``==``, ``!=``, ``<``, ``>``, ``<=``, ``>=``, ``IN``), ``Value`` (value to compare, or list range for ``IN``), ``Success Probability``.
-  * *Example*: ``age`` operator ``IN`` value ``18,65`` with probability ``1.0``.
-
-* **Conditional Composition**: Composes logic gates by routing sub-compartments.
-  * *Parameters*: None directly on the node. Connected via wires to ports:
-    * ``cond``: the conditional compartment to evaluate.
-    * ``true``: executed if the condition passes.
-    * ``false``: executed if the condition fails.
-  * *Example*: If ``NodeStochastic`` condition passes, execute ``NodeCategoricalAttribute`` branch, else execute ``NodeNumericalAttribute`` branch.
+* ``SIR`` for epidemics.
+* ``Algorithmic Bias`` for continuous-opinion style layouts.
+* ``Majority Rule`` for discrete-opinion style layouts.
+* ``Coupled Starter`` for mixed epidemic-opinion experiments.
 
 Step-by-Step Instructions
 -------------------------
 
 1. Open the Visual Model Builder canvas from the top navbar.
-2. Clear the canvas or start modifying the default layout.
-3. Click components in the left sidebar to add them to the canvas.
-4. Drag node cards to position them.
-5. Draw connections by dragging from the blue ``out`` handle on the right of any node/compartment to:
+2. Pick a use case in the left sidebar.
+3. Optionally load one of the starter templates.
+4. Clear the canvas or start modifying the loaded layout.
+5. Click components in the left sidebar to add them to the canvas.
+6. Drag node cards to position them.
+7. Draw connections by dragging from the blue ``out`` handle on the right of any node/compartment to:
    * The purple ``in`` handle on the left of target nodes.
    * Named sub-port handles (``cond``, ``true``, ``false``) on a ``ConditionalComposition`` block.
-6. Select any card to configure its parameters in the right sidebar.
-7. Enter a unique model name, then click ``Save & Register Model``.
-8. The compiled model will immediately be listed under the **Custom Models** tab in the dashboard side panel, ready to simulate.
+8. Select any card to configure its parameters in the right sidebar.
+9. Enter a unique model name, then click ``Save & Register Model``.
+10. The compiled model will immediately be listed under the **Custom Models** tab in the dashboard side panel, ready to simulate.
+11. Use the ``Copy`` button above the NDQL preview to copy the generated script text.
+12. Use the download button next to a saved model to retrieve the generated Python source.
+
+Current behavior notes
+----------------------
+
+* Custom opinion starters initialize from the statuses declared in the builder, so they no longer inherit epidemic-only ``Infected`` validation.
+* The builder palettes are filtered by use case to reduce invalid block combinations.
+* The network graph is shown by default only for sufficiently small networks, while larger graphs keep the interface focused on simulation controls and plots.
 
 Screenshots
 ===========
@@ -151,7 +164,18 @@ Visual Model Builder view:
 
    The flowchart canvas for building custom compartmental models.
 
+Builder use cases and starter templates:
+
+.. figure:: _static/dashboard/dashboard-builder-usecases.png
+   :align: center
+   :alt: NDlib dashboard visual builder use case view
+   :width: 95%
+
+   The use-case-aware builder sidebar with filtered blocks and starter templates.
+
 Notes
 =====
 
 The dashboard is a lightweight local service and is meant to complement, not replace, the Python API and the documented visualization modules.
+
+For the full implementation-oriented builder guide, see ``docs/visual_model_builder_opinion_epidemic_guide.md``.

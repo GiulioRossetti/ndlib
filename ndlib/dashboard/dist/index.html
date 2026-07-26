@@ -265,6 +265,11 @@
 
             // Visual Model Builder State
             const [showModelBuilder, setShowModelBuilder] = useState(false);
+            const [builderUseCase, setBuilderUseCase] = useState("epidemics");
+            const [builderTemplateId, setBuilderTemplateId] = useState("sir");
+            const [builderLeftSidebarCollapsed, setBuilderLeftSidebarCollapsed] = useState(false);
+            const [builderRightSidebarCollapsed, setBuilderRightSidebarCollapsed] = useState(false);
+            const [builderZoom, setBuilderZoom] = useState(1);
             const [customModels, setCustomModels] = useState([]);
             const [builderModelName, setBuilderModelName] = useState("MyCustomModel");
             const [builderNodes, setBuilderNodes] = useState([
@@ -281,11 +286,15 @@
                 { status: "Infected", ratio: 0.05 }
             ]);
             const [selectedElement, setSelectedElement] = useState(null);
+            const [selectedNodeIds, setSelectedNodeIds] = useState([]);
             const [linkingSource, setLinkingSource] = useState(null);
             const [tempEdgeEnd, setTempEdgeEnd] = useState(null);
-            const [draggingNodeId, setDraggingNodeId] = useState(null);
-            const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-
+            const [draggingNodes, setDraggingNodes] = useState([]);
+            const [dragAnchor, setDragAnchor] = useState(null);
+            const linkingSourceRef = useRef(null);
+            const builderNodesRef = useRef(builderNodes);
+            const builderEdgesRef = useRef(builderEdges);
+            const builderInitialStatusRef = useRef(builderInitialStatus);
             // Chart & Network refs
             const trendsChartRef = useRef(null);
             const prevalenceChartRef = useRef(null);
@@ -303,6 +312,465 @@
                 { value: "girvan_newman", label: "Girvan-Newman" },
                 { value: "asyn_fluidc", label: "Async Fluid Communities" },
             ];
+
+            const builderTemplates = {
+                sir: {
+                    useCase: "epidemics",
+                    label: "SIR",
+                    description: "Classic susceptible-infected-recovered flow with stochastic infection and recovery.",
+                    modelName: "SIRBuilderModel",
+                    nodes: [
+                        { id: "sir_s", type: "status", x: 80, y: 150, data: { name: "Susceptible", code: 0 } },
+                        { id: "sir_i", type: "status", x: 430, y: 150, data: { name: "Infected", code: 1 } },
+                        { id: "sir_r", type: "status", x: 780, y: 150, data: { name: "Recovered", code: 2 } },
+                        { id: "sir_infect", type: "compartment", x: 230, y: 115, data: { name: "infection", type: "NodeStochastic", params: { rate: 0.05, triggering_status: "Infected" } } },
+                        { id: "sir_recover", type: "compartment", x: 580, y: 115, data: { name: "recovery", type: "NodeStochastic", params: { rate: 0.1, triggering_status: "Infected" } } }
+                    ],
+                    edges: [
+                        { id: "sir_e1", source: "sir_s", target: "sir_infect" },
+                        { id: "sir_e2", source: "sir_infect", target: "sir_i" },
+                        { id: "sir_e3", source: "sir_i", target: "sir_recover" },
+                        { id: "sir_e4", source: "sir_recover", target: "sir_r" }
+                    ],
+                    initialStatus: [
+                        { status: "Susceptible", ratio: 0.95 },
+                        { status: "Infected", ratio: 0.05 },
+                        { status: "Recovered", ratio: 0.0 }
+                    ]
+                },
+                algorithmic_bias: {
+                    useCase: "continuous_opinions",
+                    label: "Algorithmic Bias",
+                    description: "Continuous-opinion starter that uses numeric opinion thresholds and influence blocks.",
+                    modelName: "AlgorithmicBiasStarter",
+                    nodes: [
+                        { id: "ab_low", type: "status", x: 90, y: 150, data: { name: "LowOpinion", code: 0 } },
+                        { id: "ab_high", type: "status", x: 460, y: 150, data: { name: "HighOpinion", code: 1 } },
+                        { id: "ab_gate", type: "compartment", x: 250, y: 110, data: { name: "opinion_gate", type: "NodeNumericalVariable", params: { var: "opinion", var_type: "ATTRIBUTE", value: 0.5, op: ">=", probability: 1.0 } } },
+                        { id: "ab_shift", type: "compartment", x: 620, y: 110, data: { name: "opinion_shift", type: "NodeStochastic", params: { rate: 0.15, triggering_status: "HighOpinion" } } },
+                        { id: "ab_lock", type: "compartment", x: 620, y: 250, data: { name: "opinion_lock", type: "NodeStochastic", params: { rate: 0.15, triggering_status: "LowOpinion" } } },
+                        { id: "ab_mix", type: "compartment", x: 400, y: 260, data: { name: "opinion_mix", type: "ConditionalComposition", params: { condition: "opinion_gate", first_branch: "opinion_shift", second_branch: "opinion_lock" } } }
+                    ],
+                    edges: [
+                        { id: "ab_e1", source: "ab_low", target: "ab_gate" },
+                        { id: "ab_e2", source: "ab_gate", target: "ab_mix", targetPort: "condition" },
+                        { id: "ab_e3", source: "ab_shift", target: "ab_mix", targetPort: "if_true" },
+                        { id: "ab_e4", source: "ab_lock", target: "ab_mix", targetPort: "if_false" },
+                        { id: "ab_e5", source: "ab_mix", target: "ab_high" },
+                        { id: "ab_e6", source: "ab_high", target: "ab_lock" }
+                    ],
+                    initialStatus: [
+                        { status: "LowOpinion", ratio: 0.5 },
+                        { status: "HighOpinion", ratio: 0.5 }
+                    ]
+                },
+                majority_rule: {
+                    useCase: "discrete_opinions",
+                    label: "Majority Rule",
+                    description: "Discrete-label starter that emphasizes categorical influence and consensus routing.",
+                    modelName: "MajorityRuleStarter",
+                    nodes: [
+                        { id: "mr_yes", type: "status", x: 80, y: 150, data: { name: "Agree", code: 0 } },
+                        { id: "mr_no", type: "status", x: 460, y: 150, data: { name: "Disagree", code: 1 } },
+                        { id: "mr_gate", type: "compartment", x: 250, y: 110, data: { name: "stance_gate", type: "NodeCategoricalAttribute", params: { attribute: "stance", value: "majority", probability: 1.0 } } },
+                        { id: "mr_support", type: "compartment", x: 620, y: 110, data: { name: "support", type: "NodeStochastic", params: { rate: 0.2, triggering_status: "Agree" } } },
+                        { id: "mr_pushback", type: "compartment", x: 620, y: 250, data: { name: "pushback", type: "NodeStochastic", params: { rate: 0.2, triggering_status: "Disagree" } } }
+                    ],
+                    edges: [
+                        { id: "mr_e1", source: "mr_yes", target: "mr_gate" },
+                        { id: "mr_e2", source: "mr_gate", target: "mr_support" },
+                        { id: "mr_e3", source: "mr_support", target: "mr_no" },
+                        { id: "mr_e4", source: "mr_no", target: "mr_pushback" },
+                        { id: "mr_e5", source: "mr_pushback", target: "mr_yes" }
+                    ],
+                    initialStatus: [
+                        { status: "Agree", ratio: 0.5 },
+                        { status: "Disagree", ratio: 0.5 }
+                    ]
+                },
+                coupled: {
+                    useCase: "coupled",
+                    label: "Coupled / Advanced",
+                    description: "Mixed epidemic and opinion blocks for more expressive custom dynamics.",
+                    modelName: "CoupledStarterModel",
+                    nodes: [
+                        { id: "cp_s", type: "status", x: 80, y: 150, data: { name: "Susceptible", code: 0 } },
+                        { id: "cp_i", type: "status", x: 420, y: 150, data: { name: "Infected", code: 1 } },
+                        { id: "cp_r", type: "status", x: 760, y: 150, data: { name: "Recovered", code: 2 } },
+                        { id: "cp_opinion", type: "compartment", x: 250, y: 110, data: { name: "opinion_gate", type: "NodeNumericalVariable", params: { var: "opinion", var_type: "ATTRIBUTE", value: 0.4, op: ">", probability: 1.0 } } },
+                        { id: "cp_infect", type: "compartment", x: 600, y: 110, data: { name: "infection", type: "NodeStochastic", params: { rate: 0.05, triggering_status: "Infected" } } },
+                        { id: "cp_recover", type: "compartment", x: 600, y: 250, data: { name: "recovery", type: "NodeStochastic", params: { rate: 0.08, triggering_status: "Infected" } } },
+                        { id: "cp_mix", type: "compartment", x: 400, y: 260, data: { name: "coupling", type: "ConditionalComposition", params: { condition: "opinion_gate", first_branch: "infection", second_branch: "recovery" } } }
+                    ],
+                    edges: [
+                        { id: "cp_e1", source: "cp_s", target: "cp_opinion" },
+                        { id: "cp_e2", source: "cp_opinion", target: "cp_mix", targetPort: "condition" },
+                        { id: "cp_e3", source: "cp_infect", target: "cp_mix", targetPort: "if_true" },
+                        { id: "cp_e4", source: "cp_recover", target: "cp_mix", targetPort: "if_false" },
+                        { id: "cp_e5", source: "cp_mix", target: "cp_i" },
+                        { id: "cp_e6", source: "cp_i", target: "cp_recover" },
+                        { id: "cp_e7", source: "cp_recover", target: "cp_r" }
+                    ],
+                    initialStatus: [
+                        { status: "Susceptible", ratio: 0.9 },
+                        { status: "Infected", ratio: 0.1 },
+                        { status: "Recovered", ratio: 0.0 }
+                    ]
+                }
+            };
+
+            const builderUseCaseCatalog = {
+                epidemics: {
+                    label: "Epidemics",
+                    description: "Status-based epidemic workflows with stochastic, threshold, and attribute-driven compartments.",
+                    templates: ["sir"],
+                    palette: ["status", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "ConditionalComposition"]
+                },
+                continuous_opinions: {
+                    label: "Continuous Opinions",
+                    description: "Numeric opinion-oriented blocks centered on thresholds, numeric attributes, and conditional routing.",
+                    templates: ["algorithmic_bias"],
+                    palette: ["status", "NodeNumericalAttribute", "NodeNumericalVariable", "NodeThreshold", "CountDown", "ConditionalComposition"]
+                },
+                discrete_opinions: {
+                    label: "Discrete Opinions",
+                    description: "Label-based opinion flows with categorical and stochastic influence blocks.",
+                    templates: ["majority_rule"],
+                    palette: ["status", "NodeStochastic", "NodeCategoricalAttribute", "NodeNumericalAttribute", "CountDown", "ConditionalComposition"]
+                },
+                coupled: {
+                    label: "Coupled / Advanced",
+                    description: "All available blocks for mixed epidemic-opinion experiments and custom couplings.",
+                    templates: ["coupled", "sir", "algorithmic_bias", "majority_rule"],
+                    palette: ["status", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "NodeNumericalVariable", "ConditionalComposition"]
+                }
+            };
+
+            const builderAccentColors = {
+                sky: { color: "#38bdf8", softBg: "rgba(56, 189, 248, 0.12)", softBorder: "rgba(56, 189, 248, 0.35)" },
+                purple: { color: "#c084fc", softBg: "rgba(168, 85, 247, 0.12)", softBorder: "rgba(168, 85, 247, 0.35)" },
+                pink: { color: "#f472b6", softBg: "rgba(236, 72, 153, 0.12)", softBorder: "rgba(236, 72, 153, 0.35)" },
+                emerald: { color: "#34d399", softBg: "rgba(16, 185, 129, 0.12)", softBorder: "rgba(16, 185, 129, 0.35)" },
+                cyan: { color: "#22d3ee", softBg: "rgba(34, 211, 238, 0.12)", softBorder: "rgba(34, 211, 238, 0.35)" }
+            };
+
+            const getBuilderCanvasPoint = (e) => {
+                const canvas = document.getElementById("builder-canvas")?.getBoundingClientRect();
+                if (!canvas) return null;
+                return {
+                    x: (e.clientX - canvas.left) / builderZoom,
+                    y: (e.clientY - canvas.top) / builderZoom
+                };
+            };
+
+            const clearBuilderInteractionState = () => {
+                setDraggingNodes([]);
+                setDragAnchor(null);
+                setLinkingSource(null);
+                setTempEdgeEnd(null);
+                linkingSourceRef.current = null;
+            };
+
+            useEffect(() => {
+                builderNodesRef.current = builderNodes;
+            }, [builderNodes]);
+
+            useEffect(() => {
+                builderEdgesRef.current = builderEdges;
+            }, [builderEdges]);
+
+            useEffect(() => {
+                builderInitialStatusRef.current = builderInitialStatus;
+            }, [builderInitialStatus]);
+
+            const clearBuilderSelection = () => {
+                setSelectedNodeIds([]);
+                setSelectedElement(null);
+            };
+
+            const focusBuilderNode = (nodeId) => {
+                const node = builderNodes.find(n => n.id === nodeId) || null;
+                if (!node) return;
+                setSelectedNodeIds([nodeId]);
+                setSelectedElement(node);
+            };
+
+            const toggleBuilderNodeSelection = (nodeId) => {
+                const node = builderNodes.find(n => n.id === nodeId) || null;
+                if (!node) return;
+                setSelectedNodeIds(prev => {
+                    const exists = prev.includes(nodeId);
+                    const next = exists ? prev.filter(id => id !== nodeId) : [...prev, nodeId];
+                    if (!exists || next.length === 0) {
+                        setSelectedElement(exists ? (next.length ? builderNodes.find(n => n.id === next[next.length - 1]) || null : null) : node);
+                    } else {
+                        setSelectedElement(node);
+                    }
+                    return next;
+                });
+            };
+
+            const isNodeMultiSelected = (nodeId) => selectedNodeIds.includes(nodeId);
+
+            const clampBuilderZoom = (value) => Math.min(1.75, Math.max(0.5, Math.round(value * 100) / 100));
+            const zoomBuilderCanvas = (delta) => {
+                setBuilderZoom(prev => clampBuilderZoom(prev + delta));
+            };
+
+            const getBuilderTemplate = (templateId) => builderTemplates[templateId] || builderTemplates.sir;
+
+            const loadBuilderTemplate = (templateId, overrideUseCase = null) => {
+                const template = getBuilderTemplate(templateId);
+                clearBuilderInteractionState();
+                clearBuilderSelection();
+                setBuilderUseCase(overrideUseCase || template.useCase);
+                setBuilderTemplateId(templateId);
+                setBuilderModelName(template.modelName);
+                setBuilderNodes(template.nodes.map(node => ({
+                    ...node,
+                    data: {
+                        ...node.data,
+                        params: node.data && node.data.params ? { ...node.data.params } : undefined
+                    }
+                })));
+                setBuilderEdges(template.edges.map(edge => ({ ...edge })));
+                setBuilderInitialStatus(template.initialStatus.map(item => ({ ...item })));
+                autoLayoutBuilder(template.nodes, template.edges);
+            };
+
+            const queueBuilderTemplateReload = (templateId, useCase) => {
+                clearBuilderInteractionState();
+                clearBuilderSelection();
+                setShowModelBuilder(true);
+                loadBuilderTemplate(templateId, useCase);
+            };
+
+            const resolveBuilderDropTarget = (event) => {
+                const element = event?.target?.closest?.("[data-builder-handle-type], [data-builder-node-id]")
+                    || (typeof document !== "undefined" && typeof event?.clientX === "number" && typeof event?.clientY === "number"
+                        ? document.elementFromPoint(event.clientX, event.clientY)
+                        : null);
+                if (!element) return null;
+
+                const handleEl = element.closest?.("[data-builder-handle-type]");
+                const nodeEl = element.closest?.("[data-builder-node-id]");
+                const targetNodeId = nodeEl?.dataset?.builderNodeId || handleEl?.dataset?.builderNodeId || null;
+                if (!targetNodeId) return null;
+
+                const handleType = handleEl?.dataset?.builderHandleType || null;
+                return {
+                    targetNodeId,
+                    targetPort: handleType || null
+                };
+            };
+
+            const finalizeBuilderLinkFromEvent = (event, source = linkingSourceRef.current || linkingSource) => {
+                if (!source) return false;
+                const target = resolveBuilderDropTarget(event);
+                if (!target) return false;
+
+                const targetNode = builderNodesRef.current.find(n => n.id === target.targetNodeId);
+                if (!targetNode) return false;
+
+                if (target.targetPort) {
+                    return finalizeBuilderLink(source, target.targetNodeId, target.targetPort);
+                }
+
+                let targetPort = "in";
+                if (targetNode.data.type === "ConditionalComposition") {
+                    const liveEdges = builderEdgesRef.current || builderEdges;
+                    const hasCond = liveEdges.some(edge => edge.target === target.targetNodeId && edge.targetPort === "condition");
+                    const hasTrue = liveEdges.some(edge => edge.target === target.targetNodeId && edge.targetPort === "if_true");
+                    if (!hasCond) targetPort = "condition";
+                    else if (!hasTrue) targetPort = "if_true";
+                    else targetPort = "if_false";
+                }
+
+                return finalizeBuilderLink(source, target.targetNodeId, targetPort);
+            };
+
+            useEffect(() => {
+                const handleGlobalPointerUp = (event) => {
+                    finalizeBuilderLinkFromEvent(event);
+                    clearBuilderInteractionState();
+                };
+                window.addEventListener("mouseup", handleGlobalPointerUp);
+                window.addEventListener("pointerup", handleGlobalPointerUp);
+                window.addEventListener("blur", handleGlobalPointerUp);
+                return () => {
+                    window.removeEventListener("mouseup", handleGlobalPointerUp);
+                    window.removeEventListener("pointerup", handleGlobalPointerUp);
+                    window.removeEventListener("blur", handleGlobalPointerUp);
+                };
+            }, []);
+
+            const autoLayoutBuilder = (nodes = builderNodes, edges = builderEdges) => {
+                if (!Array.isArray(nodes) || nodes.length === 0) return;
+
+                const nodeMap = new Map(nodes.map(node => [node.id, node]));
+                const incomingCounts = new Map(nodes.map(node => [node.id, 0]));
+                const outgoing = new Map(nodes.map(node => [node.id, []]));
+
+                edges.forEach(edge => {
+                    if (!nodeMap.has(edge.source) || !nodeMap.has(edge.target)) {
+                        return;
+                    }
+                    incomingCounts.set(edge.target, (incomingCounts.get(edge.target) || 0) + 1);
+                    outgoing.get(edge.source).push(edge.target);
+                });
+
+                const levels = new Map();
+                const queue = [];
+
+                nodes.forEach(node => {
+                    if ((incomingCounts.get(node.id) || 0) === 0) {
+                        levels.set(node.id, node.type === "status" ? 0 : 1);
+                        queue.push(node.id);
+                    }
+                });
+
+                if (queue.length === 0) {
+                    nodes.forEach(node => {
+                        levels.set(node.id, node.type === "status" ? 0 : 1);
+                        queue.push(node.id);
+                    });
+                }
+
+                while (queue.length > 0) {
+                    const sourceId = queue.shift();
+                    const sourceLevel = levels.get(sourceId) || 0;
+
+                    (outgoing.get(sourceId) || []).forEach(targetId => {
+                        const nextLevel = sourceLevel + 1;
+                        if (!levels.has(targetId)) {
+                            levels.set(targetId, nextLevel);
+                            queue.push(targetId);
+                        }
+                    });
+                }
+
+                const grouped = new Map();
+                nodes.forEach(node => {
+                    const level = levels.has(node.id) ? levels.get(node.id) : (node.type === "status" ? 0 : 1);
+                    if (!grouped.has(level)) grouped.set(level, []);
+                    grouped.get(level).push(node);
+                });
+
+                const sortedLevels = Array.from(grouped.keys()).sort((a, b) => a - b);
+                const xGap = 260;
+                const yGap = 150;
+                const startX = 80;
+                const centerY = 220;
+
+                const positionedNodes = nodes.map(node => ({ ...node }));
+
+                sortedLevels.forEach((level, levelIndex) => {
+                    const levelNodes = grouped.get(level).slice().sort((a, b) => {
+                        const aName = String(a.data?.name || a.id);
+                        const bName = String(b.data?.name || b.id);
+                        return aName.localeCompare(bName);
+                    });
+                    const totalHeight = (levelNodes.length - 1) * yGap;
+                    const baseY = centerY - totalHeight / 2;
+
+                    levelNodes.forEach((node, index) => {
+                        const targetNode = positionedNodes.find(n => n.id === node.id);
+                        if (targetNode) {
+                            targetNode.x = startX + levelIndex * xGap;
+                            targetNode.y = Math.max(70, baseY + index * yGap);
+                        }
+                    });
+                });
+
+                setBuilderNodes(positionedNodes);
+            };
+
+            const getVisibleBuilderBlocks = () => {
+                const allowed = new Set(builderUseCaseCatalog[builderUseCase]?.palette || []);
+                return [
+                    {
+                        id: "status",
+                        type: "status",
+                        label: "Status Node",
+                        description: "Declares a compartment state",
+                        icon: "fa-circle",
+                        accent: "sky",
+                        onClick: addStatusNode
+                    },
+                    {
+                        id: "NodeStochastic",
+                        type: "compartment",
+                        label: "Node Stochastic",
+                        description: "Stochastic neighbor propagation",
+                        icon: "fa-bolt",
+                        accent: "purple",
+                        onClick: () => addCompartmentNode("NodeStochastic")
+                    },
+                    {
+                        id: "NodeThreshold",
+                        type: "compartment",
+                        label: "Node Threshold",
+                        description: "Fraction-based cascading trigger",
+                        icon: "fa-chart-pie",
+                        accent: "purple",
+                        onClick: () => addCompartmentNode("NodeThreshold")
+                    },
+                    {
+                        id: "EdgeStochastic",
+                        type: "compartment",
+                        label: "Edge Stochastic",
+                        description: "Link-level infection trigger",
+                        icon: "fa-share-nodes",
+                        accent: "purple",
+                        onClick: () => addCompartmentNode("EdgeStochastic")
+                    },
+                    {
+                        id: "CountDown",
+                        type: "compartment",
+                        label: "Count Down",
+                        description: "Fixed iteration duration delay",
+                        icon: "fa-hourglass-half",
+                        accent: "purple",
+                        onClick: () => addCompartmentNode("CountDown")
+                    },
+                    {
+                        id: "NodeCategoricalAttribute",
+                        type: "compartment",
+                        label: "Node Categorical",
+                        description: "Categorical opinion or attribute comparison",
+                        icon: "fa-tags",
+                        accent: "pink",
+                        onClick: () => addCompartmentNode("NodeCategoricalAttribute")
+                    },
+                    {
+                        id: "NodeNumericalAttribute",
+                        type: "compartment",
+                        label: "Node Numerical",
+                        description: "Numerical attribute condition",
+                        icon: "fa-calculator",
+                        accent: "pink",
+                        onClick: () => addCompartmentNode("NodeNumericalAttribute")
+                    },
+                    {
+                        id: "NodeNumericalVariable",
+                        type: "compartment",
+                        label: "Node Numeric Variable",
+                        description: "Numeric opinion or variable test",
+                        icon: "fa-wave-square",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("NodeNumericalVariable")
+                    },
+                    {
+                        id: "ConditionalComposition",
+                        type: "compartment",
+                        label: "Conditional",
+                        description: "IF-THEN-ELSE composition",
+                        icon: "fa-code-fork",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("ConditionalComposition")
+                    }
+                ].filter(block => allowed.has(block.id));
+            };
 
             const clearPlayState = () => {
                 setIsPlaying(false);
@@ -410,6 +878,7 @@
                 setSelectedModelName(name);
                 const model = modelsList[name];
                 if (!model) return;
+                setSelectedCategory(model.category || selectedCategory);
 
                 // Build default parameters
                 const defaults = {};
@@ -427,10 +896,11 @@
                 });
 
                 // Ensure initial infection fraction is set
-                if (model.parameters.model["fraction_infected"] && defaults["fraction_infected"] === undefined) {
+                if (model.category === "Epidemics" && model.parameters.model["fraction_infected"] && defaults["fraction_infected"] === undefined) {
                     defaults["fraction_infected"] = 0.05;
                 }
-                if (model.discrete_state !== false &&
+                if (model.category === "Epidemics" &&
+                    model.discrete_state !== false &&
                     defaults["fraction_infected"] === undefined &&
                     defaults["percentage_infected"] === undefined) {
                     defaults["percentage_infected"] = 5;
@@ -1411,6 +1881,224 @@
                 downloadAnchor.remove();
             };
 
+            const downloadBuilderPipelineImage = () => {
+                if (!builderNodes.length) {
+                    alert("There is no pipeline to export.");
+                    return;
+                }
+
+                const nodeWidths = { status: 140, compartment: 180 };
+                const nodeHeights = { status: 78, compartment: 88, conditional: 108 };
+                const margin = 60;
+                const extraRight = 140;
+                const extraBottom = 100;
+
+                const extents = builderNodes.reduce((acc, node) => {
+                    const width = nodeWidths[node.type] || 180;
+                    const height = node.type === "compartment" && node.data.type === "ConditionalComposition"
+                        ? nodeHeights.conditional
+                        : (nodeHeights[node.type] || 88);
+                    acc.minX = Math.min(acc.minX, node.x);
+                    acc.minY = Math.min(acc.minY, node.y);
+                    acc.maxX = Math.max(acc.maxX, node.x + width);
+                    acc.maxY = Math.max(acc.maxY, node.y + height);
+                    return acc;
+                }, { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
+
+                const width = Math.max(900, Math.ceil(extents.maxX - extents.minX + margin * 2 + extraRight));
+                const height = Math.max(600, Math.ceil(extents.maxY - extents.minY + margin * 2 + extraBottom));
+                const offsetX = margin - extents.minX;
+                const offsetY = margin - extents.minY;
+
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) return;
+
+                const roundRect = (x, y, w, h, r) => {
+                    const radius = Math.min(r, w / 2, h / 2);
+                    ctx.beginPath();
+                    ctx.moveTo(x + radius, y);
+                    ctx.lineTo(x + w - radius, y);
+                    ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+                    ctx.lineTo(x + w, y + h - radius);
+                    ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+                    ctx.lineTo(x + radius, y + h);
+                    ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+                    ctx.lineTo(x, y + radius);
+                    ctx.quadraticCurveTo(x, y, x + radius, y);
+                    ctx.closePath();
+                };
+
+                ctx.fillStyle = isDarkMode ? "#020617" : "#f8fafc";
+                ctx.fillRect(0, 0, width, height);
+
+                ctx.fillStyle = isDarkMode ? "#e2e8f0" : "#0f172a";
+                ctx.font = "600 18px Outfit, sans-serif";
+                ctx.fillText(`${builderModelName} Pipeline`, 24, 32);
+                ctx.font = "12px Outfit, sans-serif";
+                ctx.fillStyle = isDarkMode ? "#94a3b8" : "#475569";
+                ctx.fillText(`Use case: ${builderUseCaseCatalog[builderUseCase]?.label || builderUseCase}`, 24, 52);
+
+                const drawArrow = (x, y, angle, color) => {
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(angle);
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(-10, -5);
+                    ctx.lineTo(-10, 5);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                };
+
+                builderEdges.forEach(edge => {
+                    const fromNode = builderNodes.find(n => n.id === edge.source);
+                    const toNode = builderNodes.find(n => n.id === edge.target);
+                    if (!fromNode || !toNode) return;
+
+                    const fromWidth = nodeWidths[fromNode.type] || 180;
+                    const toWidth = nodeWidths[toNode.type] || 180;
+                    const x1 = fromNode.x + fromWidth + offsetX;
+                    const y1 = fromNode.y + 39 + offsetY;
+                    const x2 = toNode.x + offsetX;
+                    let y2 = toNode.y + 39 + offsetY;
+                    if (toNode.type === "compartment" && toNode.data.type === "ConditionalComposition") {
+                        if (edge.targetPort === "condition") y2 = toNode.y + 43 + offsetY;
+                        else if (edge.targetPort === "if_true") y2 = toNode.y + 63 + offsetY;
+                        else if (edge.targetPort === "if_false") y2 = toNode.y + 83 + offsetY;
+                    }
+
+                    const dx = Math.abs(x2 - x1) * 0.5;
+                    const cp1x = x1 + dx;
+                    const cp2x = x2 - dx;
+
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.bezierCurveTo(cp1x, y1, cp2x, y2, x2, y2);
+                    ctx.strokeStyle = "#4f46e5";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    const angle = Math.atan2(y2 - y1, x2 - x1);
+                    drawArrow(x2, y2, angle, "#4f46e5");
+                });
+
+                builderNodes.forEach(node => {
+                    const widthNode = nodeWidths[node.type] || 180;
+                    const heightNode = node.type === "compartment" && node.data.type === "ConditionalComposition"
+                        ? nodeHeights.conditional
+                        : (nodeHeights[node.type] || 88);
+                    const x = node.x + offsetX;
+                    const y = node.y + offsetY;
+                    const selected = selectedNodeIds.includes(node.id);
+
+                    ctx.save();
+                    ctx.fillStyle = node.type === "status"
+                        ? (isDarkMode ? "#0f172a" : "#ffffff")
+                        : (isDarkMode ? "#111827" : "#ffffff");
+                    ctx.strokeStyle = selected ? "#6366f1" : (isDarkMode ? "#334155" : "#cbd5e1");
+                    ctx.lineWidth = selected ? 3 : 1.5;
+                    roundRect(x, y, widthNode, heightNode, 12);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = node.type === "status"
+                        ? (isDarkMode ? "#0ea5e9" : "#0284c7")
+                            : node.data.type === "ConditionalComposition"
+                            ? (isDarkMode ? "#10b981" : "#059669")
+                            : (isDarkMode ? "#a855f7" : "#7c3aed");
+                    roundRect(x, y, widthNode, 18, 12);
+                    ctx.fill();
+
+                    ctx.fillStyle = isDarkMode ? "#f8fafc" : "#0f172a";
+                    ctx.font = "700 10px Outfit, sans-serif";
+                    ctx.fillText(node.type === "status" ? "Status Node" : node.data.type === "ConditionalComposition" ? "Conditional" : "Compartment", x + 10, y + 12);
+
+                    ctx.font = "700 12px Outfit, sans-serif";
+                    const title = String(node.data.name || node.id);
+                    ctx.fillText(title.slice(0, 20), x + 10, y + 42);
+                    ctx.font = "10px Outfit, sans-serif";
+                    ctx.fillStyle = isDarkMode ? "#94a3b8" : "#475569";
+                    if (node.type === "status") {
+                        ctx.fillText(`Code ${node.data.code}`, x + 10, y + 60);
+                    } else {
+                        ctx.fillText(String(node.data.type || ""), x + 10, y + 60);
+                    }
+                    ctx.restore();
+                });
+
+                const safeName = (builderModelName || "builder_pipeline").replace(/[^A-Za-z0-9_]/g, "_");
+                const downloadAnchor = document.createElement("a");
+                downloadAnchor.href = canvas.toDataURL("image/png");
+                downloadAnchor.download = `${safeName}_pipeline.png`;
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+            };
+
+            const downloadTextFile = (filename, content, mimeType = "text/plain;charset=utf-8") => {
+                const blob = new Blob([content], { type: mimeType });
+                const objectUrl = URL.createObjectURL(blob);
+                const downloadAnchor = document.createElement("a");
+                downloadAnchor.href = objectUrl;
+                downloadAnchor.download = filename;
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+                URL.revokeObjectURL(objectUrl);
+            };
+
+            const downloadCustomModelPython = (modelName) => {
+                const safeName = (modelName || "").replace(/[^A-Za-z0-9_]/g, "");
+                if (!safeName) {
+                    alert("Invalid model name.");
+                    return;
+                }
+
+                const downloadUrl = `${apiBaseUrl}/api/custom-models/download?name=${encodeURIComponent(safeName)}`;
+                const downloadAnchor = document.createElement("a");
+                downloadAnchor.href = downloadUrl;
+                downloadAnchor.download = `${safeName}.py`;
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+            };
+
+            const copyNDQLToClipboard = async () => {
+                const ndql = getLiveNDQLPreview();
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(ndql);
+                    } else {
+                        const fallbackArea = document.createElement("textarea");
+                        fallbackArea.value = ndql;
+                        fallbackArea.style.position = "fixed";
+                        fallbackArea.style.opacity = "0";
+                        document.body.appendChild(fallbackArea);
+                        fallbackArea.focus();
+                        fallbackArea.select();
+                        document.execCommand("copy");
+                        fallbackArea.remove();
+                    }
+                    alert("NDQL script copied to clipboard.");
+                } catch (err) {
+                    const fallbackArea = document.createElement("textarea");
+                    fallbackArea.value = ndql;
+                    fallbackArea.style.position = "fixed";
+                    fallbackArea.style.opacity = "0";
+                    document.body.appendChild(fallbackArea);
+                    fallbackArea.focus();
+                    fallbackArea.select();
+                    document.execCommand("copy");
+                    fallbackArea.remove();
+                    alert("NDQL script copied to clipboard.");
+                }
+            };
+
             const fetchCustomModels = (baseUrl = apiBaseUrl) => {
                 fetch(baseUrl + "/api/custom-models")
                     .then(res => res.json())
@@ -1429,26 +2117,31 @@
             }, [showModelBuilder]);
 
             const saveCustomModel = () => {
+                const liveNodes = builderNodesRef.current || builderNodes;
+                const liveEdges = builderEdgesRef.current || builderEdges;
+                const liveInitialStatus = builderInitialStatusRef.current || builderInitialStatus;
                 const payload = {
                     name: builderModelName,
-                    statuses: builderNodes.filter(n => n.type === "status").map(n => ({
+                    use_case: builderUseCase,
+                    template_id: builderTemplateId,
+                    statuses: liveNodes.filter(n => n.type === "status").map(n => ({
                         name: n.data.name,
                         code: n.data.code
                     })),
-                    compartments: builderNodes.filter(n => n.type === "compartment").map(n => {
+                    compartments: liveNodes.filter(n => n.type === "compartment").map(n => {
                         const cData = {
                             name: n.data.name,
                             type: n.data.type,
                             params: { ...n.data.params }
                         };
                         if (n.data.type === "ConditionalComposition") {
-                            const condEdge = builderEdges.find(e => e.target === n.id && e.targetPort === "condition");
-                            const trueEdge = builderEdges.find(e => e.target === n.id && e.targetPort === "if_true");
-                            const falseEdge = builderEdges.find(e => e.target === n.id && e.targetPort === "if_false");
+                            const condEdge = liveEdges.find(e => e.target === n.id && e.targetPort === "condition");
+                            const trueEdge = liveEdges.find(e => e.target === n.id && e.targetPort === "if_true");
+                            const falseEdge = liveEdges.find(e => e.target === n.id && e.targetPort === "if_false");
                             
-                            const condNode = condEdge ? builderNodes.find(node => node.id === condEdge.source) : null;
-                            const trueNode = trueEdge ? builderNodes.find(node => node.id === trueEdge.source) : null;
-                            const falseNode = falseEdge ? builderNodes.find(node => node.id === falseEdge.source) : null;
+                            const condNode = condEdge ? liveNodes.find(node => node.id === condEdge.source) : null;
+                            const trueNode = trueEdge ? liveNodes.find(node => node.id === trueEdge.source) : null;
+                            const falseNode = falseEdge ? liveNodes.find(node => node.id === falseEdge.source) : null;
                             
                             cData.params.condition = condNode ? condNode.data.name : "";
                             cData.params.first_branch = trueNode ? trueNode.data.name : "";
@@ -1457,20 +2150,20 @@
                         return cData;
                     }),
                     rules: [],
-                    initial_status: builderInitialStatus,
-                    nodes: builderNodes,
-                    edges: builderEdges
+                    initial_status: liveInitialStatus,
+                    nodes: liveNodes,
+                    edges: liveEdges
                 };
 
-                builderNodes.filter(n => n.type === "compartment").forEach(compNode => {
-                    const incoming = builderEdges.filter(e => e.target === compNode.id && (e.targetPort === "in" || !e.targetPort));
-                    const outgoing = builderEdges.filter(e => e.source === compNode.id);
+                liveNodes.filter(n => n.type === "compartment").forEach(compNode => {
+                    const incoming = liveEdges.filter(e => e.target === compNode.id && (e.targetPort === "in" || !e.targetPort));
+                    const outgoing = liveEdges.filter(e => e.source === compNode.id);
                     
                     incoming.forEach(incEdge => {
-                        const fromNode = builderNodes.find(n => n.id === incEdge.source);
+                        const fromNode = liveNodes.find(n => n.id === incEdge.source);
                         if (fromNode && fromNode.type === "status") {
                             outgoing.forEach(outEdge => {
-                                const toNode = builderNodes.find(n => n.id === outEdge.target);
+                                const toNode = liveNodes.find(n => n.id === outEdge.target);
                                 if (toNode && toNode.type === "status") {
                                     payload.rules.push({
                                         from: fromNode.data.name,
@@ -1528,11 +2221,18 @@
 
             const loadCustomModelLayout = (modelData) => {
                 if (modelData.nodes && modelData.edges) {
+                    if (modelData.use_case && builderUseCaseCatalog[modelData.use_case]) {
+                        setBuilderUseCase(modelData.use_case);
+                    }
+                    if (modelData.template_id && builderTemplates[modelData.template_id]) {
+                        setBuilderTemplateId(modelData.template_id);
+                    }
                     setBuilderModelName(modelData.name);
                     setBuilderNodes(modelData.nodes);
                     setBuilderEdges(modelData.edges);
                     setBuilderInitialStatus(modelData.initial_status || []);
-                    setSelectedElement(null);
+                    clearBuilderSelection();
+                    clearBuilderInteractionState();
                 } else {
                     alert("This model has no saved visual layout.");
                 }
@@ -1611,46 +2311,71 @@
             };
 
             const handleCanvasMouseMove = (e) => {
-                const canvas = document.getElementById("builder-canvas")?.getBoundingClientRect();
-                if (!canvas) return;
-                const mouseX = e.clientX - canvas.left;
-                const mouseY = e.clientY - canvas.top;
+                const point = getBuilderCanvasPoint(e);
+                if (!point) return;
 
-                if (draggingNodeId !== null) {
+                if (draggingNodes.length > 0 && dragAnchor) {
+                    const deltaX = point.x - dragAnchor.x;
+                    const deltaY = point.y - dragAnchor.y;
+                    const draggingMap = new Map(draggingNodes.map(item => [item.id, item]));
                     setBuilderNodes(prev => prev.map(node => {
-                        if (node.id === draggingNodeId) {
-                            return {
-                                ...node,
-                                x: Math.max(10, Math.min(2000, mouseX - dragOffset.x)),
-                                y: Math.max(10, Math.min(2000, mouseY - dragOffset.y))
-                            };
-                        }
-                        return node;
+                        const dragItem = draggingMap.get(node.id);
+                        if (!dragItem) return node;
+                        return {
+                            ...node,
+                            x: Math.max(10, Math.min(4000, dragItem.startX + deltaX)),
+                            y: Math.max(10, Math.min(4000, dragItem.startY + deltaY))
+                        };
                     }));
                 }
 
                 if (linkingSource !== null) {
-                    setTempEdgeEnd({ x: mouseX, y: mouseY });
+                    setTempEdgeEnd({ x: point.x, y: point.y });
                 }
             };
 
-            const handleCanvasMouseUp = () => {
-                setDraggingNodeId(null);
-                setLinkingSource(null);
-                setTempEdgeEnd(null);
+            const handleCanvasMouseUp = (e) => {
+                finalizeBuilderLinkFromEvent(e);
+                clearBuilderInteractionState();
             };
 
             const startNodeDrag = (e, id) => {
                 if (e.target.closest('.handle')) return;
                 e.preventDefault();
-                const rect = e.currentTarget.getBoundingClientRect();
-                const offsetX = e.clientX - rect.left;
-                const offsetY = e.clientY - rect.top;
-                setDraggingNodeId(id);
-                setDragOffset({ x: offsetX, y: offsetY });
-                
                 const node = builderNodes.find(n => n.id === id);
+                if (!node) return;
+
+                const isAdditive = e.shiftKey || e.metaKey || e.ctrlKey;
+                const alreadySelected = selectedNodeIds.includes(id);
+                const dragIds = alreadySelected && selectedNodeIds.length > 1 ? selectedNodeIds : [id];
+                const dragState = dragIds
+                    .map(nodeId => {
+                        const dragNode = builderNodes.find(n => n.id === nodeId);
+                        return dragNode ? { id: nodeId, startX: dragNode.x, startY: dragNode.y } : null;
+                    })
+                    .filter(Boolean);
+
+                if (isAdditive) {
+                    if (!alreadySelected) {
+                        setSelectedNodeIds(prev => [...prev, id]);
+                    }
+                } else if (!alreadySelected || selectedNodeIds.length > 1) {
+                    setSelectedNodeIds([id]);
+                }
+
                 setSelectedElement(node);
+                setDraggingNodes(dragState);
+                setDragAnchor(getBuilderCanvasPoint(e));
+            };
+
+            const handleNodeSelection = (e, id) => {
+                if (e.shiftKey || e.metaKey || e.ctrlKey) {
+                    toggleBuilderNodeSelection(id);
+                    return;
+                }
+                if (!selectedNodeIds.includes(id) || selectedNodeIds.length > 1) {
+                    focusBuilderNode(id);
+                }
             };
 
             const handleHandleMouseDown = (e, nodeId, handleType) => {
@@ -1659,86 +2384,55 @@
                 const rect = e.currentTarget.getBoundingClientRect();
                 const canvas = document.getElementById("builder-canvas")?.getBoundingClientRect();
                 if (!canvas) return;
-                const startX = rect.left + rect.width / 2 - canvas.left;
-                const startY = rect.top + rect.height / 2 - canvas.top;
+                const startX = (rect.left + rect.width / 2 - canvas.left) / builderZoom;
+                const startY = (rect.top + rect.height / 2 - canvas.top) / builderZoom;
                 
-                setLinkingSource({ nodeId, handleType, startX, startY });
+                const source = { nodeId, handleType, startX, startY };
+                linkingSourceRef.current = source;
+                setLinkingSource(source);
                 setTempEdgeEnd({ x: startX, y: startY });
+            };
+
+            const createBuilderEdge = (sourceNodeId, targetNodeId, targetPort) => {
+                const liveEdges = builderEdgesRef.current || builderEdges;
+                const exists = liveEdges.some(edge =>
+                    edge.source === sourceNodeId &&
+                    edge.target === targetNodeId &&
+                    edge.targetPort === targetPort
+                );
+                if (exists) return false;
+                setBuilderEdges(prev => [...prev, {
+                    id: `edge_${Date.now()}`,
+                    source: sourceNodeId,
+                    target: targetNodeId,
+                    targetPort
+                }]);
+                return true;
+            };
+
+            const finalizeBuilderLink = (source, targetNodeId, targetPort) => {
+                if (!source || source.nodeId === targetNodeId) return false;
+                if (source.handleType !== "out") return false;
+                if (!["in", "condition", "if_true", "if_false"].includes(targetPort)) return false;
+                return createBuilderEdge(source.nodeId, targetNodeId, targetPort);
             };
 
             const handleHandleMouseUp = (e, targetNodeId, handleType) => {
                 e.stopPropagation();
-                if (linkingSource !== null) {
-                    const sourceNodeId = linkingSource.nodeId;
-                    const sourceHandle = linkingSource.handleType;
-                    
-                    if (sourceNodeId !== targetNodeId) {
-                        const isSourceOut = sourceHandle === "out";
-                        const isTargetIn = ["in", "condition", "if_true", "if_false"].includes(handleType);
-                        
-                        if (isSourceOut && isTargetIn) {
-                            const newEdgeId = `edge_${Date.now()}`;
-                            const exists = builderEdges.some(edge => 
-                                edge.source === sourceNodeId && 
-                                edge.target === targetNodeId && 
-                                edge.targetPort === handleType
-                            );
-                            if (!exists) {
-                                setBuilderEdges(prev => [...prev, { 
-                                    id: newEdgeId, 
-                                    source: sourceNodeId, 
-                                    target: targetNodeId, 
-                                    targetPort: handleType 
-                                }]);
-                            }
-                        }
-                    }
-                }
+                finalizeBuilderLink(linkingSourceRef.current || linkingSource, targetNodeId, handleType);
+                linkingSourceRef.current = null;
                 setLinkingSource(null);
                 setTempEdgeEnd(null);
             };
             const handleCardMouseUp = (e, targetNodeId) => {
-                if (linkingSource !== null) {
-                    const sourceNodeId = linkingSource.nodeId;
-                    const sourceHandle = linkingSource.handleType;
-                    
-                    if (sourceNodeId !== targetNodeId) {
-                        const isSourceOut = sourceHandle === "out";
-                        if (isSourceOut) {
-                            const targetNode = builderNodes.find(n => n.id === targetNodeId);
-                            if (targetNode) {
-                                let targetPort = "in";
-                                if (targetNode.data.type === "ConditionalComposition") {
-                                    const hasCond = builderEdges.some(edge => edge.target === targetNodeId && edge.targetPort === "condition");
-                                    const hasTrue = builderEdges.some(edge => edge.target === targetNodeId && edge.targetPort === "if_true");
-                                    if (!hasCond) targetPort = "condition";
-                                    else if (!hasTrue) targetPort = "if_true";
-                                    else targetPort = "if_false";
-                                }
-                                
-                                const newEdgeId = `edge_${Date.now()}`;
-                                const exists = builderEdges.some(edge => 
-                                    edge.source === sourceNodeId && 
-                                    edge.target === targetNodeId && 
-                                    edge.targetPort === targetPort
-                                );
-                                if (!exists) {
-                                    setBuilderEdges(prev => [...prev, { 
-                                        id: newEdgeId, 
-                                        source: sourceNodeId, 
-                                        target: targetNodeId, 
-                                        targetPort: targetPort 
-                                    }]);
-                                }
-                            }
-                        }
-                    }
-                }
+                finalizeBuilderLinkFromEvent(e, linkingSourceRef.current || linkingSource);
+                linkingSourceRef.current = null;
                 setLinkingSource(null);
                 setTempEdgeEnd(null);
             };
 
             const addStatusNode = () => {
+                clearBuilderInteractionState();
                 const id = `status_${Date.now()}`;
                 const name = `State_${builderNodes.filter(n => n.type === "status").length + 1}`;
                 const code = builderNodes.filter(n => n.type === "status").length;
@@ -1754,6 +2448,7 @@
             };
 
             const addCompartmentNode = (type) => {
+                clearBuilderInteractionState();
                 const id = `comp_${Date.now()}`;
                 const name = `comp_${builderNodes.filter(n => n.type === "compartment").length + 1}`;
                 
@@ -1764,6 +2459,7 @@
                 else if (type === "CountDown") params = { iterations: 5 };
                 else if (type === "NodeCategoricalAttribute") params = { attribute: "gender", value: "male", probability: 1.0 };
                 else if (type === "NodeNumericalAttribute") params = { attribute: "age", op: "==", value: 25, probability: 1.0 };
+                else if (type === "NodeNumericalVariable") params = { var: "opinion", var_type: "ATTRIBUTE", value: 0.5, op: ">=", probability: 1.0 };
                 else if (type === "ConditionalComposition") params = { condition: "", first_branch: "", second_branch: "" };
 
                 const newNode = {
@@ -1782,10 +2478,25 @@
 
             const deleteSelectedElement = () => {
                 if (!selectedElement) return;
+
+                if (selectedNodeIds.length > 1 && !selectedElement.source && !selectedElement.target) {
+                    const idsToDelete = new Set(selectedNodeIds);
+                    const namesToDelete = new Set(
+                        builderNodes
+                            .filter(n => idsToDelete.has(n.id) && n.type === "status")
+                            .map(n => n.data.name)
+                    );
+                    setBuilderNodes(prev => prev.filter(n => !idsToDelete.has(n.id)));
+                    setBuilderEdges(prev => prev.filter(e => !idsToDelete.has(e.source) && !idsToDelete.has(e.target)));
+                    setBuilderInitialStatus(prev => prev.filter(init => !namesToDelete.has(init.status)));
+                    clearBuilderSelection();
+                    clearBuilderInteractionState();
+                    return;
+                }
                 
                 if (selectedElement.source && selectedElement.target) {
                     setBuilderEdges(prev => prev.filter(e => e.id !== selectedElement.id));
-                    setSelectedElement(null);
+                    clearBuilderSelection();
                 } else {
                     const nodeId = selectedElement.id;
                     setBuilderNodes(prev => prev.filter(n => n.id !== nodeId));
@@ -1794,7 +2505,7 @@
                     if (selectedElement.type === "status") {
                         setBuilderInitialStatus(prev => prev.filter(init => init.status !== selectedElement.data.name));
                     }
-                    setSelectedElement(null);
+                    clearBuilderSelection();
                 }
             };
 
@@ -1862,12 +2573,18 @@
                 const liveNDQL = getLiveNDQLPreview();
                 const statusesList = builderNodes.filter(n => n.type === "status");
                 const compartmentsList = builderNodes.filter(n => n.type === "compartment");
+                const activeUseCaseConfig = builderUseCaseCatalog[builderUseCase] || builderUseCaseCatalog.epidemics;
+                const visibleBlocks = getVisibleBuilderBlocks();
+                const visibleTemplates = activeUseCaseConfig.templates.map(templateId => ({
+                    id: templateId,
+                    ...getBuilderTemplate(templateId)
+                }));
 
                 return (
                     <div class={`w-full flex-grow flex flex-col h-screen overflow-hidden ${isDarkMode ? "text-slate-200 bg-slate-950" : "text-slate-800 bg-slate-100"}`}>
                         {/* Builder Header */}
-                        <div class={`h-16 border-b px-6 flex items-center justify-between z-10 shrink-0 ${isDarkMode ? "border-slate-800 bg-slate-900" : "border-slate-200 bg-white"}`}>
-                            <div class="flex items-center space-x-4">
+                        <div class={`h-16 border-b px-6 flex items-center gap-4 z-10 shrink-0 ${isDarkMode ? "border-slate-800 bg-slate-900" : "border-slate-200 bg-white"}`}>
+                            <div class="flex items-center space-x-4 shrink-0">
                                 <button 
                                     onClick={() => {
                                         setShowModelBuilder(false);
@@ -1879,32 +2596,20 @@
                                 </button>
                                 <div class={`h-5 w-[1px] ${isDarkMode ? "bg-slate-800" : "bg-slate-200"}`}></div>
                                 <span class="text-sm font-semibold tracking-wide uppercase text-indigo-400">Visual Model Builder</span>
+                            </div>
+                            <div class="flex-1 flex justify-center min-w-0">
                                 <input 
                                     type="text" 
                                     value={builderModelName}
                                     onChange={(e) => setBuilderModelName(e.target.value.replace(/[^a-zA-Z0-9_]/g, ""))}
                                     placeholder="ModelName"
-                                    class={`rounded px-2.5 py-1 text-sm font-bold focus:outline-none w-48 focus:border-indigo-500 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-slate-50 border-slate-200 text-slate-800"}`}
+                                    class={`w-full max-w-md rounded px-3 py-1.5 text-sm font-bold focus:outline-none focus:border-indigo-500 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-slate-50 border-slate-200 text-slate-800"}`}
                                 />
                             </div>
-                            
-                            <div class="flex items-center space-x-3">
-                                <button 
-                                    onClick={() => {
-                                        if (confirm("Reset workspace canvas? All node states and connections will be cleared.")) {
-                                            setBuilderNodes([]);
-                                            setBuilderEdges([]);
-                                            setBuilderInitialStatus([]);
-                                            setSelectedElement(null);
-                                        }
-                                    }} 
-                                    class={`px-3 py-1.5 rounded-lg text-sm transition cursor-pointer ${isDarkMode ? "bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white" : "bg-slate-200 hover:bg-slate-300 text-slate-600 hover:text-slate-900"}`}
-                                >
-                                    <i class="fa-solid fa-trash-can mr-2"></i>Clear Canvas
-                                </button>
+                            <div class="flex items-center justify-end shrink-0">
                                 <button 
                                     onClick={saveCustomModel}
-                                    class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold px-4 py-1.5 rounded-lg text-sm transition cursor-pointer flex items-center"
+                                    class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold px-4 py-1.5 rounded-lg text-sm transition cursor-pointer flex items-center shadow-md shadow-cyan-950/20 whitespace-nowrap"
                                 >
                                     <i class="fa-solid fa-cloud-arrow-up mr-2"></i>Save & Register Model
                                 </button>
@@ -1914,311 +2619,397 @@
                         {/* Editor Body */}
                         <div class="flex-grow flex h-[calc(100vh-64px)] overflow-hidden">
                             {/* Draggable Blocks Sidebar */}
-                            <div class={`w-64 border-r p-4 space-y-6 shrink-0 overflow-y-auto ${isDarkMode ? "border-slate-800 bg-slate-900/50" : "border-slate-200 bg-slate-50"}`}>
-                                <div>
-                                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Model Components</h4>
-                                    <div class="space-y-2 max-h-[460px] overflow-y-auto pr-1">
-                                        <div 
-                                            onClick={addStatusNode}
-                                            class="p-2 bg-slate-900 border border-slate-800 rounded-xl hover:border-indigo-500 hover:bg-indigo-950/20 transition cursor-pointer flex items-center space-x-3 group"
-                                        >
-                                            <div class="w-6 h-6 rounded-full bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 group-hover:scale-105 transition shrink-0">
-                                                <i class="fa-solid fa-circle text-[10px]"></i>
-                                            </div>
-                                            <div>
-                                                <p class="text-xs font-bold">Status Node</p>
-                                                <p class="text-[9px] text-slate-400">Declares a compartment state</p>
-                                            </div>
-                                        </div>
-
-                                        <div 
-                                            onClick={() => addCompartmentNode("NodeStochastic")}
-                                            class="p-2 bg-slate-900 border border-slate-800 rounded-xl hover:border-purple-500 hover:bg-purple-950/20 transition cursor-pointer flex items-center space-x-3 group"
-                                        >
-                                            <div class="w-6 h-6 rounded bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-105 transition shrink-0">
-                                                <i class="fa-solid fa-bolt text-[10px]"></i>
-                                            </div>
-                                            <div>
-                                                <p class="text-xs font-bold">Node Stochastic</p>
-                                                <p class="text-[9px] text-slate-400">Stochastic neighbor propagation</p>
-                                            </div>
-                                        </div>
-
-                                        <div 
-                                            onClick={() => addCompartmentNode("NodeThreshold")}
-                                            class="p-2 bg-slate-900 border border-slate-800 rounded-xl hover:border-purple-500 hover:bg-purple-950/20 transition cursor-pointer flex items-center space-x-3 group"
-                                        >
-                                            <div class="w-6 h-6 rounded bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-105 transition shrink-0">
-                                                <i class="fa-solid fa-chart-pie text-[10px]"></i>
-                                            </div>
-                                            <div>
-                                                <p class="text-xs font-bold">Node Threshold</p>
-                                                <p class="text-[9px] text-slate-400">Fraction-based cascading trigger</p>
-                                            </div>
-                                        </div>
-
-                                        <div 
-                                            onClick={() => addCompartmentNode("EdgeStochastic")}
-                                            class="p-2 bg-slate-900 border border-slate-800 rounded-xl hover:border-purple-500 hover:bg-purple-950/20 transition cursor-pointer flex items-center space-x-3 group"
-                                        >
-                                            <div class="w-6 h-6 rounded bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-105 transition shrink-0">
-                                                <i class="fa-solid fa-share-nodes text-[10px]"></i>
-                                            </div>
-                                            <div>
-                                                <p class="text-xs font-bold">Edge Stochastic</p>
-                                                <p class="text-[9px] text-slate-400">Link-level infection trigger</p>
-                                            </div>
-                                        </div>
-
-                                        <div 
-                                            onClick={() => addCompartmentNode("CountDown")}
-                                            class="p-2 bg-slate-900 border border-slate-800 rounded-xl hover:border-purple-500 hover:bg-purple-950/20 transition cursor-pointer flex items-center space-x-3 group"
-                                        >
-                                            <div class="w-6 h-6 rounded bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-105 transition shrink-0">
-                                                <i class="fa-solid fa-hourglass-half text-[10px]"></i>
-                                            </div>
-                                            <div>
-                                                <p class="text-xs font-bold">Count Down</p>
-                                                <p class="text-[9px] text-slate-400">Fixed iteration duration delay</p>
-                                            </div>
-                                        </div>
-
-                                        <div 
-                                            onClick={() => addCompartmentNode("NodeCategoricalAttribute")}
-                                            class="p-2 bg-slate-900 border border-slate-800 rounded-xl hover:border-pink-500 hover:bg-pink-950/20 transition cursor-pointer flex items-center space-x-3 group"
-                                        >
-                                            <div class="w-6 h-6 rounded bg-pink-500/10 border border-pink-500/30 flex items-center justify-center text-pink-400 group-hover:scale-105 transition shrink-0">
-                                                <i class="fa-solid fa-tags text-[10px]"></i>
-                                            </div>
-                                            <div>
-                                                <p class="text-xs font-bold">Node Categorical</p>
-                                                <p class="text-[9px] text-slate-400">String property comparison</p>
-                                            </div>
-                                        </div>
-
-                                        <div 
-                                            onClick={() => addCompartmentNode("NodeNumericalAttribute")}
-                                            class="p-2 bg-slate-900 border border-slate-800 rounded-xl hover:border-pink-500 hover:bg-pink-950/20 transition cursor-pointer flex items-center space-x-3 group"
-                                        >
-                                            <div class="w-6 h-6 rounded bg-pink-500/10 border border-pink-500/30 flex items-center justify-center text-pink-400 group-hover:scale-105 transition shrink-0">
-                                                <i class="fa-solid fa-calculator text-[10px]"></i>
-                                            </div>
-                                            <div>
-                                                <p class="text-xs font-bold">Node Numerical</p>
-                                                <p class="text-[9px] text-slate-400">Numerical property condition</p>
-                                            </div>
-                                        </div>
-
-                                        <div 
-                                            onClick={() => addCompartmentNode("ConditionalComposition")}
-                                            class="p-2 bg-slate-900 border border-slate-800 rounded-xl hover:border-emerald-500 hover:bg-emerald-950/20 transition cursor-pointer flex items-center space-x-3 group"
-                                        >
-                                            <div class="w-6 h-6 rounded bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
-                                                <i class="fa-solid fa-code-fork text-[10px]"></i>
-                                            </div>
-                                            <div>
-                                                <p class="text-xs font-bold">Conditional</p>
-                                                <p class="text-[9px] text-slate-400">IF-THEN-ELSE composition</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <p class="text-[10px] text-slate-500 mt-3 italic"><i class="fa-solid fa-circle-info mr-1"></i>Click cards to append them directly onto the canvas, then drag handles to connect.</p>
+                            <div class={`relative shrink-0 overflow-hidden border-r transition-all duration-300 ${builderLeftSidebarCollapsed ? "w-14" : "w-full md:w-96"} ${isDarkMode ? "border-slate-800 bg-slate-900/50" : "border-slate-200 bg-slate-50"}`}>
+                                <div class="absolute top-3 right-3 z-20">
+                                    <button
+                                        type="button"
+                                        onClick={() => setBuilderLeftSidebarCollapsed(prev => !prev)}
+                                        class={`h-8 w-8 rounded-lg border flex items-center justify-center transition cursor-pointer ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-300 hover:text-white hover:border-slate-700" : "bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300"}`}
+                                        title={builderLeftSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                                    >
+                                        <i class={`fa-solid ${builderLeftSidebarCollapsed ? "fa-angles-right" : "fa-angles-left"}`}></i>
+                                    </button>
                                 </div>
 
-                                <div class="border-t border-slate-800/80 pt-4">
-                                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Saved Models</h4>
-                                    <div class="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                                        {customModels.length === 0 ? (
-                                            <p class="text-xs text-slate-500 italic">No custom models saved yet.</p>
-                                        ) : (
-                                            customModels.map(m => (
-                                                <div key={m.name} class="p-2.5 bg-slate-900/60 border border-slate-800 rounded-lg flex items-center justify-between group hover:border-slate-700 transition">
-                                                    <span 
-                                                        onClick={() => loadCustomModelLayout(m)}
-                                                        class="text-xs font-semibold truncate hover:text-indigo-400 transition cursor-pointer flex-grow"
-                                                        title="Click to load layout"
+                                {!builderLeftSidebarCollapsed && (
+                                    <div class="h-full overflow-y-auto p-4 space-y-6">
+                                        <div>
+                                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Use Case</h4>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                {Object.entries(builderUseCaseCatalog).map(([key, useCase]) => (
+                                                    <button
+                                                        key={key}
+                                                        type="button"
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                        onClick={() => {
+                                                            clearBuilderInteractionState();
+                                                            setBuilderUseCase(key);
+                                                        }}
+                                                        class={`px-2 py-2 rounded-xl border text-left transition cursor-pointer ${builderUseCase === key ? "border-indigo-500 bg-indigo-500/10 text-white" : isDarkMode ? "border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-700" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"}`}
+                                                        title={useCase.description}
                                                     >
-                                                        {m.name}
-                                                    </span>
-                                                    <button 
-                                                        onClick={() => deleteCustomModel(m.name)}
-                                                        class="text-slate-500 hover:text-red-400 transition ml-2 cursor-pointer p-1"
-                                                        title="Delete model"
-                                                    >
-                                                        <i class="fa-solid fa-trash-can text-xs"></i>
+                                                        <div class="text-[10px] font-bold uppercase tracking-wider">{useCase.label}</div>
+                                                        <div class="text-[9px] text-slate-400">{useCase.description}</div>
                                                     </button>
-                                                </div>
-                                            ))
-                                        )}
+                                                ))}
+                                            </div>
+                                            <p class="text-[10px] text-slate-500 mt-3 italic">{activeUseCaseConfig.description}</p>
+                                        </div>
+
+                                        <div>
+                                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Starter Examples</h4>
+                                            <div class="space-y-2">
+                                                {visibleTemplates.map(template => (
+                                                    <button
+                                                        key={template.id}
+                                                        type="button"
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                        onClick={() => queueBuilderTemplateReload(template.id, builderUseCase)}
+                                                        class={`w-full p-2 bg-slate-900 border border-slate-800 rounded-xl hover:border-cyan-500 hover:bg-cyan-950/20 transition cursor-pointer text-left group`}
+                                                        title={template.description}
+                                                    >
+                                                        <div class="flex items-center justify-between gap-2">
+                                                            <div>
+                                                                <p class="text-xs font-bold">{template.label}</p>
+                                                                <p class="text-[9px] text-slate-400">{template.description}</p>
+                                                            </div>
+                                                            <i class="fa-solid fa-wand-magic-sparkles text-cyan-400 text-[10px] group-hover:scale-110 transition shrink-0"></i>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Model Components</h4>
+                                            <div class="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                                                {visibleBlocks.map(block => {
+                                                    const accent = builderAccentColors[block.accent] || builderAccentColors.purple;
+                                                    return (
+                                                        <div 
+                                                            key={block.id}
+                                                            onClick={block.onClick}
+                                                            class="p-2 bg-slate-900 border border-slate-800 rounded-xl transition cursor-pointer flex items-center space-x-3 group hover:opacity-95"
+                                                            style={{ borderColor: accent.softBorder }}
+                                                        >
+                                                            <div 
+                                                                class={`w-6 h-6 ${block.id === "status" ? "rounded-full" : "rounded-lg"} flex items-center justify-center group-hover:scale-105 transition shrink-0`}
+                                                                style={{ backgroundColor: accent.softBg, border: `1px solid ${accent.softBorder}`, color: accent.color }}
+                                                            >
+                                                                <i class={`fa-solid ${block.icon} text-[10px]`}></i>
+                                                            </div>
+                                                            <div>
+                                                                <p class="text-xs font-bold">{block.label}</p>
+                                                                <p class="text-[9px] text-slate-400">{block.description}</p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                            <p class="text-[10px] text-slate-500 mt-3 italic"><i class="fa-solid fa-circle-info mr-1"></i>Click cards to append them directly onto the canvas, then drag handles to connect.</p>
+                                        </div>
+
+                                        <div class="border-t border-slate-800/80 pt-4">
+                                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Saved Models</h4>
+                                            <div class="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                                                {customModels.length === 0 ? (
+                                                    <p class="text-xs text-slate-500 italic">No custom models saved yet.</p>
+                                                ) : (
+                                                    customModels.map(m => (
+                                                        <div key={m.name} class="p-2.5 bg-slate-900/60 border border-slate-800 rounded-lg flex items-center justify-between group hover:border-slate-700 transition">
+                                                            <span 
+                                                                onClick={() => loadCustomModelLayout(m)}
+                                                                class="text-xs font-semibold truncate hover:text-indigo-400 transition cursor-pointer flex-grow"
+                                                                title="Click to load layout"
+                                                            >
+                                                                {m.name}
+                                                            </span>
+                                                            <button 
+                                                                onClick={() => downloadCustomModelPython(m.name)}
+                                                                class="text-slate-500 hover:text-cyan-400 transition ml-2 cursor-pointer p-1"
+                                                                title="Download Python"
+                                                            >
+                                                                <i class="fa-solid fa-download text-xs"></i>
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => deleteCustomModel(m.name)}
+                                                                class="text-slate-500 hover:text-red-400 transition ml-2 cursor-pointer p-1"
+                                                                title="Delete model"
+                                                            >
+                                                                <i class="fa-solid fa-trash-can text-xs"></i>
+                                                            </button>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
 
                             {/* Node Graph Editor Canvas */}
                             <div 
                                 id="builder-canvas"
+                                onMouseDown={(e) => {
+                                    if (e.target === e.currentTarget) {
+                                        clearBuilderSelection();
+                                    }
+                                }}
                                 onMouseMove={handleCanvasMouseMove}
                                 onMouseUp={handleCanvasMouseUp}
-                                class={`flex-grow relative overflow-hidden select-none ${isDarkMode ? "bg-slate-950" : "bg-slate-100"}`}
+                                class={`flex-grow relative overflow-auto select-none ${isDarkMode ? "bg-slate-950" : "bg-slate-100"}`}
                                 style={{ backgroundImage: `radial-gradient(circle, ${isDarkMode ? '#334155' : '#cbd5e1'} 1px, transparent 1px)`, backgroundSize: '24px 24px' }}
                             >
-                                <svg class="absolute inset-0 w-full h-full pointer-events-none z-0">
-                                    <defs>
-                                        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#4f46e5" />
-                                        </marker>
-                                    </defs>
-                                    
-                                    {builderEdges.map(edge => {
-                                        const fromNode = builderNodes.find(n => n.id === edge.source);
-                                        const toNode = builderNodes.find(n => n.id === edge.target);
-                                        if (!fromNode || !toNode) return null;
+                                <div
+                                    class="relative w-full h-full origin-top-left"
+                                    style={{ transform: `scale(${builderZoom})` }}
+                                >
+                                    <svg class="absolute inset-0 w-full h-full pointer-events-none z-0">
+                                        <defs>
+                                            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#4f46e5" />
+                                            </marker>
+                                        </defs>
                                         
-                                        const x1 = fromNode.x + (fromNode.type === "status" ? 140 : 180);
-                                        const y1 = fromNode.y + 39;
-                                        const x2 = toNode.x;
-                                        let y2 = toNode.y + 39;
-                                        if (toNode.type === "compartment" && toNode.data.type === "ConditionalComposition") {
-                                            if (edge.targetPort === "condition") y2 = toNode.y + 43;
-                                            else if (edge.targetPort === "if_true") y2 = toNode.y + 63;
-                                            else if (edge.targetPort === "if_false") y2 = toNode.y + 83;
-                                        }
-                                        
-                                        const isSelected = selectedElement && selectedElement.source === edge.source && selectedElement.target === edge.target;
-                                        const dx = Math.abs(x2 - x1) * 0.5;
-                                        const d = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
-                                        
-                                        return (
-                                            <g key={edge.id} class="pointer-events-auto cursor-pointer" onClick={(e) => { e.stopPropagation(); setSelectedElement(edge); }}>
-                                                <path d={d} fill="none" stroke="transparent" strokeWidth="12" />
-                                                <path 
-                                                    d={d} 
-                                                    fill="none" 
-                                                    stroke={isSelected ? "#ef4444" : "#4f46e5"} 
-                                                    strokeWidth={isSelected ? 3 : 2} 
-                                                    markerEnd="url(#arrow)"
-                                                    class="transition"
-                                                />
-                                            </g>
-                                        );
-                                    })}
-                                    
-                                    {linkingSource && tempEdgeEnd && (
-                                        <line 
-                                            x1={linkingSource.startX} 
-                                            y1={linkingSource.startY} 
-                                            x2={tempEdgeEnd.x} 
-                                            y2={tempEdgeEnd.y} 
-                                            stroke="#ef4444" 
-                                            strokeWidth="2" 
-                                            strokeDasharray="4 4" 
-                                            class="pointer-events-none"
-                                        />
-                                    )}
-                                </svg>
-
-                                <div class="absolute inset-0 z-10 pointer-events-none">
-                                    {builderNodes.map(node => {
-                                        const isNodeSelected = selectedElement && selectedElement.id === node.id;
-                                        
-                                        return (
-                                            <div 
-                                                key={node.id}
-                                                onMouseDown={(e) => startNodeDrag(e, node.id)}
-                                                onMouseUp={(e) => handleCardMouseUp(e, node.id)}
-                                                class={`absolute pointer-events-auto border rounded-xl shadow-xl flex flex-col transition-shadow duration-150 ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"} ${isNodeSelected ? "border-indigo-500 shadow-indigo-950/20" : ""}`}
-                                                style={{ left: node.x, top: node.y, width: node.type === "status" ? 140 : 180, height: node.data.type === "ConditionalComposition" ? 100 : "auto" }}
-                                            >
-                                                <div class={`px-3 py-1.5 rounded-t-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-between cursor-move select-none ${node.type === "status" ? (isDarkMode ? "bg-sky-950/50 text-sky-400" : "bg-sky-50 text-sky-600") : node.data.type === "ConditionalComposition" ? (isDarkMode ? "bg-emerald-950/50 text-emerald-400" : "bg-emerald-50 text-emerald-600") : (isDarkMode ? "bg-purple-950/50 text-purple-400" : "bg-purple-50 text-purple-600")}`}>
-                                                    <span>{node.type === "status" ? "Status Node" : node.data.type === "ConditionalComposition" ? "Conditional" : "Compartment"}</span>
-                                                    <span class="opacity-50">#{node.id.split("_")[1]?.substring(0, 4)}</span>
-                                                </div>
-
-                                                <div class="p-3 flex flex-col text-xs font-semibold">
-                                                    {node.type === "status" ? (
-                                                        <div class="flex items-center justify-between">
-                                                            <span class={`truncate max-w-[100px] ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>{node.data.name}</span>
-                                                            <span class={`px-1.5 py-0.5 rounded text-[10px] ${isDarkMode ? "bg-sky-500/10 text-sky-400" : "bg-sky-100 text-sky-700"}`}>Code {node.data.code}</span>
-                                                        </div>
-                                                    ) : (
-                                                        <div class="space-y-1">
-                                                            <p class={`truncate font-bold ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>{node.data.name}</p>
-                                                            <p class={`text-[10px] truncate ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>{node.data.type}</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {node.type === "compartment" && node.data.type === "ConditionalComposition" ? (
-                                                    <>
-                                                        <div 
-                                                            onMouseDown={(e) => handleHandleMouseDown(e, node.id, "condition")}
-                                                            onMouseUp={(e) => handleHandleMouseUp(e, node.id, "condition")}
-                                                            class="handle absolute left-0 top-[36px] -translate-x-[7px] w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500 hover:bg-red-400 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
-                                                            title="Connect condition compartment"
-                                                        />
-                                                        <span class="absolute left-3 top-[34px] text-[8px] font-bold text-slate-400 pointer-events-none">cond</span>
-                                                        
-                                                        <div 
-                                                            onMouseDown={(e) => handleHandleMouseDown(e, node.id, "if_true")}
-                                                            onMouseUp={(e) => handleHandleMouseUp(e, node.id, "if_true")}
-                                                            class="handle absolute left-0 top-[56px] -translate-x-[7px] w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500 hover:bg-red-400 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
-                                                            title="Connect IF_TRUE branch"
-                                                        />
-                                                        <span class="absolute left-3 top-[54px] text-[8px] font-bold text-slate-400 pointer-events-none">true</span>
-
-                                                        <div 
-                                                            onMouseDown={(e) => handleHandleMouseDown(e, node.id, "if_false")}
-                                                            onMouseUp={(e) => handleHandleMouseUp(e, node.id, "if_false")}
-                                                            class="handle absolute left-0 top-[76px] -translate-x-[7px] w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500 hover:bg-red-400 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
-                                                            title="Connect IF_FALSE branch"
-                                                        />
-                                                        <span class="absolute left-3 top-[74px] text-[8px] font-bold text-red-400 pointer-events-none">false</span>
-                                                    </>
-                                                ) : (
-                                                    <div 
-                                                        onMouseDown={(e) => handleHandleMouseDown(e, node.id, "in")}
-                                                        onMouseUp={(e) => handleHandleMouseUp(e, node.id, "in")}
-                                                        class="handle absolute left-0 top-[32px] -translate-x-[7px] w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500 hover:bg-red-400 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
-                                                        title="Connect input"
+                                        {builderEdges.map(edge => {
+                                            const fromNode = builderNodes.find(n => n.id === edge.source);
+                                            const toNode = builderNodes.find(n => n.id === edge.target);
+                                            if (!fromNode || !toNode) return null;
+                                            
+                                            const x1 = fromNode.x + (fromNode.type === "status" ? 140 : 180);
+                                            const y1 = fromNode.y + 39;
+                                            const x2 = toNode.x;
+                                            let y2 = toNode.y + 39;
+                                            if (toNode.type === "compartment" && toNode.data.type === "ConditionalComposition") {
+                                                if (edge.targetPort === "condition") y2 = toNode.y + 43;
+                                                else if (edge.targetPort === "if_true") y2 = toNode.y + 63;
+                                                else if (edge.targetPort === "if_false") y2 = toNode.y + 83;
+                                            }
+                                            
+                                            const isSelected = selectedElement && selectedElement.source === edge.source && selectedElement.target === edge.target;
+                                            const dx = Math.abs(x2 - x1) * 0.5;
+                                            const d = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+                                            
+                                            return (
+                                                <g key={edge.id} class="pointer-events-auto cursor-pointer" onClick={(e) => { e.stopPropagation(); setSelectedElement(edge); }}>
+                                                    <path d={d} fill="none" stroke="transparent" strokeWidth="12" />
+                                                    <path 
+                                                        d={d} 
+                                                        fill="none" 
+                                                        stroke={isSelected ? "#ef4444" : "#4f46e5"} 
+                                                        strokeWidth={isSelected ? 3 : 2} 
+                                                        markerEnd="url(#arrow)"
+                                                        class="transition"
                                                     />
-                                                )}
+                                                </g>
+                                            );
+                                        })}
+                                        
+                                        {linkingSource && tempEdgeEnd && (
+                                            <line 
+                                                x1={linkingSource.startX} 
+                                                y1={linkingSource.startY} 
+                                                x2={tempEdgeEnd.x} 
+                                                y2={tempEdgeEnd.y} 
+                                                stroke="#ef4444" 
+                                                strokeWidth="2" 
+                                                strokeDasharray="4 4" 
+                                                class="pointer-events-none"
+                                            />
+                                        )}
+                                    </svg>
+
+                                    <div class="absolute inset-0 z-10 pointer-events-none">
+                                        {builderNodes.map(node => {
+                                            const isNodeSelected = selectedNodeIds.includes(node.id);
+                                            
+                                            return (
                                                 <div 
-                                                    onMouseDown={(e) => handleHandleMouseDown(e, node.id, "out")}
-                                                    onMouseUp={(e) => handleHandleMouseUp(e, node.id, "out")}
-                                                    class="handle absolute right-0 top-[32px] translate-x-[7px] w-3.5 h-3.5 rounded-full bg-slate-800 border-2 border-blue-500 hover:bg-blue-500 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
-                                                    title="Connect output to compartment/status"
-                                                />
-                                            </div>
-                                        );
-                                    })}
+                                                    key={node.id}
+                                                    onMouseDown={(e) => startNodeDrag(e, node.id)}
+                                                    onMouseUp={(e) => handleCardMouseUp(e, node.id)}
+                                                    data-builder-node-id={node.id}
+                                                    class={`absolute pointer-events-auto border rounded-xl shadow-xl flex flex-col transition-shadow duration-150 ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"} ${isNodeSelected ? "border-indigo-500 shadow-indigo-950/20" : ""}`}
+                                                    style={{ left: node.x, top: node.y, width: node.type === "status" ? 140 : 180, height: node.data.type === "ConditionalComposition" ? 100 : "auto" }}
+                                                >
+                                                    <div class={`px-3 py-1.5 rounded-t-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-between cursor-move select-none ${node.type === "status" ? (isDarkMode ? "bg-sky-950/50 text-sky-400" : "bg-sky-50 text-sky-600") : node.data.type === "ConditionalComposition" ? (isDarkMode ? "bg-emerald-950/50 text-emerald-400" : "bg-emerald-50 text-emerald-600") : (isDarkMode ? "bg-purple-950/50 text-purple-400" : "bg-purple-50 text-purple-600")}`}>
+                                                        <span>{node.type === "status" ? "Status Node" : node.data.type === "ConditionalComposition" ? "Conditional" : "Compartment"}</span>
+                                                        <span class="opacity-50">#{node.id.split("_")[1]?.substring(0, 4)}</span>
+                                                    </div>
+
+                                                    <div class="p-3 flex flex-col text-xs font-semibold">
+                                                        {node.type === "status" ? (
+                                                            <div class="flex items-center justify-between">
+                                                                <span class={`truncate max-w-[100px] ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>{node.data.name}</span>
+                                                                <span class={`px-1.5 py-0.5 rounded text-[10px] ${isDarkMode ? "bg-sky-500/10 text-sky-400" : "bg-sky-100 text-sky-700"}`}>Code {node.data.code}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <div class="space-y-1">
+                                                                <p class={`truncate font-bold ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>{node.data.name}</p>
+                                                                <p class={`text-[10px] truncate ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>{node.data.type}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {node.type === "compartment" && node.data.type === "ConditionalComposition" ? (
+                                                        <>
+                                                            <div 
+                                                                onMouseDown={(e) => handleHandleMouseDown(e, node.id, "condition")}
+                                                                onMouseUp={(e) => handleHandleMouseUp(e, node.id, "condition")}
+                                                                data-builder-node-id={node.id}
+                                                                data-builder-handle-type="condition"
+                                                                class="handle absolute left-0 top-[36px] -translate-x-[7px] w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500 hover:bg-red-400 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
+                                                                title="Connect condition compartment"
+                                                            />
+                                                            <span class="absolute left-3 top-[34px] text-[8px] font-bold text-slate-400 pointer-events-none">cond</span>
+                                                            
+                                                            <div 
+                                                                onMouseDown={(e) => handleHandleMouseDown(e, node.id, "if_true")}
+                                                                onMouseUp={(e) => handleHandleMouseUp(e, node.id, "if_true")}
+                                                                data-builder-node-id={node.id}
+                                                                data-builder-handle-type="if_true"
+                                                                class="handle absolute left-0 top-[56px] -translate-x-[7px] w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500 hover:bg-red-400 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
+                                                                title="Connect IF_TRUE branch"
+                                                            />
+                                                            <span class="absolute left-3 top-[54px] text-[8px] font-bold text-slate-400 pointer-events-none">true</span>
+
+                                                            <div 
+                                                                onMouseDown={(e) => handleHandleMouseDown(e, node.id, "if_false")}
+                                                                onMouseUp={(e) => handleHandleMouseUp(e, node.id, "if_false")}
+                                                                data-builder-node-id={node.id}
+                                                                data-builder-handle-type="if_false"
+                                                                class="handle absolute left-0 top-[76px] -translate-x-[7px] w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500 hover:bg-red-400 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
+                                                                title="Connect IF_FALSE branch"
+                                                            />
+                                                            <span class="absolute left-3 top-[74px] text-[8px] font-bold text-red-400 pointer-events-none">false</span>
+                                                        </>
+                                                    ) : (
+                                                        <div 
+                                                            onMouseDown={(e) => handleHandleMouseDown(e, node.id, "in")}
+                                                            onMouseUp={(e) => handleHandleMouseUp(e, node.id, "in")}
+                                                            data-builder-node-id={node.id}
+                                                            data-builder-handle-type="in"
+                                                            class="handle absolute left-0 top-[32px] -translate-x-[7px] w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500 hover:bg-red-400 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
+                                                            title="Connect input"
+                                                        />
+                                                    )}
+                                                    <div 
+                                                        onMouseDown={(e) => handleHandleMouseDown(e, node.id, "out")}
+                                                        onMouseUp={(e) => handleHandleMouseUp(e, node.id, "out")}
+                                                        data-builder-node-id={node.id}
+                                                        data-builder-handle-type="out"
+                                                        class="handle absolute right-0 top-[32px] translate-x-[7px] w-3.5 h-3.5 rounded-full bg-slate-800 border-2 border-blue-500 hover:bg-blue-500 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
+                                                        title="Connect output to compartment/status"
+                                                    />
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div class="absolute top-3 right-3 z-20 flex flex-col items-end gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setBuilderRightSidebarCollapsed(prev => !prev)}
+                                        class={`h-8 w-8 rounded-lg border flex items-center justify-center transition cursor-pointer ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-300 hover:text-white hover:border-slate-700" : "bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300"}`}
+                                        title={builderRightSidebarCollapsed ? "Expand inspector" : "Collapse inspector"}
+                                    >
+                                        <i class={`fa-solid ${builderRightSidebarCollapsed ? "fa-angles-left" : "fa-angles-right"}`}></i>
+                                    </button>
+                                </div>
+                                <div class="absolute bottom-4 left-1/2 z-30 w-[min(92%,56rem)] -translate-x-1/2 pointer-events-none">
+                                    <div class={`flex flex-wrap items-center justify-center gap-2 rounded-2xl border px-3 py-2 shadow-2xl backdrop-blur-md pointer-events-auto ${isDarkMode ? "border-slate-700 bg-slate-950/90" : "border-slate-200 bg-white/90"}`}>
+                                        <div class={`flex items-center rounded-xl border overflow-hidden ${isDarkMode ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-slate-50"}`}>
+                                            <button
+                                                onClick={() => zoomBuilderCanvas(-0.1)}
+                                                class={`px-2.5 py-1.5 text-sm transition cursor-pointer ${isDarkMode ? "text-slate-300 hover:bg-slate-800" : "text-slate-700 hover:bg-slate-200"}`}
+                                                title="Zoom out"
+                                            >
+                                                <i class="fa-solid fa-magnifying-glass-minus"></i>
+                                            </button>
+                                            <span class={`px-2 min-w-[4.5rem] text-center text-[11px] font-semibold ${isDarkMode ? "text-slate-300 border-x border-slate-700" : "text-slate-700 border-x border-slate-200"}`}>
+                                                {(builderZoom * 100).toFixed(0)}%
+                                            </span>
+                                            <button
+                                                onClick={() => zoomBuilderCanvas(0.1)}
+                                                class={`px-2.5 py-1.5 text-sm transition cursor-pointer ${isDarkMode ? "text-slate-300 hover:bg-slate-800" : "text-slate-700 hover:bg-slate-200"}`}
+                                                title="Zoom in"
+                                            >
+                                                <i class="fa-solid fa-magnifying-glass-plus"></i>
+                                            </button>
+                                            <button
+                                                onClick={() => setBuilderZoom(1)}
+                                                class={`px-2.5 py-1.5 text-sm transition cursor-pointer border-l ${isDarkMode ? "text-slate-300 hover:bg-slate-800 border-slate-700" : "text-slate-700 hover:bg-slate-200 border-slate-200"}`}
+                                                title="Reset zoom"
+                                            >
+                                                <i class="fa-solid fa-rotate-left"></i>
+                                            </button>
+                                        </div>
+                                        <button 
+                                            onClick={() => {
+                                                if (confirm("Reset workspace canvas? All node states and connections will be cleared.")) {
+                                                    setBuilderNodes([]);
+                                                    setBuilderEdges([]);
+                                                    setBuilderInitialStatus([]);
+                                                    clearBuilderSelection();
+                                                    clearBuilderInteractionState();
+                                                }
+                                            }} 
+                                            class={`px-3 py-1.5 rounded-xl text-sm transition cursor-pointer ${isDarkMode ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700" : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"}`}
+                                        >
+                                            <i class="fa-solid fa-trash-can mr-2"></i>Clear Canvas
+                                        </button>
+                                        <button 
+                                            onClick={() => autoLayoutBuilder()}
+                                            disabled={builderNodes.length === 0}
+                                            class={`px-3 py-1.5 rounded-xl text-sm transition cursor-pointer flex items-center ${builderNodes.length === 0 ? "opacity-50 cursor-not-allowed" : isDarkMode ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700" : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"}`}
+                                        >
+                                            <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>Auto Layout
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={downloadBuilderPipelineImage}
+                                            class={`px-3 py-1.5 rounded-xl text-sm transition cursor-pointer flex items-center ${isDarkMode ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700" : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"}`}
+                                            title="Download pipeline image"
+                                        >
+                                            <i class="fa-solid fa-image mr-2"></i>Export PNG
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Configurations & Properties Right Panel */}
-                            <div class={`w-80 border-l p-4 flex flex-col h-full shrink-0 overflow-y-auto space-y-6 ${isDarkMode ? "border-slate-800 bg-slate-900/50" : "border-slate-200 bg-slate-50"}`}>
-                                <div>
-                                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Element Properties</h4>
-                                    {!selectedElement ? (
-                                        <p class="text-xs text-slate-500 italic">Select a node or edge on the canvas to configure it.</p>
-                                    ) : selectedElement.source && selectedElement.target ? (
-                                        <div class={`p-3 border rounded-xl space-y-3 ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
-                                            <p class="text-xs font-semibold text-red-400">Connection Selected</p>
-                                            <p class={`text-[10px] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>Connects: {selectedElement.source} to {selectedElement.target}</p>
-                                            <button 
-                                                onClick={deleteSelectedElement}
-                                                class="w-full bg-red-950/40 hover:bg-red-900/40 border border-red-900/60 hover:border-red-500 text-red-200 text-xs py-1.5 rounded transition cursor-pointer"
-                                            >
-                                                Delete Connection
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div class={`p-3 border rounded-xl space-y-4 text-xs ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200 text-slate-800"}`}>
-                                            <div class="flex justify-between items-center">
-                                                <span class="font-bold text-indigo-400">Edit {selectedElement.type === "status" ? "Status" : "Compartment"}</span>
-                                                <button onClick={deleteSelectedElement} class="text-slate-500 hover:text-red-400 transition cursor-pointer" title="Delete block">
-                                                    <i class="fa-solid fa-trash-can"></i>
-                                                </button>
-                                            </div>
+                            <div class={`relative shrink-0 overflow-hidden border-l transition-all duration-300 ${builderRightSidebarCollapsed ? "w-14" : "w-80"} ${isDarkMode ? "border-slate-800 bg-slate-900/50" : "border-slate-200 bg-slate-50"}`}>
+                                {!builderRightSidebarCollapsed && (
+                                    <div class="h-full overflow-y-auto p-4 flex flex-col space-y-6">
+                                        <div>
+                                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Element Properties</h4>
+                                            {selectedNodeIds.length > 1 && !selectedElement?.source && !selectedElement?.target && (
+                                                <div class={`mb-3 p-2 rounded-lg border text-[10px] ${isDarkMode ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-200" : "border-indigo-200 bg-indigo-50 text-indigo-700"}`}>
+                                                    {selectedNodeIds.length} blocks selected. Drag any selected block to move the group.
+                                                </div>
+                                            )}
+                                            {!selectedElement ? (
+                                                <p class="text-xs text-slate-500 italic">Select a node or edge on the canvas to configure it.</p>
+                                            ) : selectedElement.source && selectedElement.target ? (
+                                                <div class={`p-3 border rounded-xl space-y-3 ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
+                                                    <p class="text-xs font-semibold text-red-400">Connection Selected</p>
+                                                    <p class={`text-[10px] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>Connects: {selectedElement.source} to {selectedElement.target}</p>
+                                                    <button 
+                                                        onClick={deleteSelectedElement}
+                                                        class="w-full bg-red-950/40 hover:bg-red-900/40 border border-red-900/60 hover:border-red-500 text-red-200 text-xs py-1.5 rounded transition cursor-pointer"
+                                                    >
+                                                        Delete Connection
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div class={`p-3 border rounded-xl space-y-4 text-xs ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200 text-slate-800"}`}>
+                                                    <div class="flex justify-between items-center">
+                                                        <span class="font-bold text-indigo-400">Edit {selectedElement.type === "status" ? "Status" : "Compartment"}</span>
+                                                        <button onClick={deleteSelectedElement} class="text-slate-500 hover:text-red-400 transition cursor-pointer" title="Delete block">
+                                                            <i class="fa-solid fa-trash-can"></i>
+                                                        </button>
+                                                    </div>
                                             
                                             <div class="space-y-1">
                                                 <label class="text-[10px] text-slate-400 block">Identifier / Name</label>
@@ -2230,7 +3021,7 @@
                                                 />
                                             </div>
 
-                                            {selectedElement.type === "status" && (
+                                                    {selectedElement.type === "status" && (
                                                 <div class="space-y-1">
                                                     <label class="text-[10px] text-slate-400 block">Status Code</label>
                                                     <input 
@@ -2240,9 +3031,9 @@
                                                         class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
                                                     />
                                                 </div>
-                                            )}
+                                                    )}
 
-                                            {selectedElement.type === "compartment" && (
+                                                    {selectedElement.type === "compartment" && (
                                                 <div class="space-y-3">
                                                     <div class="space-y-1">
                                                         <label class="text-[10px] text-slate-400 block">Compartment Class</label>
@@ -2257,6 +3048,7 @@
                                                                 else if (type === "CountDown") params = { iterations: 5 };
                                                                 else if (type === "NodeCategoricalAttribute") params = { attribute: "gender", value: "male", probability: 1.0 };
                                                                 else if (type === "NodeNumericalAttribute") params = { attribute: "age", op: "==", value: "25", probability: 1.0 };
+                                                                else if (type === "NodeNumericalVariable") params = { var: "opinion", var_type: "ATTRIBUTE", value: 0.5, op: ">=", probability: 1.0 };
                                                                 else if (type === "ConditionalComposition") params = { condition: "", first_branch: "", second_branch: "" };
                                                                 updateNodeData(selectedElement.id, { type, params });
                                                             }}
@@ -2268,6 +3060,7 @@
                                                             <option value="CountDown">Count Down</option>
                                                             <option value="NodeCategoricalAttribute">Node Categorical Attribute</option>
                                                             <option value="NodeNumericalAttribute">Node Numerical Attribute</option>
+                                                            <option value="NodeNumericalVariable">Node Numerical Variable</option>
                                                             <option value="ConditionalComposition">Conditional Composition</option>
                                                         </select>
                                                     </div>
@@ -2349,6 +3142,52 @@
                                                         </div>
                                                     )}
 
+                                                    {selectedElement.data.params.var !== undefined && (
+                                                        <div class="space-y-3">
+                                                            <div class="space-y-1">
+                                                                <label class="text-[10px] text-slate-400 block">Variable Name</label>
+                                                                <input 
+                                                                    type="text" 
+                                                                    value={selectedElement.data.params.var}
+                                                                    onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                        params: { ...selectedElement.data.params, var: e.target.value }
+                                                                    })}
+                                                                    class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                />
+                                                            </div>
+                                                            <div class="space-y-1">
+                                                                <label class="text-[10px] text-slate-400 block">Variable Kind</label>
+                                                                <select 
+                                                                    value={selectedElement.data.params.var_type || "ATTRIBUTE"}
+                                                                    onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                        params: { ...selectedElement.data.params, var_type: e.target.value }
+                                                                    })}
+                                                                    class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                >
+                                                                    <option value="ATTRIBUTE">Attribute</option>
+                                                                    <option value="STATUS">Status</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="space-y-1">
+                                                                <label class="text-[10px] text-slate-400 block">Comparison Source</label>
+                                                                <select 
+                                                                    value={selectedElement.data.params.value_type || ""}
+                                                                    onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                        params: {
+                                                                            ...selectedElement.data.params,
+                                                                            value_type: e.target.value || undefined
+                                                                        }
+                                                                    })}
+                                                                    class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                >
+                                                                    <option value="">Numeric value</option>
+                                                                    <option value="ATTRIBUTE">Attribute</option>
+                                                                    <option value="STATUS">Status</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
                                                     {selectedElement.data.params.op !== undefined && (
                                                         <div class="space-y-1">
                                                             <label class="text-[10px] text-slate-400 block">Operator</label>
@@ -2399,52 +3238,63 @@
                                                         </div>
                                                     )}
                                                 </div>
+                                                    )}
+                                                </div>
                                             )}
                                         </div>
-                                    )}
-                                </div>
 
-                                {/* Status Initialization Panel */}
-                                <div class="border-t border-slate-800/80 pt-4">
-                                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Initial Allocation Ratios</h4>
-                                    <div class={`p-3 border rounded-xl space-y-3 text-xs ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
-                                        {statusesList.length === 0 ? (
-                                            <p class="text-xs text-slate-500 italic">Declare status nodes to set allocation ratios.</p>
-                                        ) : (
-                                            statusesList.map(n => {
-                                                const initItem = builderInitialStatus.find(i => i.status === n.data.name) || { ratio: 0.0 };
-                                                return (
-                                                    <div key={n.id} class={`flex items-center justify-between gap-2 ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
-                                                        <span class="font-semibold truncate max-w-[120px]">{n.data.name} (%)</span>
-                                                        <input 
-                                                            type="number"
-                                                            min="0" max="1" step="0.01"
-                                                            value={initItem.ratio}
-                                                            onChange={(e) => updateInitialStatusRatio(n.data.name, e.target.value)}
-                                                            class={`w-20 border rounded px-2 py-1 text-right ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
-                                                        />
+                                        {/* Status Initialization Panel */}
+                                        <div class="border-t border-slate-800/80 pt-4">
+                                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Initial Allocation Ratios</h4>
+                                            <div class={`p-3 border rounded-xl space-y-3 text-xs ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
+                                                {statusesList.length === 0 ? (
+                                                    <p class="text-xs text-slate-500 italic">Declare status nodes to set allocation ratios.</p>
+                                                ) : (
+                                                    statusesList.map(n => {
+                                                        const initItem = builderInitialStatus.find(i => i.status === n.data.name) || { ratio: 0.0 };
+                                                        return (
+                                                            <div key={n.id} class={`flex items-center justify-between gap-2 ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
+                                                                <span class="font-semibold truncate max-w-[120px]">{n.data.name} (%)</span>
+                                                                <input 
+                                                                    type="number"
+                                                                    min="0" max="1" step="0.01"
+                                                                    value={initItem.ratio}
+                                                                    onChange={(e) => updateInitialStatusRatio(n.data.name, e.target.value)}
+                                                                    class={`w-20 border rounded px-2 py-1 text-right ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                />
+                                                            </div>
+                                                        );
+                                                    })
+                                                )}
+                                                {statusesList.length > 0 && (
+                                                    <div class={`pt-2 border-t flex justify-between text-[10px] ${isDarkMode ? "border-slate-800/80 text-slate-400" : "border-slate-200 text-slate-500"}`}>
+                                                        <span>Total:</span>
+                                                        <span class="font-bold">
+                                                            {(builderInitialStatus.reduce((acc, curr) => acc + curr.ratio, 0) * 100).toFixed(0)}%
+                                                        </span>
                                                     </div>
-                                                );
-                                            })
-                                        )}
-                                        {statusesList.length > 0 && (
-                                            <div class={`pt-2 border-t flex justify-between text-[10px] ${isDarkMode ? "border-slate-800/80 text-slate-400" : "border-slate-200 text-slate-500"}`}>
-                                                <span>Total:</span>
-                                                <span class="font-bold">
-                                                    {(builderInitialStatus.reduce((acc, curr) => acc + curr.ratio, 0) * 100).toFixed(0)}%
-                                                </span>
+                                                )}
                                             </div>
-                                        )}
-                                    </div>
-                                </div>
+                                        </div>
 
-                                {/* Code Preview Panel */}
-                                <div class="border-t border-slate-800/80 pt-4 flex-grow flex flex-col min-h-[200px]">
-                                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Live NDQL Script</h4>
-                                    <pre class={`flex-grow p-3 border rounded-xl text-[10px] font-mono overflow-auto whitespace-pre select-text leading-relaxed ${isDarkMode ? "bg-slate-950 border-slate-800 text-emerald-400" : "bg-white border-slate-200 text-emerald-700"}`}>
-                                        {liveNDQL}
-                                    </pre>
-                                </div>
+                                        {/* Code Preview Panel */}
+                                        <div class="border-t border-slate-800/80 pt-4 flex-grow flex flex-col min-h-[200px]">
+                                            <div class="flex items-center justify-between mb-3">
+                                                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Live NDQL Script</h4>
+                                                <button
+                                                    onClick={copyNDQLToClipboard}
+                                                    class="px-2.5 py-1 text-[10px] font-semibold rounded-lg border border-slate-700 text-slate-300 hover:text-white hover:border-cyan-500 hover:bg-cyan-500/10 transition cursor-pointer"
+                                                    title="Copy NDQL script"
+                                                >
+                                                    <i class="fa-solid fa-copy mr-1"></i>Copy
+                                                </button>
+                                            </div>
+                                            <pre class={`flex-grow p-3 border rounded-xl text-[10px] font-mono overflow-auto whitespace-pre select-text leading-relaxed ${isDarkMode ? "bg-slate-950 border-slate-800 text-emerald-400" : "bg-white border-slate-200 text-emerald-700"}`}>
+                                                {liveNDQL}
+                                            </pre>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

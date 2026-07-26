@@ -6,6 +6,7 @@ import sys
 import webbrowser
 import socket
 import inspect
+from urllib.parse import urlparse, parse_qs
 import numpy as np
 import networkx as nx
 from networkx.algorithms import community as nx_community
@@ -526,11 +527,13 @@ def generate_custom_model_class(model_data):
         "from ndlib.models.compartments.NodeThreshold import NodeThreshold",
         "from ndlib.models.compartments.NodeCategoricalAttribute import NodeCategoricalAttribute",
         "from ndlib.models.compartments.NodeNumericalAttribute import NodeNumericalAttribute",
+        "from ndlib.models.compartments.NodeNumericalVariable import NodeNumericalVariable",
         "from ndlib.models.compartments.EdgeStochastic import EdgeStochastic",
         "from ndlib.models.compartments.EdgeCategoricalAttribute import EdgeCategoricalAttribute",
         "from ndlib.models.compartments.EdgeNumericalAttribute import EdgeNumericalAttribute",
         "from ndlib.models.compartments.ConditionalComposition import ConditionalComposition",
         "from ndlib.models.compartments.CountDown import CountDown",
+        "from ndlib.models.compartments.enums.NumericalType import NumericalType",
         "",
         "class %s(CompositeModel):" % class_name,
         "    def __init__(self, graph, seed=None):",
@@ -614,6 +617,9 @@ def generate_custom_model_class(model_data):
                 args.append("triggering_status=%r" % v)
             elif comp_type == "ConditionalComposition" and k in {"condition", "first_branch", "second_branch"}:
                 args.append("%s=%s" % (k, str(v)))
+            elif comp_type == "NodeNumericalVariable" and k in {"var_type", "value_type"}:
+                if v:
+                    args.append("%s=NumericalType.%s" % (k, str(v).upper()))
             elif (comp_type in {"NodeNumericalAttribute", "EdgeNumericalAttribute"}) and k == "value" and params.get("op") == "IN" and isinstance(v, str) and "," in v:
                 try:
                     lst = [float(x.strip()) for x in v.split(",")]
@@ -637,13 +643,42 @@ def generate_custom_model_class(model_data):
 
     code.append("")
     code.append("    def set_initial_status(self, configuration):")
-    code.append("        super(%s, self).set_initial_status(configuration)" % class_name)
-    code.append("        model_params = configuration.get_model_parameters()")
+    code.append("        configuration = configuration or None")
+    code.append("        model_params = configuration.get_model_parameters() if configuration is not None else {}")
+    code.append("        nodes_cfg = configuration.get_nodes_configuration() if configuration is not None else {}")
+    code.append("        edges_cfg = configuration.get_edges_configuration() if configuration is not None else {}")
+    code.append("        status_cfg = configuration.get_model_configuration() if configuration is not None else {}")
+    code.append("")
+    code.append("        self.params['nodes'] = {}")
+    code.append("        self.params['edges'] = {}")
+    code.append("        self.params['status'] = {}")
+    code.append("        self.params['model'] = {}")
+    code.append("")
+    code.append("        for param, param_info in self.parameters['model'].items():")
+    code.append("            self.params['model'][param] = model_params.get(param, param_info.get('default'))")
+    code.append("")
+    code.append("        for param, node_to_value in nodes_cfg.items():")
+    code.append("            if len(node_to_value) < len(self.graph.nodes):")
+    code.append("                raise ValueError({'message': 'Not all nodes have a configuration specified'})")
+    code.append("            self.params['nodes'][param] = node_to_value")
+    code.append("")
+    code.append("        for param, edge_to_values in edges_cfg.items():")
+    code.append("            if len(edge_to_values) == len(self.graph.edges):")
+    code.append("                self.params['edges'][param] = {}")
+    code.append("                for e in edge_to_values:")
+    code.append("                    self.params['edges'][param][e] = edge_to_values[e]")
+    code.append("")
+    code.append("        for status_name, nodes in status_cfg.items():")
+    code.append("            self.params['status'][status_name] = nodes")
+    code.append("            if status_name in self.available_statuses:")
+    code.append("                for node in nodes:")
+    code.append("                    self.status[node] = self.available_statuses[status_name]")
+    code.append("")
     code.append("        pcts = {}")
     code.append("        for status_name in self.available_statuses:")
     code.append("            param_key = 'percentage_%s' % status_name")
-    code.append("            if param_key in model_params:")
-    code.append("                pcts[status_name] = float(model_params[param_key])")
+    code.append("            if param_key in self.params['model']:")
+    code.append("                pcts[status_name] = float(self.params['model'][param_key])")
     code.append("        if pcts:")
     code.append("            nodes = list(self.graph.nodes)")
     code.append("            np.random.shuffle(nodes)")
@@ -655,7 +690,8 @@ def generate_custom_model_class(model_data):
     code.append("                for i in range(current_idx, end_idx):")
     code.append("                    self.status[nodes[i]] = self.available_statuses[status_name]")
     code.append("                current_idx = end_idx")
-    code.append("            self.initial_status = self.status.copy()")
+    code.append("        self.initial_status = self.status.copy()")
+    code.append("        return self")
     code.append("")
 
     return "\n".join(code)
@@ -741,6 +777,10 @@ def generate_ndql_script(model_data):
     ndql.append("")
 
     return "\n".join(ndql)
+
+
+def sanitize_model_name(model_name):
+    return "".join(c for c in str(model_name or "") if c.isalnum() or c == "_")
 
 
 def discover_models():
@@ -883,6 +923,34 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                     self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
                 return
 
+            if self.path.startswith("/api/custom-models/download"):
+                parsed = urlparse(self.path)
+                query = parse_qs(parsed.query)
+                model_name = query.get("name", [""])[0]
+                safe_name = sanitize_model_name(model_name)
+                if not safe_name:
+                    raise ValueError("Model name is required")
+
+                custom_dir = os.path.join(os.path.dirname(__file__), "custom_models")
+                py_path = os.path.join(custom_dir, safe_name + ".py")
+                if not os.path.exists(py_path):
+                    self.send_response(404)
+                    self.send_header("Content-type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "Python file not found"}).encode("utf-8"))
+                    return
+
+                with open(py_path, "rb") as f:
+                    py_bytes = f.read()
+
+                self.send_response(200)
+                self.send_header("Content-type", "text/x-python; charset=utf-8")
+                self.send_header("Content-Disposition", 'attachment; filename="%s.py"' % safe_name)
+                self.send_header("Content-Length", str(len(py_bytes)))
+                self.end_headers()
+                self.wfile.write(py_bytes)
+                return
+
             # Serve static files
             clean_path = self.path.split("?")[0]
             if clean_path == "/" or clean_path == "":
@@ -944,7 +1012,7 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 if not model_name:
                     raise ValueError("Model name is required")
                 
-                safe_name = "".join(c for c in model_name if c.isalnum() or c == "_")
+                safe_name = sanitize_model_name(model_name)
                 if not safe_name:
                     raise ValueError("Invalid model name")
                 
@@ -976,7 +1044,13 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 else:
                     importlib.import_module(full_module_name)
                 
-                self.wfile.write(json.dumps({"success": True}).encode("utf-8"))
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "model_name": model_name,
+                    "safe_name": safe_name,
+                    "python_filename": "%s.py" % safe_name,
+                    "download_url": "/api/custom-models/download?name=%s" % safe_name
+                }).encode("utf-8"))
             except Exception as e:
                 import traceback
                 traceback.print_exc()
@@ -997,7 +1071,7 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 if not model_name:
                     raise ValueError("Model name is required")
                 custom_dir = os.path.join(os.path.dirname(__file__), "custom_models")
-                safe_name = "".join(c for c in model_name if c.isalnum() or c == "_")
+                safe_name = sanitize_model_name(model_name)
                 for ext in [".json", ".ndql", ".py"]:
                     f_path = os.path.join(custom_dir, safe_name + ext)
                     if os.path.exists(f_path):
@@ -1196,7 +1270,7 @@ def main():
         PORT = find_free_port()
 
     server_address = ("127.0.0.1", PORT)
-    httpd = http.server.HTTPServer(server_address, DashboardRequestHandler)
+    httpd = http.server.ThreadingHTTPServer(server_address, DashboardRequestHandler)
     print("==================================================")
     print("  NDlib Interactive Dashboard Server running")
     print("  URL: http://127.0.0.1:%s" % PORT)

@@ -53,6 +53,11 @@ class DashboardTest(unittest.TestCase):
                     "params": {"attribute": "age", "op": "IN", "value": "18,65", "probability": 1.0}
                 },
                 {
+                    "name": "opinion_gate",
+                    "type": "NodeNumericalVariable",
+                    "params": {"var": "opinion", "var_type": "ATTRIBUTE", "value": 0.5, "op": ">=", "probability": 1.0}
+                },
+                {
                     "name": "cond",
                     "type": "ConditionalComposition",
                     "params": {
@@ -73,6 +78,7 @@ class DashboardTest(unittest.TestCase):
         self.assertIn("class TestExtendedModel(CompositeModel):", class_code)
         self.assertIn("stoch = NodeStochastic(rate=0.1, triggering_status='I')", class_code)
         self.assertIn("attr_num = NodeNumericalAttribute(attribute='age', op='IN', value=[18.0, 65.0], probability=1.0)", class_code)
+        self.assertIn("opinion_gate = NodeNumericalVariable(var='opinion', var_type=NumericalType.ATTRIBUTE, value=0.5, op='>=', probability=1.0)", class_code)
         self.assertIn("cond = ConditionalComposition(condition=stoch, first_branch=attr_cat, second_branch=attr_num)", class_code)
         
         # Verify it compiles
@@ -90,4 +96,41 @@ class DashboardTest(unittest.TestCase):
         ndql_script = generate_ndql_script(payload)
         self.assertIn("MODEL TestExtendedModel", ndql_script)
         self.assertIn("IF stoch THEN attr_cat ELSE attr_num AS cond", ndql_script)
+        self.assertIn("COMPARTMENT opinion_gate", ndql_script)
 
+    def test_custom_opinion_model_initialization_without_infected(self):
+        from ndlib.dashboard.server import generate_custom_model_class
+        import networkx as nx
+        import ndlib.models.ModelConfig as mc
+
+        payload = {
+            "name": "OpinionOnlyModel",
+            "statuses": [
+                {"name": "Agree", "code": 0},
+                {"name": "Disagree", "code": 1}
+            ],
+            "compartments": [],
+            "rules": [],
+            "initial_status": [
+                {"status": "Agree", "ratio": 0.6},
+                {"status": "Disagree", "ratio": 0.4}
+            ]
+        }
+
+        class_code = generate_custom_model_class(payload)
+        self.assertNotIn("super(OpinionOnlyModel, self).set_initial_status(configuration)", class_code)
+
+        local_scope = {}
+        global_scope = {}
+        exec(class_code, global_scope, local_scope)
+        model_cls = local_scope["OpinionOnlyModel"]
+
+        model = model_cls(nx.path_graph(10))
+        cfg = mc.Configuration()
+        cfg.add_model_parameter("percentage_Agree", 0.6)
+        cfg.add_model_parameter("percentage_Disagree", 0.4)
+
+        model.set_initial_status(cfg)
+        agree = model.available_statuses["Agree"]
+        disagree = model.available_statuses["Disagree"]
+        self.assertEqual(sum(1 for v in model.status.values() if v == agree) + sum(1 for v in model.status.values() if v == disagree), 10)

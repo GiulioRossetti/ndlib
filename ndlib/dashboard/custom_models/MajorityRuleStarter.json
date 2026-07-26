@@ -1,0 +1,151 @@
+{
+    "name": "MajorityRuleStarter",
+    "use_case": "discrete_opinions",
+    "template_id": "majority_rule",
+    "statuses": [
+        {
+            "name": "Agree",
+            "code": 0
+        },
+        {
+            "name": "Disagree",
+            "code": 1
+        }
+    ],
+    "compartments": [
+        {
+            "name": "stance_gate",
+            "type": "NodeCategoricalAttribute",
+            "params": {
+                "attribute": "stance",
+                "value": "majority",
+                "probability": 1
+            }
+        },
+        {
+            "name": "support",
+            "type": "NodeStochastic",
+            "params": {
+                "rate": 0.2,
+                "triggering_status": "Agree"
+            }
+        },
+        {
+            "name": "pushback",
+            "type": "NodeStochastic",
+            "params": {
+                "rate": 0.2,
+                "triggering_status": "Disagree"
+            }
+        }
+    ],
+    "rules": [
+        {
+            "from": "Disagree",
+            "to": "Agree",
+            "using": "pushback"
+        }
+    ],
+    "initial_status": [
+        {
+            "status": "Agree",
+            "ratio": 0.5
+        },
+        {
+            "status": "Disagree",
+            "ratio": 0.5
+        }
+    ],
+    "nodes": [
+        {
+            "id": "mr_yes",
+            "type": "status",
+            "x": 80,
+            "y": 145,
+            "data": {
+                "name": "Agree",
+                "code": 0
+            }
+        },
+        {
+            "id": "mr_no",
+            "type": "status",
+            "x": 80,
+            "y": 295,
+            "data": {
+                "name": "Disagree",
+                "code": 1
+            }
+        },
+        {
+            "id": "mr_gate",
+            "type": "compartment",
+            "x": 340,
+            "y": 220,
+            "data": {
+                "name": "stance_gate",
+                "type": "NodeCategoricalAttribute",
+                "params": {
+                    "attribute": "stance",
+                    "value": "majority",
+                    "probability": 1
+                }
+            }
+        },
+        {
+            "id": "mr_support",
+            "type": "compartment",
+            "x": 340,
+            "y": 370,
+            "data": {
+                "name": "support",
+                "type": "NodeStochastic",
+                "params": {
+                    "rate": 0.2,
+                    "triggering_status": "Agree"
+                }
+            }
+        },
+        {
+            "id": "mr_pushback",
+            "type": "compartment",
+            "x": 340,
+            "y": 70,
+            "data": {
+                "name": "pushback",
+                "type": "NodeStochastic",
+                "params": {
+                    "rate": 0.2,
+                    "triggering_status": "Disagree"
+                }
+            }
+        }
+    ],
+    "edges": [
+        {
+            "id": "mr_e1",
+            "source": "mr_yes",
+            "target": "mr_gate"
+        },
+        {
+            "id": "mr_e2",
+            "source": "mr_gate",
+            "target": "mr_support"
+        },
+        {
+            "id": "mr_e3",
+            "source": "mr_support",
+            "target": "mr_no"
+        },
+        {
+            "id": "mr_e4",
+            "source": "mr_no",
+            "target": "mr_pushback"
+        },
+        {
+            "id": "mr_e5",
+            "source": "mr_pushback",
+            "target": "mr_yes"
+        }
+    ]
+}
