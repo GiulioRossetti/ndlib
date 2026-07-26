@@ -72,6 +72,24 @@ Once the server starts, open the local URL printed in the terminal.
 | --- | --- |
 | ![NDlib dashboard configuration view](docs/_static/dashboard/dashboard-config.png) | ![NDlib dashboard network view](docs/_static/dashboard/dashboard-network.png) |
 
+### Visual Model Builder (KNIME-like Interface)
+
+NDlib includes an interactive Visual Model Builder that allows designing custom compartmental models by drag-and-drop using a node-graph workflow. Visual models are compiled to standard Python classes and NDQL (Network Diffusion Query Language) scripts, and can be simulated or deleted directly from the dashboard.
+
+Draggable building blocks include:
+- **Status Node**: Declares compartmental states (e.g., Susceptible, Infected, Recovered).
+- **Node Stochastic**: Propagates state change stochastically if neighbors match a status.
+- **Node Threshold**: Implements fraction-based cascading activation.
+- **Edge Stochastic**: Evaluates link-level propagation conditions.
+- **Count Down**: Implements fixed iteration-based delays (e.g., recovery after $D$ ticks).
+- **Node Categorical Attribute**: Checks categorical node properties (e.g., gender, city).
+- **Node Numerical Attribute**: Performs numerical checks on node variables (e.g., age ranges).
+- **Conditional Composition**: Composes decision logic gates by nesting condition, if-true, and if-false branches.
+
+| Visual Model Builder interface |
+| --- |
+| ![Visual Model Builder](docs/_static/dashboard/dashboard-builder.png) |
+
 ## Documentation, Tutorials and Online Environments
 
 For examples, tutorials and a complete reference visit the project documentation website on [ReadTheDocs](http://ndlib.readthedocs.io).

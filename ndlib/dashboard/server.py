@@ -13,10 +13,8 @@ from networkx.algorithms import community as nx_community
 # Add the repository root to the front of the import path so the dashboard
 # always uses the source tree currently being edited, not an installed copy.
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-sys.path.insert(0, REPO_ROOT)
-for module_name in list(sys.modules):
-    if module_name == "ndlib" or module_name.startswith("ndlib."):
-        del sys.modules[module_name]
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
 import ndlib.models.epidemics as epd
 import ndlib.models.opinions as opn
@@ -99,6 +97,16 @@ def coerce_model_parameter_value(param, val, p_info):
     range_info = p_info.get("range")
     int_params = {"q", "k", "iterations"}
 
+    # Coerce to integer if default value is an integer or param is known to be int
+    if (isinstance(default_val, int) and not isinstance(default_val, bool)) or param in int_params:
+        try:
+            return max(1, int(round(float(val))))
+        except (ValueError, TypeError):
+            try:
+                return max(1, int(val))
+            except (ValueError, TypeError):
+                return val
+
     if is_threshold_parameter(param, p_info) or range_info == [0, 1]:
         return clamp_unit_float(val, p_info.get("default", 0.1))
 
@@ -107,9 +115,6 @@ def coerce_model_parameter_value(param, val, p_info):
 
     if range_info is float:
         return float(val)
-
-    if param in int_params:
-        return max(1, int(round(float(val))))
 
     if isinstance(val, str):
         try:
@@ -251,12 +256,22 @@ def needs_community_assignment(model_instance):
 
 def resolve_model_class(category, model_class_name):
     """
-    Resolve a model class from the local source tree.
-
-    Some environments preload a different ``ndlib`` installation whose package
-    namespace may not match the repository under test. Importing the concrete
-    module path first keeps the dashboard aligned with the source tree.
+    Resolve a model class from the local source tree or dynamic custom models.
     """
+    if category == "Custom Models":
+        full_module_name = "ndlib.dashboard.custom_models.%s" % model_class_name
+        try:
+            if full_module_name in sys.modules:
+                mod = sys.modules[full_module_name]
+            else:
+                mod = importlib.import_module(full_module_name)
+            if hasattr(mod, model_class_name):
+                return getattr(mod, model_class_name)
+        except Exception as e:
+            print("Error resolving custom model class %s: %s" % (model_class_name, str(e)))
+            pass
+        return None
+
     package = opn if category == "Opinions" else epd
 
     if hasattr(package, model_class_name):
@@ -489,6 +504,245 @@ def build_graph_from_serialized(graph_data):
     return g
 
 
+def generate_custom_model_class(model_data):
+    """
+    Generates a Python source string representing a CompositeModel subclass
+    based on custom visual model JSON data.
+    """
+    model_name = model_data.get("name", "CustomModel")
+    class_name = "".join(c for c in model_name if c.isalnum() or c == "_")
+    if not class_name or not class_name[0].isalpha() and class_name[0] != "_":
+        class_name = "_" + class_name
+
+    statuses = model_data.get("statuses", [])
+    compartments = model_data.get("compartments", [])
+    rules = model_data.get("rules", [])
+    initial_status = model_data.get("initial_status", [])
+
+    code = [
+        "import numpy as np",
+        "from ndlib.models.CompositeModel import CompositeModel",
+        "from ndlib.models.compartments.NodeStochastic import NodeStochastic",
+        "from ndlib.models.compartments.NodeThreshold import NodeThreshold",
+        "from ndlib.models.compartments.NodeCategoricalAttribute import NodeCategoricalAttribute",
+        "from ndlib.models.compartments.NodeNumericalAttribute import NodeNumericalAttribute",
+        "from ndlib.models.compartments.EdgeStochastic import EdgeStochastic",
+        "from ndlib.models.compartments.EdgeCategoricalAttribute import EdgeCategoricalAttribute",
+        "from ndlib.models.compartments.EdgeNumericalAttribute import EdgeNumericalAttribute",
+        "from ndlib.models.compartments.ConditionalComposition import ConditionalComposition",
+        "from ndlib.models.compartments.CountDown import CountDown",
+        "",
+        "class %s(CompositeModel):" % class_name,
+        "    def __init__(self, graph, seed=None):",
+        "        # Bypass CompositeModel.__init__ to avoid recursion bug in super(self.__class__, self)",
+        "        from ndlib.models.DiffusionModel import DiffusionModel",
+        "        DiffusionModel.__init__(self, graph, seed=seed)",
+        "        self.available_statuses = {}",
+        "        self.compartment = {}",
+        "        self.compartment_progressive = 0",
+        "        self.status_progressive = 0",
+        "        self.name = %r" % model_name,
+        "        self.discrete_state = True",
+        "        self.available_statuses = {"
+    ]
+
+    for idx, status in enumerate(statuses):
+        code.append("            %r: %d," % (status["name"], idx))
+    code.append("        }")
+    
+    code.append("        self.parameters = {")
+    code.append("            'model': {")
+    for status in statuses:
+        ratio = 0.0
+        for init in initial_status:
+            if init["status"] == status["name"]:
+                ratio = float(init.get("ratio", 0.0))
+        code.append("                'percentage_%s': {" % status["name"])
+        code.append("                    'descr': 'Initial percentage of %s nodes'," % status["name"])
+        code.append("                    'range': [0, 1],")
+        code.append("                    'optional': True,")
+        code.append("                    'default': %f" % ratio)
+        code.append("                },")
+    code.append("            },")
+    code.append("            'nodes': {},")
+    code.append("            'edges': {}")
+    code.append("        }")
+
+    code.append("")
+    code.append("        # Add statuses")
+    for status in statuses:
+        code.append("        self.add_status(%r)" % status["name"])
+
+    code.append("")
+    code.append("        # Define compartments")
+    # Sort compartments: simple dependency sorting for ConditionalComposition
+    sorted_comps = []
+    pending = list(compartments)
+    defined_names = set()
+    
+    for _ in range(10):
+        if not pending:
+            break
+        next_pending = []
+        for comp in pending:
+            comp_type = comp["type"]
+            params = comp.get("params", {})
+            
+            deps = []
+            if comp_type == "ConditionalComposition":
+                if params.get("condition"): deps.append(params["condition"])
+                if params.get("first_branch"): deps.append(params["first_branch"])
+                if params.get("second_branch"): deps.append(params["second_branch"])
+            
+            if all(d in defined_names for d in deps):
+                sorted_comps.append(comp)
+                defined_names.add(comp["name"])
+            else:
+                next_pending.append(comp)
+        pending = next_pending
+    for comp in pending:
+        sorted_comps.append(comp)
+
+    for comp in sorted_comps:
+        comp_name = comp["name"]
+        comp_type = comp["type"]
+        params = comp.get("params", {})
+        
+        args = []
+        for k, v in params.items():
+            if k == "triggering_status":
+                args.append("triggering_status=%r" % v)
+            elif comp_type == "ConditionalComposition" and k in {"condition", "first_branch", "second_branch"}:
+                args.append("%s=%s" % (k, str(v)))
+            elif (comp_type in {"NodeNumericalAttribute", "EdgeNumericalAttribute"}) and k == "value" and params.get("op") == "IN" and isinstance(v, str) and "," in v:
+                try:
+                    lst = [float(x.strip()) for x in v.split(",")]
+                    args.append("value=%r" % lst)
+                except ValueError:
+                    args.append("value=%r" % v)
+            elif isinstance(v, str):
+                try:
+                    args.append("%s=%s" % (k, str(float(v))))
+                except ValueError:
+                    args.append("%s=%r" % (k, v))
+            else:
+                args.append("%s=%s" % (k, str(v)))
+        
+        code.append("        %s = %s(%s)" % (comp_name, comp_type, ", ".join(args)))
+
+    code.append("")
+    code.append("        # Define rules")
+    for rule in rules:
+        code.append("        self.add_rule(%r, %r, %s)" % (rule["from"], rule["to"], rule["using"]))
+
+    code.append("")
+    code.append("    def set_initial_status(self, configuration):")
+    code.append("        super(%s, self).set_initial_status(configuration)" % class_name)
+    code.append("        model_params = configuration.get_model_parameters()")
+    code.append("        pcts = {}")
+    code.append("        for status_name in self.available_statuses:")
+    code.append("            param_key = 'percentage_%s' % status_name")
+    code.append("            if param_key in model_params:")
+    code.append("                pcts[status_name] = float(model_params[param_key])")
+    code.append("        if pcts:")
+    code.append("            nodes = list(self.graph.nodes)")
+    code.append("            np.random.shuffle(nodes)")
+    code.append("            current_idx = 0")
+    code.append("            n_nodes = len(nodes)")
+    code.append("            for status_name, pct in pcts.items():")
+    code.append("                count = int(round(pct * n_nodes))")
+    code.append("                end_idx = min(current_idx + count, n_nodes)")
+    code.append("                for i in range(current_idx, end_idx):")
+    code.append("                    self.status[nodes[i]] = self.available_statuses[status_name]")
+    code.append("                current_idx = end_idx")
+    code.append("            self.initial_status = self.status.copy()")
+    code.append("")
+
+    return "\n".join(code)
+
+
+def generate_ndql_script(model_data):
+    """
+    Generates a standard NDQL query string from custom visual model JSON data.
+    """
+    model_name = model_data.get("name", "CustomModel")
+    statuses = model_data.get("statuses", [])
+    compartments = model_data.get("compartments", [])
+    rules = model_data.get("rules", [])
+    initial_status = model_data.get("initial_status", [])
+
+    ndql = []
+    ndql.append("MODEL %s" % model_name)
+    ndql.append("")
+
+    for status in statuses:
+        ndql.append("STATUS %s" % status["name"])
+    ndql.append("")
+
+    # Sort compartments: simple dependency sorting for ConditionalComposition
+    sorted_comps = []
+    pending = list(compartments)
+    defined_names = set()
+    
+    for _ in range(10):
+        if not pending:
+            break
+        next_pending = []
+        for comp in pending:
+            comp_type = comp["type"]
+            params = comp.get("params", {})
+            
+            deps = []
+            if comp_type == "ConditionalComposition":
+                if params.get("condition"): deps.append(params["condition"])
+                if params.get("first_branch"): deps.append(params["first_branch"])
+                if params.get("second_branch"): deps.append(params["second_branch"])
+            
+            if all(d in defined_names for d in deps):
+                sorted_comps.append(comp)
+                defined_names.add(comp["name"])
+            else:
+                next_pending.append(comp)
+        pending = next_pending
+    for comp in pending:
+        sorted_comps.append(comp)
+
+    for comp in sorted_comps:
+        if comp["type"] == "ConditionalComposition":
+            params = comp.get("params", {})
+            ndql.append("IF %s THEN %s ELSE %s AS %s" % (
+                params.get("condition", ""),
+                params.get("first_branch", ""),
+                params.get("second_branch", ""),
+                comp["name"]
+            ))
+            ndql.append("")
+        else:
+            ndql.append("COMPARTMENT %s" % comp["name"])
+            ndql.append("TYPE %s" % comp["type"])
+            params = comp.get("params", {})
+            if "triggering_status" in params:
+                ndql.append("TRIGGER %s" % params["triggering_status"])
+            for k, v in params.items():
+                if k != "triggering_status":
+                    ndql.append("PARAM %s %s" % (k, str(v)))
+            ndql.append("")
+
+    for rule in rules:
+        ndql.append("RULE")
+        ndql.append("FROM %s" % rule["from"])
+        ndql.append("TO %s" % rule["to"])
+        ndql.append("USING %s" % rule["using"])
+        ndql.append("")
+
+    ndql.append("INITIALIZE")
+    for init in initial_status:
+        ndql.append("SET %s %s" % (init["status"], str(init.get("ratio", 0.0))))
+    ndql.append("")
+
+    return "\n".join(ndql)
+
+
 def discover_models():
     models = {}
     exclude_classes = ["DiffusionModel", "Configuration", "ConfigurationException", "ContinuousModel", "DynamicDiffusionModel"]
@@ -543,6 +797,42 @@ def discover_models():
                 }
         except Exception:
             pass
+
+    # Discover custom models from the custom_models package
+    custom_dir = os.path.join(os.path.dirname(__file__), "custom_models")
+    if os.path.exists(custom_dir):
+        if custom_dir not in sys.path:
+            sys.path.insert(0, os.path.dirname(custom_dir))
+
+        for f_name in os.listdir(custom_dir):
+            if f_name.endswith(".py") and not f_name.startswith("__"):
+                module_name = f_name[:-3]
+                try:
+                    full_module_name = "ndlib.dashboard.custom_models.%s" % module_name
+                    if full_module_name in sys.modules:
+                        importlib.reload(sys.modules[full_module_name])
+                        mod = sys.modules[full_module_name]
+                    else:
+                        mod = importlib.import_module(full_module_name)
+                    
+                    for name, obj in inspect.getmembers(mod, inspect.isclass):
+                        if name == module_name:
+                            g = nx.Graph()
+                            g.add_node(0)
+                            model_instance = obj(g)
+                            models[name] = {
+                                "category": "Custom Models",
+                                "name": getattr(model_instance, "name", name),
+                                "class_name": name,
+                                "parameters": model_instance.parameters,
+                                "statuses": model_instance.available_statuses,
+                                "discrete_state": getattr(model_instance, "discrete_state", True),
+                                "is_custom": True
+                            }
+                except Exception as e:
+                    print("Warning: failed to load custom model %s: %s" % (module_name, str(e)))
+                    pass
+
     return sanitize_for_json(models)
 
 
@@ -572,6 +862,23 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 try:
                     models = discover_models()
                     self.wfile.write(json.dumps(models).encode("utf-8"))
+                except Exception as e:
+                    self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+                return
+
+            if self.path == "/api/custom-models":
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                try:
+                    custom_dir = os.path.join(os.path.dirname(__file__), "custom_models")
+                    models_meta = []
+                    if os.path.exists(custom_dir):
+                        for f_name in os.listdir(custom_dir):
+                            if f_name.endswith(".json"):
+                                with open(os.path.join(custom_dir, f_name), "r") as f:
+                                    models_meta.append(json.load(f))
+                    self.wfile.write(json.dumps(models_meta).encode("utf-8"))
                 except Exception as e:
                     self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
                 return
@@ -623,6 +930,88 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 pass
 
     def do_POST(self):
+        if self.path == "/api/custom-models/save":
+            content_length = int(self.headers["Content-Length"])
+            post_data = self.rfile.read(content_length)
+            payload = json.loads(post_data.decode("utf-8"))
+            
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            
+            try:
+                model_name = payload.get("name")
+                if not model_name:
+                    raise ValueError("Model name is required")
+                
+                safe_name = "".join(c for c in model_name if c.isalnum() or c == "_")
+                if not safe_name:
+                    raise ValueError("Invalid model name")
+                
+                custom_dir = os.path.join(os.path.dirname(__file__), "custom_models")
+                if not os.path.exists(custom_dir):
+                    os.makedirs(custom_dir)
+                
+                # Save visual layout JSON
+                json_path = os.path.join(custom_dir, safe_name + ".json")
+                with open(json_path, "w") as f:
+                    json.dump(payload, f, indent=4)
+                
+                # Generate NDQL query
+                ndql_query = generate_ndql_script(payload)
+                ndql_path = os.path.join(custom_dir, safe_name + ".ndql")
+                with open(ndql_path, "w") as f:
+                    f.write(ndql_query)
+                
+                # Generate Python class code
+                class_code = generate_custom_model_class(payload)
+                py_path = os.path.join(custom_dir, safe_name + ".py")
+                with open(py_path, "w") as f:
+                    f.write(class_code)
+                
+                # Force dynamic import / reload
+                full_module_name = "ndlib.dashboard.custom_models.%s" % safe_name
+                if full_module_name in sys.modules:
+                    importlib.reload(sys.modules[full_module_name])
+                else:
+                    importlib.import_module(full_module_name)
+                
+                self.wfile.write(json.dumps({"success": True}).encode("utf-8"))
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+            return
+
+        elif self.path == "/api/custom-models/delete":
+            content_length = int(self.headers["Content-Length"])
+            post_data = self.rfile.read(content_length)
+            payload = json.loads(post_data.decode("utf-8"))
+            model_name = payload.get("name")
+            
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            
+            try:
+                if not model_name:
+                    raise ValueError("Model name is required")
+                custom_dir = os.path.join(os.path.dirname(__file__), "custom_models")
+                safe_name = "".join(c for c in model_name if c.isalnum() or c == "_")
+                for ext in [".json", ".ndql", ".py"]:
+                    f_path = os.path.join(custom_dir, safe_name + ext)
+                    if os.path.exists(f_path):
+                        os.remove(f_path)
+                
+                mod_name = "ndlib.dashboard.custom_models.%s" % safe_name
+                if mod_name in sys.modules:
+                    del sys.modules[mod_name]
+                    
+                self.wfile.write(json.dumps({"success": True}).encode("utf-8"))
+            except Exception as e:
+                self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+            return
+
         if self.path in {"/api/network", "/api/simulate"}:
             content_length = int(self.headers["Content-Length"])
             post_data = self.rfile.read(content_length)
