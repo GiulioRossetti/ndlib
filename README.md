@@ -76,7 +76,7 @@ Once the server starts, open the local URL printed in the terminal.
 
 For examples, tutorials and a complete reference visit the project documentation website on [ReadTheDocs](http://ndlib.readthedocs.io).
 
-If you would like to test ``NDlib`` functionalities withouth installing anything on your machine consider using the preconfigured Jupyter Hub instances offered by [SoBigData++](https://sobigdata.d4science.org/group/sobigdata-gateway/explore?siteId=20371853).
+If you would like to test ``NDlib`` functionalities without installing anything on your machine consider using the preconfigured Jupyter Hub instances offered by [SoBigData RI](https://sobigdata.d4science.org/group/sobigdata-gateway/explore?siteId=20371853).
 
 
 ## Jupyter Notebook Tutorial
@@ -84,14 +84,12 @@ If you would like to test ``NDlib`` functionalities withouth installing anything
 Interested in an extensive tutorial on NDlib? Check out the official Jupyter Notebooks!
 
 [NDlib Overview](https://colab.research.google.com/github/KDDComplexNetworkAnalysis/CNA_Tutorials/blob/master/NDlib.ipynb#scrollTo=d80DUNRkKIn4)
- 
-[NDlib-Rest](https://colab.research.google.com/github/KDDComplexNetworkAnalysis/CNA_Tutorials/blob/master/NDlib-REST.ipynb)
 
 ## Collaborate with us!
 
 ``NDlib`` is an active project, any contribution is welcome!
 
-If you like to include your model in NDlib (as well as in [NDlib-REST](https://github.com/GiulioRossetti/ndlib-rest)) feel free to fork the project, open an issue and contact us.
+If you like to include your model in NDlib feel free to fork the project, open an issue and contact us.
 
 ### How to contribute to this project?
 
