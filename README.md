@@ -76,7 +76,7 @@ Once the server starts, open the local URL printed in the terminal.
 | --- | --- |
 | ![NDlib dashboard configuration view](docs/_static/dashboard/dashboard-config.png) | ![NDlib dashboard network view](docs/_static/dashboard/dashboard-network.png) |
 
-### Visual Model Builder (KNIME-like Interface)
+### Visual Model Builder 
 
 NDlib includes an interactive Visual Model Builder that allows designing custom compartmental models by drag-and-drop using a node-graph workflow. Visual models are compiled to standard Python classes and NDQL (Network Diffusion Query Language) scripts, and can be simulated or deleted directly from the dashboard.
 
@@ -102,9 +102,6 @@ Draggable building blocks include:
 - **Node Numerical Variable**: Compares numeric opinion-like values or attributes against a threshold.
 - **Conditional Composition**: Composes decision logic gates by nesting condition, if-true, and if-false branches.
 
-| Visual Model Builder interface |
-| --- |
-| ![Visual Model Builder](docs/_static/dashboard/dashboard-builder.png) |
 
 | Use-case-aware Builder |
 | --- |
