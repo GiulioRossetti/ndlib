@@ -343,24 +343,21 @@
                 algorithmic_bias: {
                     useCase: "continuous_opinions",
                     label: "Algorithmic Bias",
-                    description: "Continuous-opinion starter that seeds node opinions from a bounded distribution and routes them through numeric thresholds.",
+                    description: "Continuous-opinion starter with bounded-confidence, selection-bias, and compromise blocks.",
                     modelName: "AlgorithmicBiasStarter",
                     initialOpinionDistribution: "uniform",
                     nodes: [
                         { id: "ab_low", type: "status", x: 90, y: 150, data: { name: "LowOpinion", code: 0 } },
-                        { id: "ab_high", type: "status", x: 460, y: 150, data: { name: "HighOpinion", code: 1 } },
-                        { id: "ab_gate", type: "compartment", x: 250, y: 110, data: { name: "opinion_gate", type: "NodeNumericalVariable", params: { var: "opinion", var_type: "ATTRIBUTE", value: 0.5, op: ">=", probability: 1.0 } } },
-                        { id: "ab_shift", type: "compartment", x: 620, y: 110, data: { name: "opinion_shift", type: "NodeStochastic", params: { rate: 0.15, triggering_status: "HighOpinion" } } },
-                        { id: "ab_lock", type: "compartment", x: 620, y: 250, data: { name: "opinion_lock", type: "NodeStochastic", params: { rate: 0.15, triggering_status: "LowOpinion" } } },
-                        { id: "ab_mix", type: "compartment", x: 400, y: 260, data: { name: "opinion_mix", type: "ConditionalComposition", params: { condition: "opinion_gate", first_branch: "opinion_shift", second_branch: "opinion_lock" } } }
+                        { id: "ab_high", type: "status", x: 780, y: 150, data: { name: "HighOpinion", code: 1 } },
+                        { id: "ab_threshold", type: "compartment", x: 260, y: 95, data: { name: "bounded_confidence", type: "OpinionDistanceThreshold", params: { epsilon: 0.1 } } },
+                        { id: "ab_bias", type: "compartment", x: 500, y: 95, data: { name: "selection_bias", type: "OpinionSelectionBias", params: { gamma: 1.5 } } },
+                        { id: "ab_compromise", type: "compartment", x: 620, y: 230, data: { name: "opinion_compromise", type: "OpinionCompromise", params: { mu: 0.5 } } }
                     ],
                     edges: [
-                        { id: "ab_e1", source: "ab_low", target: "ab_gate" },
-                        { id: "ab_e2", source: "ab_gate", target: "ab_mix", targetPort: "condition" },
-                        { id: "ab_e3", source: "ab_shift", target: "ab_mix", targetPort: "if_true" },
-                        { id: "ab_e4", source: "ab_lock", target: "ab_mix", targetPort: "if_false" },
-                        { id: "ab_e5", source: "ab_mix", target: "ab_high" },
-                        { id: "ab_e6", source: "ab_high", target: "ab_lock" }
+                        { id: "ab_e1", source: "ab_low", target: "ab_threshold" },
+                        { id: "ab_e2", source: "ab_threshold", target: "ab_bias" },
+                        { id: "ab_e3", source: "ab_bias", target: "ab_compromise" },
+                        { id: "ab_e4", source: "ab_compromise", target: "ab_high" }
                     ],
                     initialStatus: [
                         { status: "LowOpinion", ratio: 0.5 },
@@ -431,9 +428,9 @@
                 },
                 continuous_opinions: {
                     label: "Continuous Opinions",
-                    description: "Numeric opinion-oriented blocks centered on thresholds, bounded opinion seeding, and conditional routing.",
+                    description: "Opinion-specific blocks for bounded confidence, biased partner selection, and compromise updates.",
                     templates: ["algorithmic_bias"],
-                    palette: ["status", "NodeNumericalAttribute", "NodeNumericalVariable", "NodeThreshold", "CountDown", "ConditionalComposition"]
+                    palette: ["status", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "NodeNumericalAttribute", "NodeNumericalVariable", "NodeThreshold", "CountDown", "ConditionalComposition"]
                 },
                 discrete_opinions: {
                     label: "Discrete Opinions",
@@ -445,7 +442,7 @@
                     label: "Coupled / Advanced",
                     description: "All available blocks for mixed epidemic-opinion experiments and custom couplings.",
                     templates: ["coupled", "sir", "algorithmic_bias", "majority_rule"],
-                    palette: ["status", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "NodeNumericalVariable", "ConditionalComposition"]
+                    palette: ["status", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "NodeNumericalVariable", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "ConditionalComposition"]
                 }
             };
 
@@ -534,6 +531,15 @@
                     const operator = params.op || ">";
                     const value = params.value !== undefined ? params.value : "?";
                     return `${variable} ${source} ${operator} ${value}`;
+                }
+                if (node.data.type === "OpinionDistanceThreshold") {
+                    return `epsilon <= ${params.epsilon ?? "?"}`;
+                }
+                if (node.data.type === "OpinionSelectionBias") {
+                    return `gamma = ${params.gamma ?? "?"}`;
+                }
+                if (node.data.type === "OpinionCompromise") {
+                    return `mu = ${params.mu ?? "?"}`;
                 }
                 if (node.data.type === "NodeNumericalAttribute") {
                     const attribute = params.attribute || "attribute";
@@ -797,6 +803,33 @@
                         icon: "fa-wave-square",
                         accent: "cyan",
                         onClick: () => addCompartmentNode("NodeNumericalVariable")
+                    },
+                    {
+                        id: "OpinionDistanceThreshold",
+                        type: "compartment",
+                        label: "Opinion Threshold",
+                        description: "Bounded confidence gate driven by epsilon",
+                        icon: "fa-ruler-horizontal",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("OpinionDistanceThreshold")
+                    },
+                    {
+                        id: "OpinionSelectionBias",
+                        type: "compartment",
+                        label: "Selection Bias",
+                        description: "Biases partner selection by opinion distance",
+                        icon: "fa-sliders",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("OpinionSelectionBias")
+                    },
+                    {
+                        id: "OpinionCompromise",
+                        type: "compartment",
+                        label: "Compromise",
+                        description: "Deffuant-style averaging step",
+                        icon: "fa-people-arrows",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("OpinionCompromise")
                     },
                     {
                         id: "ConditionalComposition",
@@ -2550,21 +2583,38 @@
                 const lines = [];
                 lines.push(`MODEL ${builderModelName}`);
                 lines.push("");
-                if (builderUseCase === "continuous_opinions" || builderTemplateId === "algorithmic_bias") {
-                    lines.push(`# Continuous-opinion starter`);
-                    lines.push(`OPINION_INITIALIZATION ${builderOpinionDistribution}`);
+
+                const isContinuousOpinionBuilder = builderUseCase === "continuous_opinions" || builderTemplateId === "algorithmic_bias";
+                if (isContinuousOpinionBuilder) {
+                    lines.push("TYPE CONTINUOUS_OPINION");
+                    lines.push(`INITIAL_OPINION_DISTRIBUTION ${builderOpinionDistribution}`);
                     lines.push("");
                 }
 
                 const statuses = builderNodes.filter(n => n.type === "status");
                 statuses.forEach(n => {
-                    lines.push(`STATUS ${n.data.name}`);
+                    lines.push(isContinuousOpinionBuilder ? `BIN ${n.data.name}` : `STATUS ${n.data.name}`);
                 });
                 if (statuses.length > 0) lines.push("");
 
                 const compartments = builderNodes.filter(n => n.type === "compartment");
                 compartments.forEach(n => {
-                    if (n.data.type === "ConditionalComposition") {
+                    if (isContinuousOpinionBuilder && n.data.type === "OpinionDistanceThreshold") {
+                        lines.push(`BLOCK ${n.data.name}`);
+                        lines.push(`TYPE OpinionDistanceThreshold`);
+                        lines.push(`PARAM epsilon ${n.data.params.epsilon}`);
+                        lines.push("");
+                    } else if (isContinuousOpinionBuilder && n.data.type === "OpinionSelectionBias") {
+                        lines.push(`BLOCK ${n.data.name}`);
+                        lines.push(`TYPE OpinionSelectionBias`);
+                        lines.push(`PARAM gamma ${n.data.params.gamma}`);
+                        lines.push("");
+                    } else if (isContinuousOpinionBuilder && n.data.type === "OpinionCompromise") {
+                        lines.push(`BLOCK ${n.data.name}`);
+                        lines.push(`TYPE OpinionCompromise`);
+                        lines.push(`PARAM mu ${n.data.params.mu}`);
+                        lines.push("");
+                    } else if (n.data.type === "ConditionalComposition") {
                         const condEdge = builderEdges.find(e => e.target === n.id && e.targetPort === "condition");
                         const trueEdge = builderEdges.find(e => e.target === n.id && e.targetPort === "if_true");
                         const falseEdge = builderEdges.find(e => e.target === n.id && e.targetPort === "if_false");
@@ -2619,8 +2669,8 @@
                 });
 
                 lines.push("INITIALIZE");
-                if (builderUseCase === "continuous_opinions" || builderTemplateId === "algorithmic_bias") {
-                    lines.push(`SET OPINION_DISTRIBUTION ${builderOpinionDistribution}`);
+                if (isContinuousOpinionBuilder) {
+                    lines.push(`SET INITIAL_OPINION_DISTRIBUTION ${builderOpinionDistribution}`);
                 }
                 builderInitialStatus.forEach(init => {
                     lines.push(`SET ${init.status} ${init.ratio}`);
@@ -2779,6 +2829,9 @@
                 else if (type === "NodeCategoricalAttribute") params = { attribute: "gender", value: "male", probability: 1.0 };
                 else if (type === "NodeNumericalAttribute") params = { attribute: "age", op: "==", value: 25, probability: 1.0 };
                 else if (type === "NodeNumericalVariable") params = { var: "opinion", var_type: "ATTRIBUTE", value: 0.5, op: ">=", probability: 1.0 };
+                else if (type === "OpinionDistanceThreshold") params = { epsilon: 0.1 };
+                else if (type === "OpinionSelectionBias") params = { gamma: 1.5 };
+                else if (type === "OpinionCompromise") params = { mu: 0.5 };
                 else if (type === "ConditionalComposition") params = { condition: "", first_branch: "", second_branch: "" };
 
                 const newNode = {
@@ -3368,6 +3421,9 @@
                                                                 else if (type === "NodeCategoricalAttribute") params = { attribute: "gender", value: "male", probability: 1.0 };
                                                                 else if (type === "NodeNumericalAttribute") params = { attribute: "age", op: "==", value: "25", probability: 1.0 };
                                                                 else if (type === "NodeNumericalVariable") params = { var: "opinion", var_type: "ATTRIBUTE", value: 0.5, op: ">=", probability: 1.0 };
+                                                                else if (type === "OpinionDistanceThreshold") params = { epsilon: 0.1 };
+                                                                else if (type === "OpinionSelectionBias") params = { gamma: 1.5 };
+                                                                else if (type === "OpinionCompromise") params = { mu: 0.5 };
                                                                 else if (type === "ConditionalComposition") params = { condition: "", first_branch: "", second_branch: "" };
                                                                 updateNodeData(selectedElement.id, { type, params });
                                                             }}
@@ -3380,6 +3436,9 @@
                                                             <option value="NodeCategoricalAttribute">Node Categorical Attribute</option>
                                                             <option value="NodeNumericalAttribute">Node Numerical Attribute</option>
                                                             <option value="NodeNumericalVariable">Node Numerical Variable</option>
+                                                            <option value="OpinionDistanceThreshold">Opinion Threshold</option>
+                                                            <option value="OpinionSelectionBias">Selection Bias</option>
+                                                            <option value="OpinionCompromise">Opinion Compromise</option>
                                                             <option value="ConditionalComposition">Conditional Composition</option>
                                                         </select>
                                                     </div>
@@ -3504,6 +3563,56 @@
                                                                     <option value="STATUS">Status</option>
                                                                 </select>
                                                             </div>
+                                                        </div>
+                                                    )}
+
+                                                    {selectedElement.data.params.epsilon !== undefined && (
+                                                        <div class="space-y-1">
+                                                            <label class="text-[10px] text-slate-400 block">Confidence Threshold (epsilon)</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="1"
+                                                                step="0.01"
+                                                                value={selectedElement.data.params.epsilon}
+                                                                onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                    params: { ...selectedElement.data.params, epsilon: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)) }
+                                                                })}
+                                                                class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    {selectedElement.data.params.gamma !== undefined && (
+                                                        <div class="space-y-1">
+                                                            <label class="text-[10px] text-slate-400 block">Selection Bias (gamma)</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.1"
+                                                                value={selectedElement.data.params.gamma}
+                                                                onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                    params: { ...selectedElement.data.params, gamma: Math.max(0, parseFloat(e.target.value) || 0) }
+                                                                })}
+                                                                class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    {selectedElement.data.params.mu !== undefined && (
+                                                        <div class="space-y-1">
+                                                            <label class="text-[10px] text-slate-400 block">Compromise Strength (mu)</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="1"
+                                                                step="0.01"
+                                                                value={selectedElement.data.params.mu}
+                                                                onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                    params: { ...selectedElement.data.params, mu: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)) }
+                                                                })}
+                                                                class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                            />
                                                         </div>
                                                     )}
 

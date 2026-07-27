@@ -162,20 +162,33 @@ class DashboardTest(unittest.TestCase):
             "use_case": "continuous_opinions",
             "template_id": "algorithmic_bias",
             "initial_opinion_distribution": "bimodal",
+            "epsilon": 1.0,
+            "gamma": 0.0,
+            "mu": 0.5,
             "statuses": [
                 {"name": "LowOpinion", "code": 0},
                 {"name": "HighOpinion", "code": 1}
             ],
             "compartments": [
                 {
-                    "name": "opinion_gate",
-                    "type": "NodeNumericalVariable",
+                    "name": "bounded_confidence",
+                    "type": "OpinionDistanceThreshold",
                     "params": {
-                        "var": "opinion",
-                        "var_type": "ATTRIBUTE",
-                        "value": 0.5,
-                        "op": ">=",
-                        "probability": 1.0
+                        "epsilon": 1.0
+                    }
+                },
+                {
+                    "name": "selection_bias",
+                    "type": "OpinionSelectionBias",
+                    "params": {
+                        "gamma": 0.0
+                    }
+                },
+                {
+                    "name": "opinion_compromise",
+                    "type": "OpinionCompromise",
+                    "params": {
+                        "mu": 0.5
                     }
                 }
             ],
@@ -187,7 +200,7 @@ class DashboardTest(unittest.TestCase):
         }
 
         class_code = generate_custom_model_class(payload)
-        self.assertIn("initial_opinion_distribution", class_code)
+        self.assertIn("continuous_blocks", class_code)
         self.assertIn("sample_initial_opinions", class_code)
 
         local_scope = {}
@@ -198,14 +211,25 @@ class DashboardTest(unittest.TestCase):
         model = model_cls(nx.path_graph(12))
         cfg = mc.Configuration()
         cfg.add_model_parameter("initial_opinion_distribution", "bimodal")
+        cfg.add_model_parameter("epsilon", 1.0)
+        cfg.add_model_parameter("gamma", 0.0)
+        cfg.add_model_parameter("mu", 0.5)
         model.set_initial_status(cfg)
 
-        self.assertTrue(all("opinion" in model.graph.nodes[n] for n in model.graph.nodes))
-        self.assertTrue(all(0.0 <= float(model.graph.nodes[n]["opinion"]) <= 1.0 for n in model.graph.nodes))
+        model.status = {0: 0.0, 1: 1.0}
+        model.initial_status = model.status.copy()
+        model.actual_iteration = 1
+        result = model.iteration()
+        self.assertTrue(all(0.0 <= float(v) <= 1.0 for v in result["status"].values()))
+        self.assertAlmostEqual(result["status"][0], 0.5, places=6)
+        self.assertAlmostEqual(result["status"][1], 0.5, places=6)
 
         ndql_script = generate_ndql_script(payload)
-        self.assertIn("OPINION_INITIALIZATION bimodal", ndql_script)
-        self.assertIn("OPINION_VARIABLE opinion", ndql_script)
+        self.assertIn("TYPE CONTINUOUS_OPINION", ndql_script)
+        self.assertIn("INITIAL_OPINION_DISTRIBUTION bimodal", ndql_script)
+        self.assertIn("TYPE OpinionDistanceThreshold", ndql_script)
+        self.assertIn("PARAM epsilon 1.0", ndql_script)
+        self.assertIn("TYPE OpinionCompromise", ndql_script)
 
     def test_normalize_iteration_record_tuple_payload(self):
         from ndlib.dashboard.server import normalize_iteration_record

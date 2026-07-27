@@ -37,6 +37,11 @@ COMMUNITY_DETECTION_ALGORITHMS = [
     {"value": "girvan_newman", "label": "Girvan-Newman"},
     {"value": "asyn_fluidc", "label": "Async Fluid Communities"},
 ]
+CONTINUOUS_OPINION_BLOCK_TYPES = {
+    "OpinionDistanceThreshold",
+    "OpinionSelectionBias",
+    "OpinionCompromise",
+}
 
 
 def sanitize_for_json(obj):
@@ -717,6 +722,21 @@ def generate_custom_model_class(model_data):
         or model_data.get("template_id") == "algorithmic_bias"
     )
     initial_opinion_distribution = model_data.get("initial_opinion_distribution", "uniform")
+    continuous_opinion_mode = bool(
+        uses_continuous_opinion_initialization
+        or any(comp.get("type") in CONTINUOUS_OPINION_BLOCK_TYPES for comp in compartments)
+    )
+
+    if continuous_opinion_mode:
+        return generate_continuous_opinion_custom_model_class(
+            model_data,
+            class_name,
+            statuses,
+            compartments,
+            rules,
+            initial_status,
+            initial_opinion_distribution,
+        )
 
     code = [
         "import numpy as np",
@@ -917,6 +937,182 @@ def generate_custom_model_class(model_data):
     return "\n".join(code)
 
 
+def generate_continuous_opinion_custom_model_class(
+    model_data,
+    class_name,
+    statuses,
+    compartments,
+    rules,
+    initial_status,
+    initial_opinion_distribution,
+):
+    """
+    Generates a Python source string for continuous opinion custom models.
+    """
+    opinion_params = {
+        "epsilon": None,
+        "gamma": None,
+        "mu": None,
+    }
+    opinion_block_names = {
+        "OpinionDistanceThreshold": None,
+        "OpinionSelectionBias": None,
+        "OpinionCompromise": None,
+    }
+
+    for comp in compartments:
+        comp_type = comp.get("type")
+        params = comp.get("params", {})
+        if comp_type == "OpinionDistanceThreshold" and opinion_params["epsilon"] is None:
+            opinion_params["epsilon"] = clamp_unit_float(params.get("epsilon", 0.1), 0.1)
+            opinion_block_names[comp_type] = comp.get("name", "opinion_threshold")
+        elif comp_type == "OpinionSelectionBias" and opinion_params["gamma"] is None:
+            try:
+                opinion_params["gamma"] = max(0.0, float(params.get("gamma", 0.0)))
+            except (TypeError, ValueError):
+                opinion_params["gamma"] = 0.0
+            opinion_block_names[comp_type] = comp.get("name", "selection_bias")
+        elif comp_type == "OpinionCompromise" and opinion_params["mu"] is None:
+            opinion_params["mu"] = clamp_unit_float(params.get("mu", 0.5), 0.5)
+            opinion_block_names[comp_type] = comp.get("name", "compromise")
+
+    code = [
+        "import numpy as np",
+        "from ndlib.models.DiffusionModel import DiffusionModel",
+        "from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions",
+        "",
+        "class %s(DiffusionModel):" % class_name,
+        "    def __init__(self, graph, seed=None):",
+        "        super(%s, self).__init__(graph, seed)" % class_name,
+        "        self.discrete_state = False",
+        "        self.available_statuses = {'Opinion': 0}",
+        "        self.parameters = {",
+        "            'model': {",
+        "                'initial_opinion_distribution': {",
+        "                    'descr': 'Initial opinion distribution in [0, 1]',",
+        "                    'choices': [",
+        "                        {'value': 'uniform', 'label': 'Uniform'},",
+        "                        {'value': 'normal', 'label': 'Normal'},",
+        "                        {'value': 'gaussian', 'label': 'Gaussian'},",
+        "                        {'value': 'bimodal', 'label': 'Bimodal'},",
+        "                        {'value': 'left_skewed', 'label': 'Left skewed'},",
+        "                        {'value': 'right_skewed', 'label': 'Right skewed'},",
+        "                        {'value': 'polarized', 'label': 'Polarized'},",
+        "                    ],",
+        "                    'optional': True,",
+        "                    'default': %r" % initial_opinion_distribution,
+        "                },",
+    ]
+    if opinion_params["epsilon"] is not None:
+        code.extend([
+            "                'epsilon': {",
+            "                    'descr': 'Opinion distance threshold (bounded confidence)',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["epsilon"])),
+            "                },",
+        ])
+    if opinion_params["gamma"] is not None:
+        code.extend([
+            "                'gamma': {",
+            "                    'descr': 'Opinion selection bias',",
+            "                    'range': [0, 100],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["gamma"])),
+            "                },",
+        ])
+    if opinion_params["mu"] is not None:
+        code.extend([
+            "                'mu': {",
+            "                    'descr': 'Opinion compromise strength',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["mu"])),
+            "                },",
+        ])
+    code.extend([
+        "            },",
+        "            'nodes': {},",
+        "            'edges': {}",
+        "        }",
+        "        self.name = %r" % model_data.get("name", "CustomModel"),
+        "        self.continuous_blocks = {",
+        "            'distance_threshold': %r," % opinion_block_names["OpinionDistanceThreshold"],
+        "            'selection_bias': %r," % opinion_block_names["OpinionSelectionBias"],
+        "            'compromise': %r" % opinion_block_names["OpinionCompromise"],
+        "        }",
+        "",
+        "    def set_initial_status(self, configuration=None):",
+        "        configuration = configuration or None",
+        "        model_params = configuration.get_model_parameters() if configuration is not None else {}",
+        "        self.params['nodes'] = {}",
+        "        self.params['edges'] = {}",
+        "        self.params['status'] = {}",
+        "        self.params['model'] = {}",
+        "        for param, param_info in self.parameters['model'].items():",
+        "            self.params['model'][param] = model_params.get(param, param_info.get('default'))",
+        "        opinions = sample_initial_opinions(",
+        "            len(self.status),",
+        "            self.params['model'].get('initial_opinion_distribution', %r)," % initial_opinion_distribution,
+        "        )",
+        "        for node, opinion in zip(self.status, opinions):",
+        "            self.status[node] = float(opinion)",
+        "            self.graph.nodes[node]['opinion'] = float(opinion)",
+        "        self.initial_status = self.status.copy()",
+        "        return self",
+        "",
+        "    def _select_neighbor(self, node, actual_status):",
+        "        neighbors = list(self.graph.neighbors(node))",
+        "        if self.graph.directed:",
+        "            neighbors = list(self.graph.predecessors(node))",
+        "        if not neighbors:",
+        "            return None",
+        "        gamma = self.params['model'].get('gamma', %s)" % repr(float(opinion_params["gamma"] if opinion_params["gamma"] is not None else 0.0)),
+        "        if gamma <= 0:",
+        "            return neighbors[np.random.randint(0, len(neighbors))]",
+        "        opinions = np.array([actual_status[neigh] for neigh in neighbors], dtype=float)",
+        "        diff = np.abs(opinions - float(actual_status[node]))",
+        "        weights = np.power(np.maximum(diff, 1e-5), -gamma)",
+        "        total = float(np.sum(weights))",
+        "        if not np.isfinite(total) or total <= 0:",
+        "            return neighbors[np.random.randint(0, len(neighbors))]",
+        "        weights = weights / total",
+        "        return neighbors[np.random.choice(len(neighbors), p=weights)]",
+        "",
+        "    def iteration(self, node_status=True):",
+        "        actual_status = self.status.copy()",
+        "        if self.actual_iteration == 0:",
+        "            self.actual_iteration += 1",
+        "            if node_status:",
+        "                return {'iteration': 0, 'status': actual_status.copy(), 'node_count': {}, 'status_delta': {}}",
+        "            return {'iteration': 0, 'status': {}, 'node_count': {}, 'status_delta': {}}",
+        "",
+        "        epsilon = self.params['model'].get('epsilon', %s)" % repr(float(opinion_params["epsilon"] if opinion_params["epsilon"] is not None else 0.1)),
+        "        mu = self.params['model'].get('mu', %s)" % repr(float(opinion_params["mu"] if opinion_params["mu"] is not None else 0.5)),
+        "        n_nodes = max(1, self.graph.number_of_nodes())",
+        "        for _ in range(n_nodes):",
+        "            node = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]",
+        "            neighbor = self._select_neighbor(node, actual_status)",
+        "            if neighbor is None:",
+        "                continue",
+        "            diff = abs(float(actual_status[node]) - float(actual_status[neighbor]))",
+        "            if diff <= epsilon:",
+        "                node_val = float(actual_status[node])",
+        "                neigh_val = float(actual_status[neighbor])",
+        "                actual_status[node] = float(np.clip(node_val + mu * (neigh_val - node_val), 0.0, 1.0))",
+        "                actual_status[neighbor] = float(np.clip(neigh_val + mu * (node_val - neigh_val), 0.0, 1.0))",
+        "        for node, opinion in actual_status.items():",
+        "            self.graph.nodes[node]['opinion'] = float(opinion)",
+        "        self.status = actual_status",
+        "        self.actual_iteration += 1",
+        "        if node_status:",
+        "            return {'iteration': self.actual_iteration - 1, 'status': actual_status.copy(), 'node_count': {}, 'status_delta': {}}",
+        "        return {'iteration': self.actual_iteration - 1, 'status': {}, 'node_count': {}, 'status_delta': {}}",
+    ])
+
+    return "\n".join(code)
+
+
 def generate_ndql_script(model_data):
     """
     Generates a standard NDQL query string from custom visual model JSON data.
@@ -926,6 +1122,46 @@ def generate_ndql_script(model_data):
     compartments = model_data.get("compartments", [])
     rules = model_data.get("rules", [])
     initial_status = model_data.get("initial_status", [])
+    continuous_opinion_mode = bool(
+        model_data.get("use_case") == "continuous_opinions"
+        or model_data.get("template_id") == "algorithmic_bias"
+        or any(comp.get("type") in CONTINUOUS_OPINION_BLOCK_TYPES for comp in compartments)
+    )
+
+    if continuous_opinion_mode:
+        ndql = []
+        ndql.append("MODEL %s" % model_name)
+        ndql.append("TYPE CONTINUOUS_OPINION")
+        ndql.append("INITIAL_OPINION_DISTRIBUTION %s" % model_data.get("initial_opinion_distribution", "uniform"))
+        ndql.append("")
+
+        for comp in compartments:
+            comp_type = comp.get("type")
+            params = comp.get("params", {})
+            if comp_type == "OpinionDistanceThreshold":
+                ndql.append("BLOCK %s" % comp.get("name", comp_type))
+                ndql.append("TYPE OpinionDistanceThreshold")
+                ndql.append("PARAM epsilon %s" % params.get("epsilon", 0.1))
+                ndql.append("")
+            elif comp_type == "OpinionSelectionBias":
+                ndql.append("BLOCK %s" % comp.get("name", comp_type))
+                ndql.append("TYPE OpinionSelectionBias")
+                ndql.append("PARAM gamma %s" % params.get("gamma", 0.0))
+                ndql.append("")
+            elif comp_type == "OpinionCompromise":
+                ndql.append("BLOCK %s" % comp.get("name", comp_type))
+                ndql.append("TYPE OpinionCompromise")
+                ndql.append("PARAM mu %s" % params.get("mu", 0.5))
+                ndql.append("")
+            elif comp_type == "NodeNumericalVariable" and params.get("var") == "opinion" and params.get("var_type") == "ATTRIBUTE":
+                ndql.append("BLOCK %s" % comp.get("name", comp_type))
+                ndql.append("TYPE OpinionGate")
+                ndql.append("PARAM variable opinion")
+                ndql.append("PARAM operator %s" % params.get("op", ">="))
+                ndql.append("PARAM threshold %s" % params.get("value", 0.5))
+                ndql.append("")
+
+        return "\n".join(ndql)
 
     ndql = []
     ndql.append("MODEL %s" % model_name)
