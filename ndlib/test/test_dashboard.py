@@ -152,6 +152,61 @@ class DashboardTest(unittest.TestCase):
         disagree = model.available_statuses["Disagree"]
         self.assertEqual(sum(1 for v in model.status.values() if v == agree) + sum(1 for v in model.status.values() if v == disagree), 10)
 
+    def test_custom_continuous_opinion_builder_initializes_opinion_attributes(self):
+        from ndlib.dashboard.server import generate_custom_model_class, generate_ndql_script
+        import networkx as nx
+        import ndlib.models.ModelConfig as mc
+
+        payload = {
+            "name": "AlgorithmicBiasStarter",
+            "use_case": "continuous_opinions",
+            "template_id": "algorithmic_bias",
+            "initial_opinion_distribution": "bimodal",
+            "statuses": [
+                {"name": "LowOpinion", "code": 0},
+                {"name": "HighOpinion", "code": 1}
+            ],
+            "compartments": [
+                {
+                    "name": "opinion_gate",
+                    "type": "NodeNumericalVariable",
+                    "params": {
+                        "var": "opinion",
+                        "var_type": "ATTRIBUTE",
+                        "value": 0.5,
+                        "op": ">=",
+                        "probability": 1.0
+                    }
+                }
+            ],
+            "rules": [],
+            "initial_status": [
+                {"status": "LowOpinion", "ratio": 0.5},
+                {"status": "HighOpinion", "ratio": 0.5}
+            ]
+        }
+
+        class_code = generate_custom_model_class(payload)
+        self.assertIn("initial_opinion_distribution", class_code)
+        self.assertIn("sample_initial_opinions", class_code)
+
+        local_scope = {}
+        global_scope = {}
+        exec(class_code, global_scope, local_scope)
+        model_cls = local_scope["AlgorithmicBiasStarter"]
+
+        model = model_cls(nx.path_graph(12))
+        cfg = mc.Configuration()
+        cfg.add_model_parameter("initial_opinion_distribution", "bimodal")
+        model.set_initial_status(cfg)
+
+        self.assertTrue(all("opinion" in model.graph.nodes[n] for n in model.graph.nodes))
+        self.assertTrue(all(0.0 <= float(model.graph.nodes[n]["opinion"]) <= 1.0 for n in model.graph.nodes))
+
+        ndql_script = generate_ndql_script(payload)
+        self.assertIn("OPINION_INITIALIZATION bimodal", ndql_script)
+        self.assertIn("OPINION_VARIABLE opinion", ndql_script)
+
     def test_normalize_iteration_record_tuple_payload(self):
         from ndlib.dashboard.server import normalize_iteration_record
 

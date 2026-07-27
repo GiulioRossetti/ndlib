@@ -704,6 +704,19 @@ def generate_custom_model_class(model_data):
     compartments = model_data.get("compartments", [])
     rules = model_data.get("rules", [])
     initial_status = model_data.get("initial_status", [])
+    opinion_variables = sorted({
+        comp.get("params", {}).get("var", "")
+        for comp in compartments
+        if comp.get("type") == "NodeNumericalVariable"
+        and comp.get("params", {}).get("var_type") == "ATTRIBUTE"
+        and comp.get("params", {}).get("var") == "opinion"
+    })
+    uses_continuous_opinion_initialization = bool(
+        opinion_variables
+        or model_data.get("use_case") == "continuous_opinions"
+        or model_data.get("template_id") == "algorithmic_bias"
+    )
+    initial_opinion_distribution = model_data.get("initial_opinion_distribution", "uniform")
 
     code = [
         "import numpy as np",
@@ -719,6 +732,7 @@ def generate_custom_model_class(model_data):
         "from ndlib.models.compartments.ConditionalComposition import ConditionalComposition",
         "from ndlib.models.compartments.CountDown import CountDown",
         "from ndlib.models.compartments.enums.NumericalType import NumericalType",
+        "from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions",
         "",
         "class %s(CompositeModel):" % class_name,
         "    def __init__(self, graph, seed=None):",
@@ -740,6 +754,21 @@ def generate_custom_model_class(model_data):
     
     code.append("        self.parameters = {")
     code.append("            'model': {")
+    if uses_continuous_opinion_initialization:
+        code.append("                'initial_opinion_distribution': {")
+        code.append("                    'descr': 'Initial opinion distribution in [0, 1]',")
+        code.append("                    'choices': [")
+        code.append("                        {'value': 'uniform', 'label': 'Uniform'},")
+        code.append("                        {'value': 'normal', 'label': 'Normal'},")
+        code.append("                        {'value': 'gaussian', 'label': 'Gaussian'},")
+        code.append("                        {'value': 'bimodal', 'label': 'Bimodal'},")
+        code.append("                        {'value': 'left_skewed', 'label': 'Left skewed'},")
+        code.append("                        {'value': 'right_skewed', 'label': 'Right skewed'},")
+        code.append("                        {'value': 'polarized', 'label': 'Polarized'},")
+        code.append("                    ],")
+        code.append("                    'optional': True,")
+        code.append("                    'default': %r" % initial_opinion_distribution)
+        code.append("                },")
     for status in statuses:
         ratio = 0.0
         for init in initial_status:
@@ -858,6 +887,12 @@ def generate_custom_model_class(model_data):
     code.append("            if status_name in self.available_statuses:")
     code.append("                for node in nodes:")
     code.append("                    self.status[node] = self.available_statuses[status_name]")
+    if uses_continuous_opinion_initialization:
+        code.append("")
+        code.append("        opinion_distribution = self.params['model'].get('initial_opinion_distribution', %r)" % initial_opinion_distribution)
+        code.append("        sampled_opinions = sample_initial_opinions(len(self.graph.nodes), opinion_distribution)")
+        code.append("        for node, opinion in zip(self.graph.nodes, sampled_opinions):")
+        code.append("            self.graph.nodes[node]['opinion'] = float(opinion)")
     code.append("")
     code.append("        pcts = {}")
     code.append("        for status_name in self.available_statuses:")
@@ -942,6 +977,9 @@ def generate_ndql_script(model_data):
             ndql.append("COMPARTMENT %s" % comp["name"])
             ndql.append("TYPE %s" % comp["type"])
             params = comp.get("params", {})
+            if comp["type"] == "NodeNumericalVariable" and params.get("var") == "opinion" and params.get("var_type") == "ATTRIBUTE":
+                ndql.append("OPINION_VARIABLE opinion")
+                ndql.append("OPINION_INITIALIZATION %s" % model_data.get("initial_opinion_distribution", "uniform"))
             if "triggering_status" in params:
                 ndql.append("TRIGGER %s" % params["triggering_status"])
             for k, v in params.items():

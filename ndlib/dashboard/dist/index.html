@@ -285,6 +285,7 @@
                 { status: "Susceptible", ratio: 0.95 },
                 { status: "Infected", ratio: 0.05 }
             ]);
+            const [builderOpinionDistribution, setBuilderOpinionDistribution] = useState("uniform");
             const [selectedElement, setSelectedElement] = useState(null);
             const [selectedNodeIds, setSelectedNodeIds] = useState([]);
             const [linkingSource, setLinkingSource] = useState(null);
@@ -342,8 +343,9 @@
                 algorithmic_bias: {
                     useCase: "continuous_opinions",
                     label: "Algorithmic Bias",
-                    description: "Continuous-opinion starter that uses numeric opinion thresholds and influence blocks.",
+                    description: "Continuous-opinion starter that seeds node opinions from a bounded distribution and routes them through numeric thresholds.",
                     modelName: "AlgorithmicBiasStarter",
+                    initialOpinionDistribution: "uniform",
                     nodes: [
                         { id: "ab_low", type: "status", x: 90, y: 150, data: { name: "LowOpinion", code: 0 } },
                         { id: "ab_high", type: "status", x: 460, y: 150, data: { name: "HighOpinion", code: 1 } },
@@ -429,7 +431,7 @@
                 },
                 continuous_opinions: {
                     label: "Continuous Opinions",
-                    description: "Numeric opinion-oriented blocks centered on thresholds, numeric attributes, and conditional routing.",
+                    description: "Numeric opinion-oriented blocks centered on thresholds, bounded opinion seeding, and conditional routing.",
                     templates: ["algorithmic_bias"],
                     palette: ["status", "NodeNumericalAttribute", "NodeNumericalVariable", "NodeThreshold", "CountDown", "ConditionalComposition"]
                 },
@@ -520,6 +522,40 @@
 
             const getBuilderTemplate = (templateId) => builderTemplates[templateId] || builderTemplates.sir;
 
+            const getBuilderNodeSubtitle = (node) => {
+                if (!node || node.type !== "compartment") return "";
+                const params = node.data?.params || {};
+                if (node.data.type === "ConditionalComposition") {
+                    return `IF ${params.condition || "?"} THEN ${params.first_branch || "?"} ELSE ${params.second_branch || "?"}`;
+                }
+                if (node.data.type === "NodeNumericalVariable") {
+                    const variable = params.var || "variable";
+                    const source = params.var_type || "ATTRIBUTE";
+                    const operator = params.op || ">";
+                    const value = params.value !== undefined ? params.value : "?";
+                    return `${variable} ${source} ${operator} ${value}`;
+                }
+                if (node.data.type === "NodeNumericalAttribute") {
+                    const attribute = params.attribute || "attribute";
+                    const operator = params.op || ">";
+                    const value = params.value !== undefined ? params.value : "?";
+                    return `${attribute} ${operator} ${value}`;
+                }
+                if (node.data.type === "NodeCategoricalAttribute") {
+                    return `${params.attribute || "attribute"} = ${params.value || "value"}`;
+                }
+                if (node.data.type === "NodeStochastic") {
+                    return `${params.triggering_status || "status"} @ ${params.rate ?? "?"}`;
+                }
+                if (node.data.type === "NodeThreshold") {
+                    return `${params.triggering_status || "status"} >= ${params.threshold ?? "?"}`;
+                }
+                if (node.data.type === "CountDown") {
+                    return `${params.iterations ?? "?"} iterations`;
+                }
+                return node.data.type;
+            };
+
             const loadBuilderTemplate = (templateId, overrideUseCase = null) => {
                 const template = getBuilderTemplate(templateId);
                 clearBuilderInteractionState();
@@ -527,6 +563,7 @@
                 setBuilderUseCase(overrideUseCase || template.useCase);
                 setBuilderTemplateId(templateId);
                 setBuilderModelName(template.modelName);
+                setBuilderOpinionDistribution(template.initialOpinionDistribution || "uniform");
                 setBuilderNodes(template.nodes.map(node => ({
                     ...node,
                     data: {
@@ -2393,6 +2430,7 @@
                     name: builderModelName,
                     use_case: builderUseCase,
                     template_id: builderTemplateId,
+                    initial_opinion_distribution: builderOpinionDistribution,
                     statuses: liveNodes.filter(n => n.type === "status").map(n => ({
                         name: n.data.name,
                         code: n.data.code
@@ -2497,6 +2535,7 @@
                         setBuilderTemplateId(modelData.template_id);
                     }
                     setBuilderModelName(modelData.name);
+                    setBuilderOpinionDistribution(modelData.initial_opinion_distribution || "uniform");
                     setBuilderNodes(modelData.nodes);
                     setBuilderEdges(modelData.edges);
                     setBuilderInitialStatus(modelData.initial_status || []);
@@ -2511,6 +2550,11 @@
                 const lines = [];
                 lines.push(`MODEL ${builderModelName}`);
                 lines.push("");
+                if (builderUseCase === "continuous_opinions" || builderTemplateId === "algorithmic_bias") {
+                    lines.push(`# Continuous-opinion starter`);
+                    lines.push(`OPINION_INITIALIZATION ${builderOpinionDistribution}`);
+                    lines.push("");
+                }
 
                 const statuses = builderNodes.filter(n => n.type === "status");
                 statuses.forEach(n => {
@@ -2538,11 +2582,14 @@
                     } else {
                         lines.push(`COMPARTMENT ${n.data.name}`);
                         lines.push(`TYPE ${n.data.type}`);
+                        if (n.data.type === "NodeNumericalVariable" && n.data.params.var === "opinion" && n.data.params.var_type === "ATTRIBUTE") {
+                            lines.push(`TEST opinion ${n.data.params.op} ${n.data.params.value}`);
+                        }
                         if (n.data.params.triggering_status) {
                             lines.push(`TRIGGER ${n.data.params.triggering_status}`);
                         }
                         Object.keys(n.data.params).forEach(k => {
-                            if (k !== "triggering_status") {
+                            if (k !== "triggering_status" && !(n.data.type === "NodeNumericalVariable" && k === "var" && n.data.params.var === "opinion")) {
                                 lines.push(`PARAM ${k} ${n.data.params[k]}`);
                             }
                         });
@@ -2572,6 +2619,9 @@
                 });
 
                 lines.push("INITIALIZE");
+                if (builderUseCase === "continuous_opinions" || builderTemplateId === "algorithmic_bias") {
+                    lines.push(`SET OPINION_DISTRIBUTION ${builderOpinionDistribution}`);
+                }
                 builderInitialStatus.forEach(init => {
                     lines.push(`SET ${init.status} ${init.ratio}`);
                 });
@@ -3115,7 +3165,7 @@
                                                         ) : (
                                                             <div class="space-y-1">
                                                                 <p class={`truncate font-bold ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>{node.data.name}</p>
-                                                                <p class={`text-[10px] truncate ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>{node.data.type}</p>
+                                                                <p class={`text-[10px] truncate ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>{getBuilderNodeSubtitle(node)}</p>
                                                             </div>
                                                         )}
                                                     </div>
@@ -3545,6 +3595,30 @@
                                                 )}
                                             </div>
                                         </div>
+
+                                        {(builderUseCase === "continuous_opinions" || builderTemplateId === "algorithmic_bias") && (
+                                            <div class="border-t border-slate-800/80 pt-4">
+                                                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Initial Opinion Distribution</h4>
+                                                <div class={`p-3 border rounded-xl space-y-2 text-xs ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
+                                                    <p class="text-[11px] text-slate-500">
+                                                        Seeds the node attribute used by numeric opinion gates before the simulation starts.
+                                                    </p>
+                                                    <select
+                                                        value={builderOpinionDistribution}
+                                                        onChange={(e) => setBuilderOpinionDistribution(e.target.value)}
+                                                        class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                    >
+                                                        <option value="uniform">Uniform</option>
+                                                        <option value="normal">Normal</option>
+                                                        <option value="gaussian">Gaussian</option>
+                                                        <option value="bimodal">Bimodal</option>
+                                                        <option value="left_skewed">Left skewed</option>
+                                                        <option value="right_skewed">Right skewed</option>
+                                                        <option value="polarized">Polarized</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {/* Code Preview Panel */}
                                         <div class="border-t border-slate-800/80 pt-4 flex-grow flex flex-col min-h-[200px]">
