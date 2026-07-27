@@ -3,6 +3,7 @@ import future.utils
 import numpy as np
 import random
 from sklearn.metrics import jaccard_score
+from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions
 
 __author__ = "Cecilia Toccaceli"
 __license__ = "BSD-2-Clause"
@@ -55,17 +56,19 @@ class WHKModel(DiffusionModel):
                     "optional": True,
                     "default": 0,
                 },
-                "init_dist_lower" : {
-                    "descr": "The lower bound of the initial distribution",
-                    "range": [-1, 1],
+                "initial_opinion_distribution": {
+                    "descr": "Initial opinion distribution in [0, 1]",
+                    "choices": [
+                        {"value": "uniform", "label": "Uniform"},
+                        {"value": "normal", "label": "Normal"},
+                        {"value": "gaussian", "label": "Gaussian"},
+                        {"value": "bimodal", "label": "Bimodal"},
+                        {"value": "left_skewed", "label": "Left skewed"},
+                        {"value": "right_skewed", "label": "Right skewed"},
+                        {"value": "polarized", "label": "Polarized"},
+                    ],
                     "optional": True,
-                    "default": -1,
-                },
-                "init_dist_upper" : {
-                    "descr": "The upper bound of the initial distribution",
-                    "range": [-1, 1],
-                    "optional": True,
-                    "default": 1,
+                    "default": "uniform",
                 }
             },
             "edges": {
@@ -101,8 +104,12 @@ class WHKModel(DiffusionModel):
         super(WHKModel, self).set_initial_status(configuration)
 
         # set node status
-        for node in self.status:
-            self.status[node] = random.uniform(self.params["model"]["init_dist_lower"], self.params["model"]["init_dist_upper"])
+        opinions = sample_initial_opinions(
+            len(self.status),
+            self.params["model"].get("initial_opinion_distribution", "uniform"),
+        )
+        for node, opinion in zip(self.status, opinions):
+            self.status[node] = float(opinion)
         self.initial_status = self.status.copy()
 
     """

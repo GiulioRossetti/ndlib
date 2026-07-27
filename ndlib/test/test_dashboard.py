@@ -27,6 +27,23 @@ class DashboardTest(unittest.TestCase):
         self.assertEqual(fj["name"], "Friedkin-Johnsen")
         self.assertIn("stubbornness", fj["parameters"]["nodes"])
 
+        epidemic_labels = [meta["name"] for meta in models.values() if meta["category"] == "Epidemics"]
+        self.assertEqual(len(epidemic_labels), len(set(epidemic_labels)))
+        self.assertEqual(models["SIRModel"]["display_group"], "Core Epidemic Models")
+        self.assertEqual(models["SEIRctModel"]["name"], "SEIR (ct)")
+        self.assertEqual(models["SEISctModel"]["name"], "SEIS (ct)")
+
+        opinion_labels = [meta["name"] for meta in models.values() if meta["category"] == "Opinions"]
+        self.assertEqual(len(opinion_labels), len(set(opinion_labels)))
+        self.assertEqual(models["AlgorithmicBiasModel"]["display_group"], "Continuous Opinion Models")
+        self.assertEqual(models["MajorityRuleModel"]["display_group"], "Discrete Opinion Models")
+        self.assertEqual(models["AlgorithmicBiasModel"]["name"], "Algorithmic Bias")
+        self.assertEqual(models["AlgorithmicBiasMediaModel"]["name"], "Algorithmic Bias and Media")
+        self.assertIn("initial_opinion_distribution", models["AlgorithmicBiasModel"]["parameters"]["model"])
+        self.assertIn("media_opinions", models["AlgorithmicBiasMediaModel"]["parameters"]["model"])
+        self.assertNotIn("init_dist_lower", models["AlgorithmicBiasModel"]["parameters"]["model"])
+        self.assertNotIn("init_dist_upper", models["AlgorithmicBiasModel"]["parameters"]["model"])
+
     def test_custom_model_compilation(self):
         from ndlib.dashboard.server import generate_custom_model_class, generate_ndql_script
         payload = {
@@ -134,3 +151,72 @@ class DashboardTest(unittest.TestCase):
         agree = model.available_statuses["Agree"]
         disagree = model.available_statuses["Disagree"]
         self.assertEqual(sum(1 for v in model.status.values() if v == agree) + sum(1 for v in model.status.values() if v == disagree), 10)
+
+    def test_normalize_iteration_record_tuple_payload(self):
+        from ndlib.dashboard.server import normalize_iteration_record
+
+        raw = (
+            3,
+            (
+                {0: 1, 1: 0},
+                {0: 8, 1: 2},
+                {0: 1, 1: -1},
+            ),
+        )
+
+        normalized = normalize_iteration_record(raw)
+        self.assertEqual(normalized["iteration"], 3)
+        self.assertEqual(normalized["status"], {0: 1, 1: 0})
+        self.assertEqual(normalized["node_count"], {0: 8, 1: 2})
+        self.assertEqual(normalized["status_delta"], {0: 1, 1: -1})
+
+    def test_coerce_model_parameter_value_handles_none(self):
+        from ndlib.dashboard.server import coerce_model_parameter_value
+
+        gamma_info = {"descr": "Algorithmic bias", "range": [0, 100], "optional": False}
+        epsilon_info = {"descr": "Bounded confidence threshold", "range": [0, 1], "optional": False}
+        dist_info = {
+            "descr": "Initial opinion distribution in [0, 1]",
+            "choices": [{"value": "uniform", "label": "Uniform"}],
+            "optional": True,
+            "default": "uniform",
+        }
+
+        self.assertEqual(coerce_model_parameter_value("gamma", None, gamma_info), 0.1)
+        self.assertEqual(coerce_model_parameter_value("epsilon", None, epsilon_info), 0.1)
+        self.assertEqual(coerce_model_parameter_value("initial_opinion_distribution", None, dist_info), "uniform")
+
+    def test_build_absolute_status_history_reconstructs_sparse_updates(self):
+        from ndlib.dashboard.server import build_absolute_status_history
+
+        iterations = [
+            {"status": {"0": 0.2, "1": 0.8, "2": 0.4}},
+            {"status": {"1": 0.6}},
+            {"status": {"0": 0.3, "2": 0.5}},
+            {"status": {}},
+        ]
+        nodes = [{"id": "0"}, {"id": "1"}, {"id": "2"}]
+
+        history = build_absolute_status_history(iterations, nodes)
+        self.assertEqual(history[0], {"0": 0.2, "1": 0.8, "2": 0.4})
+        self.assertEqual(history[1], {"0": 0.2, "1": 0.6, "2": 0.4})
+        self.assertEqual(history[2], {"0": 0.3, "1": 0.6, "2": 0.5})
+        self.assertEqual(history[3], {"0": 0.3, "1": 0.6, "2": 0.5})
+
+    def test_build_initial_status_assignment_balances_percentages(self):
+        from ndlib.dashboard.server import build_initial_status_assignment
+        import networkx as nx
+
+        graph = nx.path_graph(10)
+        available_statuses = {"Susceptible": 0, "Infected": 1}
+        assignment = build_initial_status_assignment(
+            graph,
+            available_statuses,
+            {"Susceptible": 25, "Infected": 75},
+        )
+
+        self.assertEqual(len(assignment), 10)
+        infected_count = sum(1 for status in assignment.values() if status == "Infected")
+        susceptible_count = sum(1 for status in assignment.values() if status == "Susceptible")
+        self.assertEqual(infected_count + susceptible_count, 10)
+        self.assertGreater(infected_count, susceptible_count)

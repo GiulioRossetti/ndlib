@@ -85,6 +85,30 @@ def coerce_model_parameter_value(param, val, p_info):
     can arrive as floats or numeric strings. Continuous opinion parameters must
     stay as floats even when their defaults are integers.
     """
+    if val is None:
+        default_val = p_info.get("default")
+        if callable(default_val):
+            try:
+                default_val = default_val()
+            except Exception:
+                default_val = None
+
+        if isinstance(default_val, (int, float, np.integer, np.floating)) and not isinstance(default_val, bool):
+            return default_val
+
+        range_info = p_info.get("range")
+        int_params = {"q", "k", "iterations"}
+        if (isinstance(default_val, int) and not isinstance(default_val, bool)) or param in int_params:
+            return 1
+        if is_threshold_parameter(param, p_info) or range_info == [0, 1]:
+            return clamp_unit_float(0.1, 0.1)
+        if range_info == [-1, 1]:
+            return 0.0
+        return 0.1
+
+    if isinstance(val, str) and not val.strip():
+        return coerce_model_parameter_value(param, None, p_info)
+
     if isinstance(val, bool) or isinstance(val, (list, tuple, dict, set)):
         return val
 
@@ -98,13 +122,22 @@ def coerce_model_parameter_value(param, val, p_info):
     range_info = p_info.get("range")
     int_params = {"q", "k", "iterations"}
 
-    # Coerce to integer if default value is an integer or param is known to be int
-    if (isinstance(default_val, int) and not isinstance(default_val, bool)) or param in int_params:
+    # Coerce count-like parameters to positive integers.
+    if param in int_params:
         try:
             return max(1, int(round(float(val))))
         except (ValueError, TypeError):
             try:
                 return max(1, int(val))
+            except (ValueError, TypeError):
+                return val
+
+    if isinstance(default_val, int) and not isinstance(default_val, bool):
+        try:
+            return int(round(float(val)))
+        except (ValueError, TypeError):
+            try:
+                return int(val)
             except (ValueError, TypeError):
                 return val
 
@@ -131,6 +164,8 @@ def coerce_model_parameter_value(param, val, p_info):
     if isinstance(val, (int, np.integer)):
         return int(val)
     if isinstance(val, (float, np.floating)):
+        if np.isnan(val):
+            return coerce_model_parameter_value(param, None, p_info)
         return float(val)
 
     return val
@@ -161,6 +196,35 @@ def normalize_iteration_record(it):
     if isinstance(it, dict):
         return it
 
+    if isinstance(it, (list, tuple)) and len(it) >= 2 and isinstance(it[0], (int, np.integer)):
+        payload = it[1]
+        if isinstance(payload, (list, tuple)) and len(payload) == 3:
+            delta, node_count, status_delta = payload
+            normalized = {
+                "iteration": int(it[0]),
+                "status": delta if isinstance(delta, dict) else {},
+                "node_count": node_count if isinstance(node_count, dict) else {},
+                "status_delta": status_delta if isinstance(status_delta, dict) else {},
+            }
+            if len(it) > 2:
+                for extra in it[2:]:
+                    if isinstance(extra, dict):
+                        normalized.update(extra)
+            return normalized
+
+        if isinstance(payload, dict):
+            normalized = {
+                "iteration": int(it[0]),
+                "status": payload,
+                "node_count": {},
+                "status_delta": {},
+            }
+            if len(it) > 2:
+                for extra in it[2:]:
+                    if isinstance(extra, dict):
+                        normalized.update(extra)
+            return normalized
+
     if isinstance(it, (list, tuple)):
         merged = {}
         for part in it:
@@ -175,6 +239,127 @@ def normalize_iteration_record(it):
         "node_count": {},
         "status_delta": {},
     }
+
+
+def _extract_continuous_scalar(value):
+    if isinstance(value, (int, float, np.integer, np.floating)) and not isinstance(value, bool):
+        return float(value)
+
+    if isinstance(value, dict):
+        for nested in value.values():
+            scalar = _extract_continuous_scalar(nested)
+            if scalar is not None:
+                return scalar
+
+    if isinstance(value, (list, tuple)):
+        for nested in value:
+            scalar = _extract_continuous_scalar(nested)
+            if scalar is not None:
+                return scalar
+
+    return None
+
+
+def build_absolute_status_history(iterations, nodes):
+    """
+    Reconstruct a cumulative per-node history from sparse iteration payloads.
+    """
+    node_ids = [str(node.get("id")) if isinstance(node, dict) else str(node) for node in nodes]
+    history = []
+    current_status = {node_id: 0.0 for node_id in node_ids}
+
+    for it in iterations or []:
+        status_map = it.get("status", {}) if isinstance(it, dict) else {}
+        if not isinstance(status_map, dict):
+            status_map = {}
+
+        for node_id in node_ids:
+            raw_value = None
+            if node_id in status_map:
+                raw_value = status_map[node_id]
+            else:
+                try:
+                    numeric_id = int(node_id)
+                    if numeric_id in status_map:
+                        raw_value = status_map[numeric_id]
+                except (TypeError, ValueError):
+                    pass
+
+            if raw_value is None:
+                continue
+
+            scalar = _extract_continuous_scalar(raw_value)
+            if scalar is not None:
+                current_status[node_id] = scalar
+
+        history.append(current_status.copy())
+
+    return history
+
+
+def build_initial_status_assignment(graph, available_statuses, percentages):
+    """
+    Build a concrete node -> status-name assignment from percentage inputs.
+
+    Percentages are normalized if they do not sum to 100. Nodes are assigned
+    by shuffling the node list and slicing it according to the requested share
+    for each status.
+    """
+    nodes = list(graph.nodes())
+    status_names = list(available_statuses.keys()) if isinstance(available_statuses, dict) else list(available_statuses)
+    if not nodes or not status_names:
+        return {}
+
+    requested = {}
+    total = 0.0
+    for status_name in status_names:
+        raw_value = 0.0
+        if isinstance(percentages, dict) and status_name in percentages:
+            raw_value = percentages[status_name]
+        try:
+            value = float(raw_value)
+        except (TypeError, ValueError):
+            value = 0.0
+        if value < 0:
+            value = 0.0
+        requested[status_name] = value
+        total += value
+
+    if total <= 0:
+        requested = {status_name: 1.0 for status_name in status_names}
+        total = float(len(status_names))
+
+    fractions = [requested[status_name] / total for status_name in status_names]
+    counts = [int(np.floor(frac * len(nodes))) for frac in fractions]
+    remainder = len(nodes) - sum(counts)
+    for idx in range(remainder):
+        counts[idx % len(counts)] += 1
+
+    shuffled_nodes = list(np.random.permutation(nodes))
+    assignment = {}
+    cursor = 0
+    for status_name, count in zip(status_names[:-1], counts[:-1]):
+        for node in shuffled_nodes[cursor: cursor + count]:
+            assignment[node] = status_name
+        cursor += count
+
+    last_status = status_names[-1]
+    for node in shuffled_nodes[cursor:]:
+        assignment[node] = last_status
+
+    return assignment
+
+
+def build_node_binary_configuration(graph, param_name, selected_nodes):
+    """
+    Build a binary node configuration where selected nodes receive 1 and the
+    remaining nodes receive 0.
+    """
+    selected_set = set(selected_nodes or [])
+    node_cfg = {}
+    for node in graph.nodes():
+        node_cfg[node] = 1 if node in selected_set else 0
+    return {param_name: node_cfg}
 
 
 def build_community_assignment(graph):
@@ -786,6 +971,65 @@ def sanitize_model_name(model_name):
 def discover_models():
     models = {}
     exclude_classes = ["DiffusionModel", "Configuration", "ConfigurationException", "ContinuousModel", "DynamicDiffusionModel"]
+    epidemic_display_names = {
+        "GeneralThresholdModel": "General Threshold",
+        "GeneralisedThresholdModel": "Generalised Threshold",
+        "KerteszThresholdModel": "Kertész Threshold",
+        "SEIRctModel": "SEIR (ct)",
+        "SEISctModel": "SEIS (ct)",
+    }
+    epidemic_group_order = {
+        "Core Epidemic Models": 10,
+        "Threshold and Cascade Models": 20,
+        "Community-Based Models": 30,
+    }
+    epidemic_group_map = {
+        "Core Epidemic Models": {
+            "SIModel", "SISModel", "SIRModel", "SIRSModel", "SIRDModel", "SAIRModel",
+            "SEIRModel", "SEIRctModel", "SEISModel", "SEISctModel", "SVEIRModel",
+            "SWIRModel"
+        },
+        "Threshold and Cascade Models": {
+            "ThresholdModel", "GeneralThresholdModel", "GeneralisedThresholdModel",
+            "KerteszThresholdModel", "ProfileModel", "ProfileThresholdModel",
+            "IndependentCascadesModel", "ForestFireModel", "UTLDRModel"
+        },
+        "Community-Based Models": {"ICEModel", "ICPModel", "ICEPModel"},
+    }
+    epidemic_group_rank = {name: rank for name, rank in epidemic_group_order.items()}
+    opinion_display_names = {
+        "AlgorithmicBiasModel": "Algorithmic Bias",
+        "AlgorithmicBiasMediaModel": "Algorithmic Bias and Media",
+        "ARWHKModel": "Attraction-Repulsion WHK",
+        "FJModel": "Friedkin-Johnsen",
+        "HKModel": "Hegselmann-Krause",
+        "WHKModel": "Weighted HK",
+        "AltafiniModel": "Altafini",
+        "CognitiveOpDynModel": "Cognitive Opinion Dynamics",
+        "MajorityRuleModel": "Majority Rule",
+        "QVoterModel": "Q-Voter",
+        "SznajdModel": "Sznajd",
+        "VoterModel": "Voter",
+        "VoterZealotModel": "Voter with Zealots",
+        "NLSModel": "Nowak-Lewenstein-Szamrej",
+    }
+    opinion_group_order = {
+        "Continuous Opinion Models": 10,
+        "Discrete Opinion Models": 20,
+        "Other Opinion Models": 30,
+    }
+    opinion_group_map = {
+        "Continuous Opinion Models": {
+            "AlgorithmicBiasModel", "AlgorithmicBiasMediaModel", "ARWHKModel",
+            "FJModel", "HKModel", "WHKModel", "AltafiniModel", "CognitiveOpDynModel"
+        },
+        "Discrete Opinion Models": {
+            "MajorityRuleModel", "QVoterModel", "SznajdModel", "VoterModel",
+            "VoterZealotModel", "NLSModel"
+        },
+        "Other Opinion Models": set(),
+    }
+    opinion_group_rank = {name: rank for name, rank in opinion_group_order.items()}
     
     # Discover epidemics models
     for name, obj in inspect.getmembers(epd, inspect.isclass):
@@ -802,6 +1046,16 @@ def discover_models():
                     display_name = "Community Permeability (Embeddedness)"
                 elif class_name == "ICPModel":
                     display_name = "Community Permeability"
+                elif class_name in epidemic_display_names:
+                    display_name = epidemic_display_names[class_name]
+
+                display_group = None
+                display_order = 999
+                for group_name, group_members in epidemic_group_map.items():
+                    if class_name in group_members:
+                        display_group = group_name
+                        display_order = epidemic_group_rank.get(group_name, 999)
+                        break
 
                 models[name] = {
                     "category": "Epidemics",
@@ -809,7 +1063,9 @@ def discover_models():
                     "class_name": class_name,
                     "parameters": model_instance.parameters,
                     "statuses": model_instance.available_statuses,
-                    "discrete_state": getattr(model_instance, "discrete_state", True)
+                    "discrete_state": getattr(model_instance, "discrete_state", True),
+                    "display_group": display_group or "Other Epidemic Models",
+                    "display_order": display_order,
                 }
                 if class_name in COMMUNITY_ASSIGNMENT_MODELS:
                     models[name]["requires_community_assignment"] = True
@@ -827,13 +1083,27 @@ def discover_models():
             g.add_node(0)
             model_instance = obj(g)
             if hasattr(model_instance, "available_statuses"):
+                display_name = getattr(model_instance, "name", name)
+                if name in opinion_display_names:
+                    display_name = opinion_display_names[name]
+
+                display_group = None
+                display_order = 999
+                for group_name, group_members in opinion_group_map.items():
+                    if name in group_members:
+                        display_group = group_name
+                        display_order = opinion_group_rank.get(group_name, 999)
+                        break
+
                 models[name] = {
                     "category": "Opinions",
-                    "name": getattr(model_instance, "name", name),
+                    "name": display_name,
                     "class_name": name,
                     "parameters": model_instance.parameters,
                     "statuses": model_instance.available_statuses,
-                    "discrete_state": getattr(model_instance, "discrete_state", True)
+                    "discrete_state": getattr(model_instance, "discrete_state", True),
+                    "display_group": display_group or "Other Opinion Models",
+                    "display_order": display_order,
                 }
         except Exception:
             pass
@@ -1134,6 +1404,8 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                     for node_id in payload.get("selected_seed_nodes", [])
                     if node_id is not None and str(node_id) != ""
                 ]
+                initial_status_percentages = model_params.get("initial_status_percentages", {})
+                zealot_percentage = model_params.get("zealot_percentage", None)
                 community_detection_algorithm = model_params.get(
                     "community_detection_algorithm",
                     getattr(model_instance, "community_detection_default", "louvain_communities"),
@@ -1141,7 +1413,12 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 community_detection_k = model_params.get("community_detection_k", 2)
 
                 for param, val in model_params.items():
-                    if param in {"community_detection_algorithm", "community_detection_k"}:
+                    if param in {
+                        "community_detection_algorithm",
+                        "community_detection_k",
+                        "initial_status_percentages",
+                        "zealot_percentage",
+                    }:
                         continue
 
                     # Handle typing
@@ -1170,6 +1447,19 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                         for e in g.edges():
                             cfg.add_edge_configuration(param, e, val)
 
+                if category == "Opinions" and getattr(model_instance, "discrete_state", True):
+                    if isinstance(initial_status_percentages, dict) and initial_status_percentages:
+                        assignment = build_initial_status_assignment(
+                            g,
+                            model_instance.available_statuses,
+                            initial_status_percentages,
+                        )
+                        grouped_nodes = {}
+                        for node, status_name in assignment.items():
+                            grouped_nodes.setdefault(status_name, []).append(node)
+                        for status_name, nodes in grouped_nodes.items():
+                            cfg.add_model_initial_configuration(status_name, nodes)
+
                 # Apply initial infection state if provided and relevant
                 if (
                     "fraction_infected" in model_instance.parameters["model"]
@@ -1182,6 +1472,22 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                     infected_nodes = [node for node in selected_seed_nodes if node in g.nodes()]
                     if infected_nodes:
                         cfg.add_model_initial_configuration("Infected", infected_nodes)
+                elif model_class_name == "VoterZealotModel":
+                    zealot_nodes = [node for node in selected_seed_nodes if node in g.nodes()]
+                    if not zealot_nodes and zealot_percentage is not None:
+                        try:
+                            zealot_fraction = max(0.0, min(100.0, float(zealot_percentage))) / 100.0
+                        except (TypeError, ValueError):
+                            zealot_fraction = 0.0
+                        num_zealots = int(round(g.number_of_nodes() * zealot_fraction))
+                        if zealot_fraction > 0 and num_zealots == 0:
+                            num_zealots = 1
+                        num_zealots = min(g.number_of_nodes(), max(0, num_zealots))
+                        if num_zealots > 0:
+                            zealot_nodes = list(np.random.choice(list(g.nodes()), num_zealots, replace=False))
+                    if zealot_nodes:
+                        for node in g.nodes():
+                            cfg.add_node_configuration("zealot", node, 1 if node in zealot_nodes else 0)
 
                 # Community-based models need node communities assigned.
                 if needs_community_assignment(model_instance):
@@ -1223,8 +1529,9 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                             status_delta, model_instance.available_statuses
                         )
 
+                    iteration_id = int(it.get("iteration", len(formatted_iterations)))
                     formatted_iterations.append({
-                        "iteration": int(it["iteration"]),
+                        "iteration": iteration_id,
                         "status": {
                             str(k): (
                                 float(v) if isinstance(v, (float, np.floating)) else int(v)
@@ -1236,12 +1543,17 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                     })
 
                 discrete_state = getattr(model_instance, "discrete_state", True)
+                absolute_status_history = build_absolute_status_history(
+                    formatted_iterations,
+                    graph_meta.get("nodes", []),
+                )
                 response = {
                     "iterations": formatted_iterations,
                     **graph_meta,
                     "statuses": model_instance.available_statuses,
                     "discrete_state": discrete_state,
-                    "is_continuous": not discrete_state
+                    "is_continuous": not discrete_state,
+                    "absolute_status_history": absolute_status_history,
                 }
                 self.wfile.write(json.dumps(response).encode("utf-8"))
 

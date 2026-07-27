@@ -300,6 +300,7 @@
             const prevalenceChartRef = useRef(null);
             const phaseChartRef = useRef(null);
             const opinionChartRef = useRef(null);
+            const opinionDistributionChartRef = useRef(null);
             const cytoscapeRef = useRef(null);
             const cyContainerRef = useRef(null);
             const communityDetectionOptions = [
@@ -812,14 +813,16 @@
 
             const currentGraphNodeCount = getCurrentGraphNodeCount();
             const isNetworkTabAllowed = currentGraphNodeCount > 0 && currentGraphNodeCount < 1500;
+            const showNetworkGraph = isNetworkTabAllowed;
 
             const renderNetworkPreview = (data) => {
                 if (!data || !Array.isArray(data.nodes) || !Array.isArray(data.edges)) return;
-                initCytoscape(data);
+                scheduleCytoscapeInit(data);
             };
 
             const toggleSeedNode = (nodeId) => {
-                if (selectedCategory !== "Epidemics" || !currentModel || currentModel.discrete_state === false || results) return;
+                const supportsNodeSelection = selectedCategory === "Epidemics" || selectedModelName === "VoterZealotModel";
+                if (!supportsNodeSelection || !currentModel || currentModel.discrete_state === false || results) return;
                 const nodeKey = String(nodeId);
                 setSelectedSeedNodes(prev => (
                     prev.includes(nodeKey)
@@ -831,13 +834,14 @@
             const syncSeedSelection = () => {
                 if (!cytoscapeRef.current) return;
                 const selected = new Set(selectedSeedNodes.map(String));
+                const selectionColor = selectedModelName === "VoterZealotModel" ? "#22c55e" : "#ef4444";
                 cytoscapeRef.current.batch(() => {
                     cytoscapeRef.current.nodes().forEach(node => {
                         const isSelected = selected.has(String(node.id()));
                         node.toggleClass("selected-seed", isSelected);
                         if (!results) {
                             const baseColor = getCommunityColor(node.data("com"));
-                            const color = isSelected ? "#ef4444" : baseColor;
+                            const color = isSelected ? selectionColor : baseColor;
                             node.data("statusColor", color);
                             node.style({
                                 "background-color": color,
@@ -858,8 +862,7 @@
                     .then(data => {
                         if (data.error) throw new Error(data.error);
                         setModels(data);
-                        // Select first model of selected category as default
-                        const firstModel = Object.keys(data).find(k => data[k].category === "Epidemics");
+                        const firstModel = data.SIModel ? "SIModel" : Object.keys(data).find(k => data[k].category === "Epidemics");
                         if (firstModel) {
                             selectModel(firstModel, data);
                         }
@@ -884,7 +887,9 @@
                 const defaults = {};
                 // Model level
                 Object.keys(model.parameters.model).forEach(k => {
-                    defaults[k] = model.parameters.model[k].default !== undefined ? model.parameters.model[k].default : 0.1;
+                    const paramInfo = model.parameters.model[k];
+                    const isCountParam = ["q", "k", "iterations"].includes(k);
+                    defaults[k] = paramInfo.default !== undefined ? paramInfo.default : (isCountParam ? 1 : 0.1);
                 });
                 // Node level
                 Object.keys(model.parameters.nodes).forEach(k => {
@@ -909,6 +914,21 @@
                     defaults["community_detection_algorithm"] = model.community_detection_default || "louvain_communities";
                     defaults["community_detection_k"] = 2;
                 }
+                if (model.category === "Opinions" && model.discrete_state !== false && model.statuses) {
+                    const statusNames = Object.keys(model.statuses);
+                    const equalShare = statusNames.length > 0 ? 100 / statusNames.length : 0;
+                    defaults["initial_status_percentages"] = statusNames.reduce((acc, statusName) => {
+                        acc[statusName] = equalShare;
+                        return acc;
+                    }, {});
+                }
+                if (name === "VoterZealotModel") {
+                    defaults["zealot_percentage"] = 5;
+                }
+                if (name === "AlgorithmicBiasMediaModel") {
+                    const mediaCount = Math.max(1, parseInt(defaults["k"]) || 1);
+                    defaults["media_opinions"] = Array.from({ length: mediaCount }, () => 0.5);
+                }
 
                 clearPlayState();
                 clearSeedSelection();
@@ -919,7 +939,7 @@
 
             const handleCategoryChange = (cat) => {
                 setSelectedCategory(cat);
-                const firstModel = Object.keys(models).find(k => models[k].category === cat);
+                const firstModel = getDefaultModelForCategory(cat);
                 if (firstModel) {
                     selectModel(firstModel);
                 }
@@ -1040,44 +1060,24 @@
                     }
 
                     data.continuousVariable = detectContinuousVariable(data);
-
-                    // Accumulate state changes over iterations to build absolute status history
-                    const history = [];
-                    const currentStatus = {};
-                    
-                    let minOp = 0;
-                    let maxOp = 1;
-                    let firstOp = true;
-                    data.nodes.forEach(n => {
-                        currentStatus[n.id] = 0;
-                    });
-                    data.iterations.forEach(it => {
-                        Object.keys(it.status).forEach(nodeId => {
-                            const val = data.discrete_state === false
-                                ? getContinuousValue(it.status[nodeId], data.continuousVariable)
-                                : it.status[nodeId];
-                            currentStatus[nodeId] = val;
-                            
-                            if (typeof val === "number" && Number.isFinite(val)) {
-                                if (selectedCategory === "Opinions") {
-                                    if (firstOp) {
-                                        minOp = val;
-                                        maxOp = val;
-                                        firstOp = false;
-                                    } else {
-                                        if (val < minOp) minOp = val;
-                                        if (val > maxOp) maxOp = val;
-                                    }
-                                }
-                            }
-                        });
-                        history.push({ ...currentStatus });
-                    });
-                    data.absoluteStatusHistory = history;
+                    data.absoluteStatusHistory = data.absolute_status_history || data.absoluteStatusHistory || buildOpinionHistory(data);
                     data.isContinuous = data.discrete_state === false;
-                    
-                    if (selectedCategory === "Opinions") {
-                        if (maxOp - minOp < 1e-5) {
+
+                    if (selectedCategory === "Opinions" && Array.isArray(data.absoluteStatusHistory)) {
+                        let minOp = Infinity;
+                        let maxOp = -Infinity;
+                        data.absoluteStatusHistory.forEach(snapshot => {
+                            Object.values(snapshot).forEach(value => {
+                                if (typeof value === "number" && Number.isFinite(value)) {
+                                    if (value < minOp) minOp = value;
+                                    if (value > maxOp) maxOp = value;
+                                }
+                            });
+                        });
+                        if (!Number.isFinite(minOp) || !Number.isFinite(maxOp)) {
+                            minOp = 0;
+                            maxOp = 1;
+                        } else if (Math.abs(maxOp - minOp) < 1e-5) {
                             minOp = 0;
                             maxOp = 1;
                         }
@@ -1098,8 +1098,9 @@
                             renderPhasePortrait(data);
                         } else if (data.discrete_state === false) {
                             renderOpinionEvolution(data);
+                            renderOpinionDistributionChart(data, 0);
                         }
-                        initCytoscape(data);
+                        scheduleCytoscapeInit(data);
                     }, 50);
                 } catch (err) {
                     setError(err.message || "Network error while running simulation.");
@@ -1167,6 +1168,56 @@
                 return 0;
             };
 
+            const getOpinionSnapshot = (snapshot) => {
+                if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
+                    return {};
+                }
+
+                if (snapshot.status && typeof snapshot.status === "object" && !Array.isArray(snapshot.status)) {
+                    return snapshot.status;
+                }
+
+                return snapshot;
+            };
+
+            const buildOpinionHistory = (data) => {
+                if (!data || !Array.isArray(data.nodes) || !Array.isArray(data.iterations)) {
+                    return [];
+                }
+
+                const nodeIds = data.nodes.map(node => String(node.id));
+                const history = [];
+                const currentStatus = {};
+
+                nodeIds.forEach(nodeId => {
+                    currentStatus[nodeId] = 0;
+                });
+
+                data.iterations.forEach(snapshot => {
+                    const statusMap = getOpinionSnapshot(snapshot);
+                    nodeIds.forEach(nodeId => {
+                        let rawValue;
+                        if (Object.prototype.hasOwnProperty.call(statusMap, nodeId)) {
+                            rawValue = statusMap[nodeId];
+                        } else if (Object.prototype.hasOwnProperty.call(statusMap, Number(nodeId))) {
+                            rawValue = statusMap[Number(nodeId)];
+                        }
+
+                        if (rawValue !== undefined) {
+                            const resolvedValue = typeof rawValue === "number" && Number.isFinite(rawValue)
+                                ? rawValue
+                                : getContinuousValue(rawValue, data.continuousVariable);
+                            if (typeof resolvedValue === "number" && Number.isFinite(resolvedValue)) {
+                                currentStatus[nodeId] = resolvedValue;
+                            }
+                        }
+                    });
+                    history.push({ ...currentStatus });
+                });
+
+                return history;
+            };
+
             const getContinuousBinColor = (value, minOp = 0, maxOp = 1, bins = 10) => {
                 if (typeof value !== "number" || !Number.isFinite(value)) {
                     return "#64748b";
@@ -1195,6 +1246,162 @@
                 ];
 
                 return palette[Math.min(binIndex, palette.length - 1)];
+            };
+
+            const getOpinionValuesAtStep = (data, step = currentPlaybackStep) => {
+                if (!data || !Array.isArray(data.nodes)) {
+                    return [];
+                }
+
+                const history = Array.isArray(data.absoluteStatusHistory) && data.absoluteStatusHistory.length > 0
+                    ? data.absoluteStatusHistory
+                    : buildOpinionHistory(data);
+
+                if (!Array.isArray(history) || history.length === 0) {
+                    return [];
+                }
+
+                const safeStep = Math.max(0, Math.min(step, history.length - 1));
+                const snapshot = history[safeStep] || {};
+
+                return data.nodes
+                    .map(node => getContinuousValue(snapshot[node.id], data.continuousVariable))
+                    .filter(value => typeof value === "number" && Number.isFinite(value));
+            };
+
+            const buildOpinionDistributionSeries = (data, step = currentPlaybackStep, binCount = 12) => {
+                if (data && data.discrete_state !== false) {
+                    const iterationsList = Array.isArray(data.iterations) ? data.iterations : [];
+                    const safeStep = Math.max(0, Math.min(step, iterationsList.length - 1));
+                    const iteration = iterationsList[safeStep] || {};
+                    const nodeCount = iteration.node_count || {};
+                    const statusEntries = Object.entries(data.statuses || {})
+                        .sort((a, b) => Number(a[1]) - Number(b[1]));
+
+                    return {
+                        labels: statusEntries.map(([statusName]) => statusName),
+                        counts: statusEntries.map(([, statusCode]) => {
+                            const raw = nodeCount[statusCode] !== undefined ? nodeCount[statusCode] : nodeCount[String(statusCode)];
+                            return typeof raw === "number" ? raw : parseInt(raw, 10) || 0;
+                        }),
+                        minBound: 0,
+                        maxBound: Math.max(1, ...(statusEntries.map(([, statusCode]) => {
+                            const raw = nodeCount[statusCode] !== undefined ? nodeCount[statusCode] : nodeCount[String(statusCode)];
+                            return typeof raw === "number" ? raw : parseInt(raw, 10) || 0;
+                        }))),
+                    };
+                }
+
+                const values = getOpinionValuesAtStep(data, step);
+                const bins = Math.max(4, binCount);
+
+                if (values.length === 0) {
+                    return {
+                        labels: Array.from({ length: bins }, (_, i) => `${i}`),
+                        counts: Array(bins).fill(0),
+                        minBound: 0,
+                        maxBound: 1,
+                    };
+                }
+
+                let minBound = data && typeof data.minOpinion === "number" ? data.minOpinion : Math.min(...values);
+                let maxBound = data && typeof data.maxOpinion === "number" ? data.maxOpinion : Math.max(...values);
+
+                if (!Number.isFinite(minBound) || !Number.isFinite(maxBound)) {
+                    minBound = 0;
+                    maxBound = 1;
+                }
+
+                if (Math.abs(maxBound - minBound) < 1e-6) {
+                    const padding = Math.max(0.05, Math.abs(maxBound) * 0.1);
+                    minBound -= padding;
+                    maxBound += padding;
+                }
+
+                const counts = Array(bins).fill(0);
+                values.forEach(value => {
+                    const normalized = (value - minBound) / (maxBound - minBound);
+                    const clamped = Math.min(0.999999, Math.max(0, normalized));
+                    const index = Math.min(bins - 1, Math.floor(clamped * bins));
+                    counts[index] += 1;
+                });
+
+                const labels = Array.from({ length: bins }, (_, idx) => {
+                    const start = minBound + ((maxBound - minBound) * idx) / bins;
+                    const end = minBound + ((maxBound - minBound) * (idx + 1)) / bins;
+                    return `${start.toFixed(2)} - ${end.toFixed(2)}`;
+                });
+
+                return { labels, counts, minBound, maxBound };
+            };
+
+            const renderOpinionDistributionChart = (data, step = currentPlaybackStep) => {
+                if (opinionDistributionChartRef.current) opinionDistributionChartRef.current.destroy();
+                if (!data) return;
+
+                const canvas = document.getElementById("opinionDistributionChart");
+                if (!canvas) return;
+                const ctx = canvas.getContext("2d");
+                const series = buildOpinionDistributionSeries(data, step);
+
+                opinionDistributionChartRef.current = new Chart(ctx, {
+                    type: "bar",
+                    data: {
+                        labels: series.labels,
+                        datasets: [{
+                            label: "Nodes",
+                            data: series.counts,
+                            backgroundColor: series.counts.map((_, idx) => {
+                                const ratio = series.counts.length > 1 ? idx / (series.counts.length - 1) : 0.5;
+                                const r = Math.floor(59 + ratio * (239 - 59));
+                                const g = Math.floor(130 + ratio * (68 - 130));
+                                const b = Math.floor(246 + ratio * (68 - 246));
+                                return `rgba(${r}, ${g}, ${b}, 0.82)`;
+                            }),
+                            borderColor: "#0f172a",
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            maxBarThickness: 34,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    title: (items) => items[0]?.label || "",
+                                    label: (item) => `${item.formattedValue} nodes`,
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: false
+                                },
+                                ticks: {
+                                    color: isDarkMode ? "#94a3b8" : "#475569",
+                                    maxRotation: 45,
+                                    minRotation: 45,
+                                    autoSkip: true
+                                },
+                                grid: { color: isDarkMode ? "#334155" : "#cbd5e1" }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: "Node count",
+                                    color: isDarkMode ? "#f8fafc" : "#1e293b"
+                                },
+                                ticks: { color: isDarkMode ? "#94a3b8" : "#475569" },
+                                grid: { color: isDarkMode ? "#334155" : "#cbd5e1" }
+                            }
+                        }
+                    }
+                });
             };
 
             const isThresholdParameter = (paramName, paramInfo = {}) => {
@@ -1463,9 +1670,9 @@
                 const canvas = document.getElementById("opinionChart");
                 if (!canvas) return;
                 const ctx = canvas.getContext("2d");
-                const iterationsList = Array.isArray(data.absoluteStatusHistory)
+                const iterationsList = Array.isArray(data.absoluteStatusHistory) && data.absoluteStatusHistory.length > 0
                     ? data.absoluteStatusHistory
-                    : data.iterations;
+                    : buildOpinionHistory(data);
                 const T = iterationsList.length;
 
                 // Reconstruct opinion trajectory for each node
@@ -1495,8 +1702,32 @@
                     }
                 });
 
-                const maxLines = 100;
                 const nodeIds = Object.keys(nodeTrajectories);
+
+                let minOpinion = Infinity;
+                let maxOpinion = -Infinity;
+                nodeIds.forEach(nodeId => {
+                    nodeTrajectories[nodeId].forEach(value => {
+                        if (typeof value === "number" && Number.isFinite(value)) {
+                            if (value < minOpinion) minOpinion = value;
+                            if (value > maxOpinion) maxOpinion = value;
+                        }
+                    });
+                });
+                if (!Number.isFinite(minOpinion) || !Number.isFinite(maxOpinion)) {
+                    minOpinion = 0;
+                    maxOpinion = 1;
+                }
+                if (Math.abs(maxOpinion - minOpinion) < 1e-6) {
+                    minOpinion = Math.max(-1, minOpinion - 0.5);
+                    maxOpinion = Math.min(1, maxOpinion + 0.5);
+                } else {
+                    const padding = (maxOpinion - minOpinion) * 0.08;
+                    minOpinion -= padding;
+                    maxOpinion += padding;
+                }
+
+                const maxLines = 100;
                 const stepSize = Math.max(1, Math.floor(nodeIds.length / maxLines));
                 const datasets = [];
 
@@ -1545,6 +1776,8 @@
                             },
                             y: { 
                                 title: { display: true, text: "Opinion Value", color: isDarkMode ? "#f8fafc" : "#1e293b" },
+                                min: minOpinion,
+                                max: maxOpinion,
                                 grid: { color: isDarkMode ? "#334155" : "#cbd5e1" }, 
                                 ticks: { color: isDarkMode ? "#94a3b8" : "#475569" } 
                             }
@@ -1605,8 +1838,30 @@
                 });
             };
 
+            const scheduleCytoscapeInit = (data, layoutName = networkLayout, attempts = 0) => {
+                if (!cyContainerRef.current) {
+                    if (attempts < 20) {
+                        window.setTimeout(() => scheduleCytoscapeInit(data, layoutName, attempts + 1), 50);
+                    }
+                    return;
+                }
+
+                initCytoscape(data, layoutName);
+            };
+
             const initCytoscape = (data, layoutName = networkLayout) => {
+                const container = cyContainerRef.current;
+                if (!container) {
+                    return;
+                }
+
+                if (cytoscapeRef.current) {
+                    cytoscapeRef.current.destroy();
+                    cytoscapeRef.current = null;
+                }
+
                 const elements = [];
+                const selectionColor = selectedModelName === "VoterZealotModel" ? "#22c55e" : "#ef4444";
                 // Add nodes
                 data.nodes.forEach(n => {
                     const communityColor = getCommunityColor(n.com);
@@ -1626,7 +1881,7 @@
                 });
 
                 cytoscapeRef.current = cytoscape({
-                    container: cyContainerRef.current,
+                    container: container,
                     elements: elements,
                     style: [
                         {
@@ -1645,8 +1900,8 @@
                             style: {
                                 "border-width": 4,
                                 "border-color": "#ffffff",
-                                "background-color": "#ef4444",
-                                "overlay-color": "#ef4444",
+                                "background-color": selectionColor,
+                                "overlay-color": selectionColor,
                                 "overlay-opacity": 0.2,
                                 "overlay-padding": 6,
                                 "z-index": 999,
@@ -1667,12 +1922,14 @@
                 });
 
                 cytoscapeRef.current.on("tap", "node", (evt) => {
-                    if (results || selectedCategory !== "Epidemics" || !currentModel || currentModel.discrete_state === false) return;
+                    const supportsNodeSelection = selectedCategory === "Epidemics" || selectedModelName === "VoterZealotModel";
+                    if (results || !supportsNodeSelection || !currentModel || currentModel.discrete_state === false) return;
                     toggleSeedNode(evt.target.id());
                 });
 
                 cytoscapeRef.current.on("tap", (evt) => {
-                    if (results || selectedCategory !== "Epidemics" || !currentModel || currentModel.discrete_state === false) return;
+                    const supportsNodeSelection = selectedCategory === "Epidemics" || selectedModelName === "VoterZealotModel";
+                    if (results || !supportsNodeSelection || !currentModel || currentModel.discrete_state === false) return;
                     if (evt.target === cytoscapeRef.current) {
                         clearSeedSelection();
                     }
@@ -1684,7 +1941,11 @@
             };
 
             const updateNetworkColors = (step, data = results) => {
-                if (!cytoscapeRef.current || !data || !data.absoluteStatusHistory) return;
+                if (!data) return;
+
+                renderOpinionDistributionChart(data, step);
+
+                if (!cytoscapeRef.current || !data.absoluteStatusHistory) return;
 
                 const safeStep = Math.max(0, Math.min(step, data.absoluteStatusHistory.length - 1));
                 const nodeStatus = data.absoluteStatusHistory[safeStep];
@@ -1699,22 +1960,26 @@
                 const stepMax = stepValues.length ? Math.max(...stepValues) : maxOp;
 
                 const isContinuous = data.isContinuous === true || data.discrete_state === false;
+                const selectionColor = selectedModelName === "VoterZealotModel" ? "#22c55e" : "#ef4444";
                 cytoscapeRef.current.batch(() => {
                     cytoscapeRef.current.nodes().forEach(node => {
                         const id = node.id();
                         const statusVal = nodeStatus[id] !== undefined
                             ? getContinuousValue(nodeStatus[id], data.continuousVariable)
                             : 0;
-                        const color = isContinuous
-                            ? getContinuousBinColor(statusVal, stepMin, stepMax, 10)
-                            : getStatusColor(
-                                statusVal,
-                                null,
-                                data.statuses,
-                                minOp,
-                                maxOp,
-                                false
-                            );
+                        const isSelectedZealot = selectedModelName === "VoterZealotModel" && selectedSeedNodes.includes(String(id));
+                        const color = isSelectedZealot
+                            ? selectionColor
+                            : (isContinuous
+                                ? getContinuousBinColor(statusVal, stepMin, stepMax, 10)
+                                : getStatusColor(
+                                    statusVal,
+                                    null,
+                                    data.statuses,
+                                    minOp,
+                                    maxOp,
+                                    false
+                                ));
                         node.data("statusColor", color);
                         node.style({
                             "background-color": color,
@@ -1774,6 +2039,7 @@
                         renderPhasePortrait(results);
                     } else if (results.discrete_state === false) {
                         renderOpinionEvolution(results);
+                        renderOpinionDistributionChart(results, currentPlaybackStep);
                     }
                     if (cytoscapeRef.current) {
                         cytoscapeRef.current.style()
@@ -1803,6 +2069,9 @@
             useEffect(() => {
                 if (results && cytoscapeRef.current) {
                     updateNetworkColors(currentPlaybackStep, results);
+                    if (activeTab === "network") {
+                        renderOpinionDistributionChart(results, currentPlaybackStep);
+                    }
                 }
             }, [results, currentPlaybackStep]);
 
@@ -3303,6 +3572,61 @@
 
             const currentModel = models[selectedModelName];
             const isContinuousModel = currentModel && currentModel.discrete_state === false;
+            const getDefaultModelForCategory = (category) => {
+                if (category === "Epidemics" && models.SIModel) return "SIModel";
+                const groups = getModelSelectorGroups(category);
+                for (const group of groups) {
+                    if (group.items && group.items.length > 0) {
+                        return group.items[0][0];
+                    }
+                }
+                return Object.keys(models).find(k => models[k].category === category) || "";
+            };
+            const getModelSelectorGroups = (category) => {
+                const entries = Object.entries(models).filter(([, model]) => model.category === category);
+                if (category !== "Epidemics" && category !== "Opinions") {
+                    return [{
+                        label: null,
+                        items: entries.sort((a, b) => {
+                            const left = (a[1].name || a[0]).toLowerCase();
+                            const right = (b[1].name || b[0]).toLowerCase();
+                            return left.localeCompare(right);
+                        })
+                    }];
+                }
+
+                const isEpidemics = category === "Epidemics";
+                const groupOrder = isEpidemics ? {
+                    "Core Epidemic Models": 0,
+                    "Threshold and Cascade Models": 1,
+                    "Community-Based Models": 2,
+                    "Other Epidemic Models": 3
+                } : {
+                    "Continuous Opinion Models": 0,
+                    "Discrete Opinion Models": 1,
+                    "Other Opinion Models": 2
+                };
+                const grouped = new Map();
+                entries.forEach(([key, model]) => {
+                    const groupLabel = model.display_group || (isEpidemics ? "Other Epidemic Models" : "Other Opinion Models");
+                    if (!grouped.has(groupLabel)) grouped.set(groupLabel, []);
+                    grouped.get(groupLabel).push([key, model]);
+                });
+
+                return Array.from(grouped.entries())
+                    .sort((a, b) => (groupOrder[a[0]] ?? 99) - (groupOrder[b[0]] ?? 99) || a[0].localeCompare(b[0]))
+                    .map(([label, items]) => ({
+                        label,
+                        items: items.sort((a, b) => {
+                            const leftOrder = a[1].display_order ?? 999;
+                            const rightOrder = b[1].display_order ?? 999;
+                            if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+                            const left = (a[1].name || a[0]).toLowerCase();
+                            const right = (b[1].name || b[0]).toLowerCase();
+                            return left.localeCompare(right);
+                        })
+                    }));
+            };
 
             if (showModelBuilder) {
                 return renderModelBuilder();
@@ -3362,8 +3686,18 @@
                                 onChange={(e) => selectModel(e.target.value)}
                                 class="w-full bg-slate-900/80 border border-slate-800 rounded-lg p-2.5 text-slate-200 neon-border-glow"
                             >
-                                {Object.keys(models).filter(k => models[k].category === selectedCategory).map(k => (
-                                    <option key={k} value={k}>{models[k].name}</option>
+                                {getModelSelectorGroups(selectedCategory).map(group => (
+                                    group.label ? (
+                                        <optgroup key={group.label} label={group.label}>
+                                            {group.items.map(([key, model]) => (
+                                                <option key={key} value={key}>{model.name}</option>
+                                            ))}
+                                        </optgroup>
+                                    ) : (
+                                        group.items.map(([key, model]) => (
+                                            <option key={key} value={key}>{model.name}</option>
+                                        ))
+                                    )
                                 ))}
                             </select>
                         </div>
@@ -3609,9 +3943,32 @@
                             <div class="space-y-4">
                                 {currentModel && Object.keys(currentModel.parameters.model).map(paramName => {
                                     const p = currentModel.parameters.model[paramName];
+                                    if (paramName === "media_opinions") {
+                                        return null;
+                                    }
                                     const isCountParam = ["q", "k", "iterations"].includes(paramName);
                                     const isThresholdParam = isThresholdParameter(paramName, p);
                                     const isFractionParam = isThresholdParam || (p.range && p.range[0] === 0 && p.range[1] === 1);
+                                    if (Array.isArray(p.choices) && p.choices.length > 0) {
+                                        return (
+                                            <div key={paramName} class="space-y-1">
+                                                <label class="text-xs text-slate-300 block mb-1">{paramName} - {p.descr}</label>
+                                                <select
+                                                    value={modelParams[paramName] !== undefined ? modelParams[paramName] : (p.default !== undefined ? p.default : p.choices[0].value || p.choices[0])}
+                                                    onChange={(e) => setModelParams(prev => ({ ...prev, [paramName]: e.target.value }))}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-md p-1.5 text-slate-200 text-sm neon-border-glow cursor-pointer"
+                                                >
+                                                    {p.choices.map(choice => {
+                                                        const choiceValue = typeof choice === "object" ? choice.value : choice;
+                                                        const choiceLabel = typeof choice === "object" ? choice.label || choice.value : choice;
+                                                        return (
+                                                            <option key={choiceValue} value={choiceValue}>{choiceLabel}</option>
+                                                        );
+                                                    })}
+                                                </select>
+                                            </div>
+                                        );
+                                    }
                                     if (p.range && p.range[0] === 0 && p.range[1] === 1) {
                                         return (
                                             <div key={paramName} class="space-y-1">
@@ -3651,12 +4008,24 @@
                                                 type="number"
                                                 step={isCountParam ? "1" : "0.01"}
                                                 value={modelParams[paramName] || 0}
-                                                onChange={(e) => setModelParams(prev => ({
-                                                    ...prev,
-                                                    [paramName]: isCountParam
+                                                onChange={(e) => setModelParams(prev => {
+                                                    const nextValue = isCountParam
                                                         ? Math.max(1, parseInt(e.target.value) || 1)
-                                                        : parseFloat(e.target.value)
-                                                }))}
+                                                        : parseFloat(e.target.value);
+                                                    const nextParams = {
+                                                        ...prev,
+                                                        [paramName]: nextValue
+                                                    };
+                                                    if (selectedModelName === "AlgorithmicBiasMediaModel" && paramName === "k") {
+                                                        const existingOpinions = Array.isArray(prev.media_opinions) ? prev.media_opinions : [];
+                                                        const adjustedOpinions = existingOpinions.slice(0, nextValue);
+                                                        while (adjustedOpinions.length < nextValue) {
+                                                            adjustedOpinions.push(0.5);
+                                                        }
+                                                        nextParams.media_opinions = adjustedOpinions;
+                                                    }
+                                                    return nextParams;
+                                                })}
                                                 class="w-24 bg-slate-900 border border-slate-800 rounded-md p-1 text-slate-200 text-right neon-border-glow"
                                             />
                                         </div>
@@ -3694,6 +4063,131 @@
                                             </button>
                                         </div>
                                         <p class="text-slate-400">Click nodes in the preview to choose infection seeds. Selected nodes will be painted red.</p>
+                                    </div>
+                                )}
+
+                                {currentModel && currentModel.discrete_state !== false && selectedCategory === "Opinions" && Object.keys(currentModel.statuses || {}).length > 0 && (
+                                    <div class="space-y-3 p-3 rounded-lg border border-slate-800 bg-slate-950/40">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <div>
+                                                <label class="text-xs text-slate-300 block mb-1">Initial class percentages</label>
+                                                <p class="text-[11px] text-slate-500">Values are normalized automatically before the simulation starts.</p>
+                                            </div>
+                                            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Discrete opinions</span>
+                                        </div>
+                                        <div class="space-y-2">
+                                            {Object.keys(currentModel.statuses).map(statusName => {
+                                                const statusPercentages = modelParams.initial_status_percentages || {};
+                                                const defaultShare = Object.keys(currentModel.statuses).length > 0 ? 100 / Object.keys(currentModel.statuses).length : 0;
+                                                const value = statusPercentages[statusName] !== undefined ? statusPercentages[statusName] : defaultShare;
+                                                return (
+                                                    <div key={statusName} class="flex justify-between items-center text-xs gap-3">
+                                                        <span class="text-slate-300">{statusName} (%)</span>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            max="100"
+                                                            step="1"
+                                                            value={value}
+                                                            onChange={(e) => {
+                                                                const nextValue = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
+                                                                setModelParams(prev => ({
+                                                                    ...prev,
+                                                                    initial_status_percentages: {
+                                                                        ...(prev.initial_status_percentages || {}),
+                                                                        [statusName]: nextValue
+                                                                    }
+                                                                }));
+                                                            }}
+                                                            class="w-24 bg-slate-900 border border-slate-800 rounded-md p-1 text-slate-200 text-right neon-border-glow"
+                                                        />
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {currentModel && selectedModelName === "VoterZealotModel" && (
+                                    <div class="space-y-3 p-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs text-slate-200">
+                                        <div class="space-y-1">
+                                            <label class="text-xs text-slate-300 block mb-1">Zealot share (%)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                step="1"
+                                                value={modelParams.zealot_percentage !== undefined ? modelParams.zealot_percentage : 5}
+                                                onChange={(e) => setModelParams(prev => ({
+                                                    ...prev,
+                                                    zealot_percentage: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0))
+                                                }))}
+                                                class="w-24 bg-slate-900 border border-slate-800 rounded-md p-1 text-slate-200 text-right neon-border-glow"
+                                            />
+                                        </div>
+                                        {selectedSeedNodes.length > 0 ? (
+                                            <div class="space-y-2">
+                                                <div class="flex items-center justify-between gap-3">
+                                                    <span class="font-semibold">Selected zealots: {selectedSeedNodes.length}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={clearSeedSelection}
+                                                        class="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-slate-900 border border-slate-700 hover:bg-slate-800 transition"
+                                                    >
+                                                        Clear selection
+                                                    </button>
+                                                </div>
+                                                <p class="text-slate-400">Click nodes in the preview to choose zealots. Selected nodes will stay immutable.</p>
+                                            </div>
+                                        ) : (
+                                            <p class="text-slate-400">Use the share above or click nodes in the preview to choose the zealot set.</p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {currentModel && selectedModelName === "AlgorithmicBiasMediaModel" && (
+                                    <div class="space-y-3 p-3 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-xs text-slate-200">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <div>
+                                                <label class="text-xs text-slate-300 block mb-1">Media opinions</label>
+                                                <p class="text-[11px] text-slate-500">Set one bounded opinion value per media source.</p>
+                                            </div>
+                                            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">k = {Math.max(1, parseInt(modelParams.k) || 1)}</span>
+                                        </div>
+                                        <div class="space-y-2">
+                                            {Array.from({ length: Math.max(1, parseInt(modelParams.k) || 1) }, (_, idx) => {
+                                                const opinions = Array.isArray(modelParams.media_opinions) ? modelParams.media_opinions : [];
+                                                const value = opinions[idx] !== undefined ? opinions[idx] : 0.5;
+                                                return (
+                                                    <div key={idx} class="flex justify-between items-center text-xs gap-3">
+                                                        <span class="text-slate-300">Media {idx + 1}</span>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            max="1"
+                                                            step="0.01"
+                                                            value={value}
+                                                            onChange={(e) => {
+                                                                const nextValue = Math.min(1, Math.max(0, parseFloat(e.target.value) || 0));
+                                                                setModelParams(prev => {
+                                                                    const currentOpinions = Array.isArray(prev.media_opinions) ? prev.media_opinions.slice() : [];
+                                                                    const targetCount = Math.max(1, parseInt(prev.k) || 1);
+                                                                    while (currentOpinions.length < targetCount) {
+                                                                        currentOpinions.push(0.5);
+                                                                    }
+                                                                    currentOpinions[idx] = nextValue;
+                                                                    return {
+                                                                        ...prev,
+                                                                        media_opinions: currentOpinions
+                                                                    };
+                                                                });
+                                                            }}
+                                                            class="w-24 bg-slate-900 border border-slate-800 rounded-md p-1 text-slate-200 text-right neon-border-glow"
+                                                        />
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                 )}
 
@@ -3736,6 +4230,9 @@
 
                                 {/* Node Configuration Parameters (e.g. stubbornness / zealot) */}
                                 {currentModel && Object.keys(currentModel.parameters.nodes).map(paramName => {
+                                    if (selectedModelName === "VoterZealotModel" && paramName === "zealot") {
+                                        return null;
+                                    }
                                     const p = currentModel.parameters.nodes[paramName];
                                     const isBinaryParam = p.range && p.range[0] === 0 && p.range[1] === 1;
                                     return (
@@ -3835,7 +4332,7 @@
                                     </button>
                                 )}
 
-                                {isNetworkTabAllowed && (
+                                {(results || networkPreview) && (
                                     <button 
                                         onClick={() => setActiveTab("network")}
                                         class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "network" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-white"}`}
@@ -3917,16 +4414,6 @@
                                 </div>
                             )}
 
-                            {!results && !loading && networkPreview && !isNetworkTabAllowed && (
-                                <div class="flex-grow flex flex-col justify-center items-center text-slate-400 space-y-4">
-                                    <i class="fa-solid fa-network-wired text-6xl text-slate-600"></i>
-                                    <div class="text-center space-y-2">
-                                        <p class="text-lg">Network generated.</p>
-                                        <p class="text-sm text-slate-500">The graph has {currentGraphNodeCount} nodes, so the Network Graph tab is hidden.</p>
-                                    </div>
-                                </div>
-                            )}
-
                             {/* Charts & Graph Rendering */}
                             {results && !loading && (
                                 <div class="flex-grow flex flex-col h-full">
@@ -3947,125 +4434,154 @@
                                     </div>
 
                                     <div class={`flex-grow flex flex-col h-full space-y-4 ${activeTab !== "network" ? "hidden" : ""}`}>
-                                        {/* Playback & Layout Controls */}
-                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-950/40 p-4 border border-slate-900 rounded-xl">
-                                            <div class="flex items-center space-x-4 flex-grow">
-                                                <button 
-                                                    onClick={() => setIsPlaying(!isPlaying)}
-                                                    class="w-10 h-10 flex flex-shrink-0 items-center justify-center bg-indigo-600 hover:bg-indigo-500 rounded-full text-white transition shadow-lg shadow-indigo-900/20 cursor-pointer"
-                                                >
-                                                    {isPlaying ? <i class="fa-solid fa-pause"></i> : <i class="fa-solid fa-play ml-0.5"></i>}
-                                                </button>
-                                                <div class="flex-grow flex items-center space-x-3 max-w-xl">
-                                                    <span class="text-xs text-slate-400 w-24">Simulation step {currentPlaybackStep}</span>
-                                                    <input 
-                                                        type="range"
-                                                        min="0"
-                                                        max={results.iterations.length - 1}
-                                                        value={currentPlaybackStep}
-                                                        onChange={handlePlaybackSliderChange}
-                                                        onInput={handlePlaybackSliderChange}
-                                                        class="flex-grow accent-indigo-500 cursor-pointer"
-                                                    />
+                                        {results && (
+                                            <>
+                                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-950/40 p-4 border border-slate-900 rounded-xl">
+                                                    <div class="flex items-center space-x-4 flex-grow">
+                                                        <button 
+                                                            onClick={() => setIsPlaying(!isPlaying)}
+                                                            class="w-10 h-10 flex flex-shrink-0 items-center justify-center bg-indigo-600 hover:bg-indigo-500 rounded-full text-white transition shadow-lg shadow-indigo-900/20 cursor-pointer"
+                                                        >
+                                                            {isPlaying ? <i class="fa-solid fa-pause"></i> : <i class="fa-solid fa-play ml-0.5"></i>}
+                                                        </button>
+                                                        <div class="flex-grow flex items-center space-x-3 max-w-xl">
+                                                            <span class="text-xs text-slate-400 w-24">Simulation step {currentPlaybackStep}</span>
+                                                            <input 
+                                                                type="range"
+                                                                min="0"
+                                                                max={results.iterations.length - 1}
+                                                                value={currentPlaybackStep}
+                                                                onChange={handlePlaybackSliderChange}
+                                                                onInput={handlePlaybackSliderChange}
+                                                                class="flex-grow accent-indigo-500 cursor-pointer"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {showNetworkGraph && (
+                                                        <div class="flex items-center space-x-2">
+                                                            <label class="text-xs text-slate-400 font-semibold uppercase">Graph layout:</label>
+                                                            <select 
+                                                                value={networkLayout}
+                                                                onChange={(e) => handleLayoutChange(e.target.value)}
+                                                                class="bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-200 focus:outline-none cursor-pointer"
+                                                            >
+                                                                <option value="preset">Preset spring layout</option>
+                                                                <option value="cose">Force-directed layout</option>
+                                                                <option value="community_clusters">Community clusters</option>
+                                                                <option value="breadthfirst">Breadth-first</option>
+                                                                <option value="random">Random</option>
+                                                                <option value="circle">Circle</option>
+                                                                <option value="grid">Grid</option>
+                                                                <option value="concentric">Concentric</option>
+                                                            </select>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            </div>
-                                            
-                                            {/* Network Layout Dropdown */}
-                                            <div class="flex items-center space-x-2">
-                                                <label class="text-xs text-slate-400 font-semibold uppercase">Graph layout:</label>
-                                                <select 
-                                                    value={networkLayout}
-                                                    onChange={(e) => handleLayoutChange(e.target.value)}
-                                                    class="bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-200 focus:outline-none cursor-pointer"
-                                                >
-                                                    <option value="preset">Preset spring layout</option>
-                                                    <option value="cose">Force-directed layout</option>
-                                                    <option value="community_clusters">Community clusters</option>
-                                                    <option value="breadthfirst">Breadth-first</option>
-                                                    <option value="random">Random</option>
-                                                    <option value="circle">Circle</option>
-                                                    <option value="grid">Grid</option>
-                                                    <option value="concentric">Concentric</option>
-                                                </select>
-                                            </div>
-                                        </div>
 
-                                        {/* Graph Container with Legend */}
-                                        <div class="flex-grow relative border border-slate-900 rounded-2xl min-h-[400px] h-full overflow-hidden">
-                                            <div 
-                                                ref={cyContainerRef} 
-                                                class="absolute inset-0 bg-slate-950/60"
-                                            ></div>
-                                            
-                                            {/* Status Colors Legend */}
-                                            <div class={`absolute bottom-4 left-4 p-4 rounded-xl border z-10 flex flex-col space-y-2 backdrop-blur-md ${isDarkMode ? "bg-slate-900/90 border-slate-800 text-slate-200" : "bg-white/90 border-slate-200 text-slate-800 shadow-lg"} w-48`}>
-                                                <h4 class="text-xs font-bold uppercase tracking-wider mb-1 opacity-80">Status Legend</h4>
-                                                {results && results.isContinuous ? (
-                                                    <div class="space-y-2">
-                                                        <div class="h-3.5 w-full rounded border border-black/10" style={{
-                                                            background: 'linear-gradient(to right, rgb(59, 130, 246), rgb(149, 99, 157), rgb(239, 68, 68))'
-                                                        }}></div>
-                                                        <div class="flex justify-between text-[10px] font-semibold opacity-70">
-                                                            <span>Low ({results.minOpinion !== undefined ? results.minOpinion.toFixed(2) : "-1.0"})</span>
-                                                            <span>High ({results.maxOpinion !== undefined ? results.maxOpinion.toFixed(2) : "1.0"})</span>
+                                                {showNetworkGraph ? (
+                                                    <div class="grid gap-4 flex-grow min-h-[400px] lg:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]">
+                                                        <div class="relative border border-slate-900 rounded-2xl min-h-[400px] h-full overflow-hidden">
+                                                            <div 
+                                                                ref={cyContainerRef} 
+                                                                class="absolute inset-0 bg-slate-950/60"
+                                                            ></div>
+                                                            <div class={`absolute bottom-4 left-4 p-4 rounded-xl border z-10 flex flex-col space-y-2 backdrop-blur-md ${isDarkMode ? "bg-slate-900/90 border-slate-800 text-slate-200" : "bg-white/90 border-slate-200 text-slate-800 shadow-lg"} w-48`}>
+                                                                <h4 class="text-xs font-bold uppercase tracking-wider mb-1 opacity-80">Status Legend</h4>
+                                                                {results && results.isContinuous ? (
+                                                                    <div class="space-y-2">
+                                                                        <div class="h-3.5 w-full rounded border border-black/10" style={{
+                                                                            background: 'linear-gradient(to right, rgb(59, 130, 246), rgb(149, 99, 157), rgb(239, 68, 68))'
+                                                                        }}></div>
+                                                                        <div class="flex justify-between text-[10px] font-semibold opacity-70">
+                                                                            <span>Low ({results.minOpinion !== undefined ? results.minOpinion.toFixed(2) : "-1.0"})</span>
+                                                                            <span>High ({results.maxOpinion !== undefined ? results.maxOpinion.toFixed(2) : "1.0"})</span>
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    results && Object.keys(results.statuses).map(statusName => {
+                                                                        const code = results.statuses[statusName];
+                                                                        return (
+                                                                            <div key={statusName} class="flex items-center space-x-2.5 text-xs font-medium">
+                                                                                <span class="w-3.5 h-3.5 rounded-full border border-black/10" style={{ backgroundColor: getStatusColor(code) }}></span>
+                                                                                <span>{statusName}</span>
+                                                                            </div>
+                                                                        );
+                                                                    })
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        <div class={`border rounded-2xl p-4 flex flex-col min-h-[400px] h-full ${isDarkMode ? "border-slate-800 bg-slate-950/30" : "border-slate-200 bg-white/80"}`}>
+                                                            <div class="flex items-center justify-between mb-3">
+                                                                <div>
+                                                                    <h4 class="text-sm font-semibold text-slate-100">Opinion distribution</h4>
+                                                                    <p class="text-xs text-slate-400">Binned from the current simulation step</p>
+                                                                </div>
+                                                                <div class="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">Playback-linked</div>
+                                                            </div>
+                                                            <div class="flex-grow min-h-[320px]">
+                                                                <canvas id="opinionDistributionChart"></canvas>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    results && Object.keys(results.statuses).map(statusName => {
-                                                        const code = results.statuses[statusName];
-                                                        return (
-                                                            <div key={statusName} class="flex items-center space-x-2.5 text-xs font-medium">
-                                                                <span class="w-3.5 h-3.5 rounded-full border border-black/10" style={{ backgroundColor: getStatusColor(code) }}></span>
-                                                                <span>{statusName}</span>
+                                                    <div class="flex-grow flex items-center justify-center">
+                                                        <div class={`w-full max-w-3xl border rounded-2xl p-4 flex flex-col min-h-[400px] h-full ${isDarkMode ? "border-slate-800 bg-slate-950/30" : "border-slate-200 bg-white/80"}`}>
+                                                            <div class="flex items-center justify-between mb-3">
+                                                                <div>
+                                                                    <h4 class="text-sm font-semibold text-slate-100">Opinion distribution</h4>
+                                                                    <p class="text-xs text-slate-400">The graph is omitted for large networks.</p>
+                                                                </div>
+                                                                <div class="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">Distribution only</div>
                                                             </div>
-                                                        );
-                                                    })
+                                                            <div class="flex-grow min-h-[320px]">
+                                                                <canvas id="opinionDistributionChart"></canvas>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 )}
-                                            </div>
-                                        </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             )}
 
-                            {!results && !loading && networkPreview && isNetworkTabAllowed && (
+                            {!results && !loading && networkPreview && (
                                 <div class="flex-grow flex flex-col h-full">
                                     <div class={`flex-grow flex flex-col h-full space-y-4 ${activeTab !== "network" ? "hidden" : ""}`}>
-                                        {/* Playback & Layout Controls */}
-                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-950/40 p-4 border border-slate-900 rounded-xl">
+                                        <div class={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-950/40 p-4 border border-slate-900 rounded-xl`}>
                                             <div class="flex items-center space-x-4 flex-grow">
                                                 <div class="flex-grow flex items-center space-x-3 max-w-xl">
                                                     <span class="text-xs text-slate-400 w-16">Preview</span>
                                                     <span class="text-xs text-slate-400">No simulation results yet</span>
                                                 </div>
                                             </div>
-                                            
-                                            {/* Network Layout Dropdown */}
-                                            <div class="flex items-center space-x-2">
-                                                <label class="text-xs text-slate-400 font-semibold uppercase">Graph layout:</label>
-                                                <select 
-                                                    value={networkLayout}
-                                                    onChange={(e) => handleLayoutChange(e.target.value)}
-                                                    class="bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-200 focus:outline-none cursor-pointer"
-                                                >
-                                                    <option value="preset">Preset spring layout</option>
-                                                    <option value="cose">Force-directed layout</option>
-                                                    <option value="community_clusters">Community clusters</option>
-                                                    <option value="breadthfirst">Breadth-first</option>
-                                                    <option value="random">Random</option>
-                                                    <option value="circle">Circle</option>
-                                                    <option value="grid">Grid</option>
-                                                    <option value="concentric">Concentric</option>
-                                                </select>
-                                            </div>
                                         </div>
 
-                                        {/* Graph Container with Legend */}
-                                        <div class="flex-grow relative border border-slate-900 rounded-2xl min-h-[400px] h-full overflow-hidden">
-                                            <div 
-                                                ref={cyContainerRef} 
-                                                class="absolute inset-0 bg-slate-950/60"
-                                            ></div>
-                                        </div>
+                                        {showNetworkGraph ? (
+                                            <div class="flex-grow relative border border-slate-900 rounded-2xl min-h-[400px] h-full overflow-hidden">
+                                                <div 
+                                                    ref={cyContainerRef} 
+                                                    class="absolute inset-0 bg-slate-950/60"
+                                                ></div>
+                                            </div>
+                                        ) : (
+                                            <div class="flex-grow flex items-center justify-center">
+                                                <div class={`w-full max-w-3xl border rounded-2xl p-4 flex flex-col min-h-[400px] h-full ${isDarkMode ? "border-slate-800 bg-slate-950/30" : "border-slate-200 bg-white/80"}`}>
+                                                    <div class="flex items-center justify-between mb-3">
+                                                        <div>
+                                                            <h4 class="text-sm font-semibold text-slate-100">Opinion distribution</h4>
+                                                            <p class="text-xs text-slate-400">Run a simulation to populate this chart.</p>
+                                                        </div>
+                                                        <div class="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">Distribution only</div>
+                                                    </div>
+                                                    <div class="flex-grow min-h-[320px]">
+                                                        <canvas id="opinionDistributionChart"></canvas>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
