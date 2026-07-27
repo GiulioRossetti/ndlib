@@ -45,6 +45,7 @@ NDlib Dev Team
 
    overview.rst
    dashboard.rst
+   network_builder_blocks.rst
    download.rst
    installing.rst
    tutorial.rst

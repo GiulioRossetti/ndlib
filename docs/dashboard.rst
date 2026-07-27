@@ -73,6 +73,8 @@ Visual Model Builder
 
 The dashboard includes an interactive visual programming canvas to build custom compartmental models. It now separates the builder into use cases so that the palette only exposes blocks that are meaningful for the selected family.
 
+The full block guide is documented in :doc:`network_builder_blocks`, which lists the current builder vocabulary and the NDQL emitted by the builder.
+
 The supported use cases are:
 
 * **Epidemics**: compartmental models such as ``SIR`` and variants based on infection, threshold, and attribute-driven conditions.

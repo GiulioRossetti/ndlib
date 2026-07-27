@@ -50,6 +50,10 @@ class ExperimentParser(object):
         self.query = None
         self.__statuses = {}
         self.__compartments = {}
+        self.__continuous_mode = False
+        self.__continuous_payload = None
+        self.__continuous_network_stmt = None
+        self.__continuous_execution_stmt = None
         self.model = CompositeModel(nx.Graph())
 
     def read_query_file(self, filename):
@@ -60,6 +64,22 @@ class ExperimentParser(object):
         self.query = query
 
     def parse(self):
+        self.script = ""
+        self.__continuous_mode = False
+        self.__continuous_payload = None
+        self.__continuous_network_stmt = None
+        self.__continuous_execution_stmt = None
+        self.__statuses = {}
+        self.__compartments = {}
+        self.__model_name = None
+        self.__net_name = None
+
+        if self.query is None:
+            raise ValueError("Experiment description malformed (empty query): check your syntax")
+
+        if "TYPE CONTINUOUS_OPINION" in self.query or "INITIAL_OPINION_DISTRIBUTION" in self.query or "BLOCK " in self.query or "BIN " in self.query:
+            self.__parse_continuous_query()
+            return
 
         # Tokenizing directives
         identified_directives = {}
@@ -128,6 +148,182 @@ class ExperimentParser(object):
         self.__clean_imports()
         self.script = "%s\n%s" % (self.imports, self.script)
 
+    def __parse_continuous_query(self):
+        from ndlib.dashboard.server import generate_custom_model_class
+
+        lines = self.query.split("\n")
+        model_name = None
+        initial_opinion_distribution = "uniform"
+        statuses = []
+        compartments = []
+        rules = []
+        initial_status = []
+        current_block = None
+        current_rule = {}
+        network_lines = []
+        execution_line = None
+        mode = None
+
+        for raw_line in lines:
+            if len(raw_line) == 0 or raw_line[0] == "#":
+                continue
+            line = self.__sanitize_string(raw_line).strip()
+            if not line:
+                continue
+
+            parts = line.split()
+            head = parts[0]
+
+            if head == "MODEL":
+                if len(parts) < 2:
+                    raise ValueError("Experiment description malformed (missing model name): check your syntax")
+                model_name = parts[1]
+                continue
+            if head == "TYPE" and len(parts) >= 2 and parts[1] == "CONTINUOUS_OPINION":
+                self.__continuous_mode = True
+                continue
+            if head in {"INITIAL_OPINION_DISTRIBUTION", "SET"} and len(parts) >= 2:
+                if head == "INITIAL_OPINION_DISTRIBUTION":
+                    initial_opinion_distribution = parts[1]
+                elif len(parts) >= 3 and parts[1] == "INITIAL_OPINION_DISTRIBUTION":
+                    initial_opinion_distribution = parts[2]
+                continue
+            if head in {"BIN", "STATUS"} and len(parts) >= 2:
+                status_name = parts[1]
+                if status_name not in [s["name"] for s in statuses]:
+                    statuses.append({"name": status_name, "code": len(statuses)})
+                continue
+            if head == "BLOCK":
+                if len(parts) < 2:
+                    raise ValueError("Experiment description malformed (missing block name): check your syntax")
+                current_block = {"name": parts[1], "type": None, "params": {}}
+                compartments.append(current_block)
+                mode = "block"
+                continue
+            if head == "TYPE" and mode == "block" and current_block is not None:
+                if len(parts) < 2:
+                    raise ValueError("Experiment description malformed (missing block type): check your syntax")
+                current_block["type"] = parts[1]
+                continue
+            if head == "PARAM" and current_block is not None:
+                if len(parts) < 3:
+                    raise ValueError("Experiment description malformed (wrong parameter statement): check your syntax")
+                param_name = parts[1]
+                param_value = " ".join(parts[2:])
+                current_block["params"][param_name] = self.__coerce_ndql_value(param_value)
+                continue
+            if head == "TRIGGER" and current_block is not None:
+                if len(parts) < 2:
+                    raise ValueError("Experiment description malformed (wrong trigger statement): check your syntax")
+                current_block["params"]["triggering_status"] = parts[1]
+                continue
+            if head == "RULE":
+                current_rule = {}
+                mode = "rule"
+                continue
+            if head in {"FROM", "TO", "USING"} and mode == "rule":
+                if len(parts) < 2:
+                    raise ValueError("Experiment description malformed (wrong rule statement): check your syntax")
+                current_rule[head.lower()] = parts[1]
+                continue
+            if head == "INITIALIZE":
+                mode = "init"
+                continue
+            if head == "SET" and mode == "init" and len(parts) >= 3:
+                if parts[1] == "INITIAL_OPINION_DISTRIBUTION":
+                    initial_opinion_distribution = parts[2]
+                else:
+                    initial_status.append({"status": parts[1], "ratio": float(parts[2])})
+                continue
+            if head == "CREATE_NETWORK":
+                network_lines.append(line)
+                mode = "network"
+                continue
+            if head == "LOAD_NETWORK":
+                network_lines.append(line)
+                mode = "network"
+                continue
+            if head == "EXECUTE":
+                execution_line = line
+                continue
+
+        for comp in compartments:
+            if not comp.get("type"):
+                raise ValueError("Experiment description malformed (block type missing): check your syntax")
+
+        if model_name is None:
+            raise ValueError("Experiment description malformed (Model not specified): check your syntax")
+
+        payload = {
+            "name": model_name,
+            "use_case": "continuous_opinions",
+            "template_id": "algorithmic_bias",
+            "initial_opinion_distribution": initial_opinion_distribution,
+            "statuses": statuses,
+            "compartments": compartments,
+            "rules": rules,
+            "initial_status": initial_status,
+        }
+
+        class_code = generate_custom_model_class(payload)
+        self.__continuous_payload = payload
+        self.__continuous_network_stmt = network_lines[0] if network_lines else None
+        self.__continuous_execution_stmt = execution_line
+        self.script = class_code + "\n"
+        self.script += "import networkx as nx\n"
+        self.script += "import json\n"
+        self.script += "from ndlib.models.ModelConfig import Configuration\n"
+        if self.__continuous_network_stmt:
+            self.script += self.__translate_network_statement(self.__continuous_network_stmt)
+        else:
+            self.script += "g1 = nx.erdos_renyi_graph(20, 0.2)\n"
+        self.script += "%s_model = %s(g1)\n" % (model_name.lower(), model_name)
+        self.script += "config = Configuration()\n"
+        if initial_status:
+            for st in initial_status:
+                self.script += "config.add_model_parameter('percentage_%s', %s)\n" % (st["status"], st["ratio"])
+        self.script += "%s_model.set_initial_status(config)\n" % model_name.lower()
+        if self.__continuous_execution_stmt:
+            exec_parts = self.__continuous_execution_stmt.split()
+            if len(exec_parts) >= 6:
+                self.script += "iterations = %s_model.iteration_bunch(%s)\n" % (model_name.lower(), exec_parts[5])
+            else:
+                self.script += "iterations = %s_model.iteration_bunch(10)\n" % model_name.lower()
+        else:
+            self.script += "iterations = %s_model.iteration_bunch(10)\n" % model_name.lower()
+        self.script += "res = json.dumps(iterations)\nprint(res)\n"
+
+    @staticmethod
+    def __coerce_ndql_value(value):
+        value = value.strip()
+        if not value:
+            return value
+        if value.lower() in {"none", "null"}:
+            return None
+        if value.startswith("[") and value.endswith("]"):
+            items = [x.strip() for x in value[1:-1].split(",") if x.strip()]
+            return [ExperimentParser.__coerce_ndql_value(x) for x in items]
+        try:
+            if any(ch in value for ch in [".", "e", "E"]):
+                return float(value)
+            return int(value)
+        except ValueError:
+            return value
+
+    @staticmethod
+    def __translate_network_statement(stmt):
+        parts = stmt.split()
+        if not parts:
+            return ""
+        if parts[0] == "CREATE_NETWORK" and len(parts) >= 2:
+            net_name = parts[1]
+            net_type = "erdos_renyi_graph"
+            params = []
+            return "%s = nx.%s()\n" % (net_name, net_type)
+        if parts[0] == "LOAD_NETWORK" and len(parts) == 4 and parts[2] == "FROM":
+            return "g1 = nx.read_edgelist(%r)\n" % parts[3]
+        return ""
+
     def execute_query(self):
         # Query execution
         old_stdout = sys.stdout
@@ -142,6 +338,8 @@ class ExperimentParser(object):
 
         sys.stdout = old_stdout
         result = json.loads(redirected_output.getvalue())
+        if self.__continuous_mode:
+            return result
         trends = self.model.build_trends(result)
         trends[0]["Statuses"] = {
             str(v): k for k, v in self.model.available_statuses.items()

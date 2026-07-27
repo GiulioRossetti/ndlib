@@ -326,7 +326,7 @@
                         { id: "sir_i", type: "status", x: 430, y: 150, data: { name: "Infected", code: 1 } },
                         { id: "sir_r", type: "status", x: 780, y: 150, data: { name: "Recovered", code: 2 } },
                         { id: "sir_infect", type: "compartment", x: 230, y: 115, data: { name: "infection", type: "NodeStochastic", params: { rate: 0.05, triggering_status: "Infected" } } },
-                        { id: "sir_recover", type: "compartment", x: 580, y: 115, data: { name: "recovery", type: "NodeStochastic", params: { rate: 0.1, triggering_status: "Infected" } } }
+                        { id: "sir_recover", type: "compartment", x: 580, y: 115, data: { name: "recovery", type: "NodeStochastic", params: { rate: 0.1, triggering_status: "" } } }
                     ],
                     edges: [
                         { id: "sir_e1", source: "sir_s", target: "sir_infect" },
@@ -351,13 +351,15 @@
                         { id: "ab_high", type: "status", x: 780, y: 150, data: { name: "HighOpinion", code: 1 } },
                         { id: "ab_threshold", type: "compartment", x: 260, y: 95, data: { name: "bounded_confidence", type: "OpinionDistanceThreshold", params: { epsilon: 0.1 } } },
                         { id: "ab_bias", type: "compartment", x: 500, y: 95, data: { name: "selection_bias", type: "OpinionSelectionBias", params: { gamma: 1.5 } } },
-                        { id: "ab_compromise", type: "compartment", x: 620, y: 230, data: { name: "opinion_compromise", type: "OpinionCompromise", params: { mu: 0.5 } } }
+                        { id: "ab_compromise", type: "compartment", x: 620, y: 230, data: { name: "opinion_compromise", type: "OpinionCompromise", params: { mu: 0.5 } } },
+                        { id: "ab_norm", type: "compartment", x: 360, y: 250, data: { name: "opinion_normalization", type: "OpinionNormalization", params: { min: 0.0, max: 1.0 } } }
                     ],
                     edges: [
                         { id: "ab_e1", source: "ab_low", target: "ab_threshold" },
                         { id: "ab_e2", source: "ab_threshold", target: "ab_bias" },
                         { id: "ab_e3", source: "ab_bias", target: "ab_compromise" },
-                        { id: "ab_e4", source: "ab_compromise", target: "ab_high" }
+                        { id: "ab_e4", source: "ab_compromise", target: "ab_norm" },
+                        { id: "ab_e5", source: "ab_norm", target: "ab_high" }
                     ],
                     initialStatus: [
                         { status: "LowOpinion", ratio: 0.5 },
@@ -371,17 +373,15 @@
                     modelName: "MajorityRuleStarter",
                     nodes: [
                         { id: "mr_yes", type: "status", x: 80, y: 150, data: { name: "Agree", code: 0 } },
-                        { id: "mr_no", type: "status", x: 460, y: 150, data: { name: "Disagree", code: 1 } },
-                        { id: "mr_gate", type: "compartment", x: 250, y: 110, data: { name: "stance_gate", type: "NodeCategoricalAttribute", params: { attribute: "stance", value: "majority", probability: 1.0 } } },
-                        { id: "mr_support", type: "compartment", x: 620, y: 110, data: { name: "support", type: "NodeStochastic", params: { rate: 0.2, triggering_status: "Agree" } } },
-                        { id: "mr_pushback", type: "compartment", x: 620, y: 250, data: { name: "pushback", type: "NodeStochastic", params: { rate: 0.2, triggering_status: "Disagree" } } }
+                        { id: "mr_no", type: "status", x: 500, y: 150, data: { name: "Disagree", code: 1 } },
+                        { id: "mr_adopt_yes", type: "compartment", x: 290, y: 80, data: { name: "adopt_agree", type: "NodeThreshold", params: { threshold: 0.5, triggering_status: "Agree" } } },
+                        { id: "mr_adopt_no", type: "compartment", x: 290, y: 220, data: { name: "adopt_disagree", type: "NodeThreshold", params: { threshold: 0.5, triggering_status: "Disagree" } } }
                     ],
                     edges: [
-                        { id: "mr_e1", source: "mr_yes", target: "mr_gate" },
-                        { id: "mr_e2", source: "mr_gate", target: "mr_support" },
-                        { id: "mr_e3", source: "mr_support", target: "mr_no" },
-                        { id: "mr_e4", source: "mr_no", target: "mr_pushback" },
-                        { id: "mr_e5", source: "mr_pushback", target: "mr_yes" }
+                        { id: "mr_e1", source: "mr_no", target: "mr_adopt_yes" },
+                        { id: "mr_e2", source: "mr_adopt_yes", target: "mr_yes" },
+                        { id: "mr_e3", source: "mr_yes", target: "mr_adopt_no" },
+                        { id: "mr_e4", source: "mr_adopt_no", target: "mr_no" }
                     ],
                     initialStatus: [
                         { status: "Agree", ratio: 0.5 },
@@ -399,11 +399,11 @@
                         { id: "cp_r", type: "status", x: 760, y: 150, data: { name: "Recovered", code: 2 } },
                         { id: "cp_opinion", type: "compartment", x: 250, y: 110, data: { name: "opinion_gate", type: "NodeNumericalVariable", params: { var: "opinion", var_type: "ATTRIBUTE", value: 0.4, op: ">", probability: 1.0 } } },
                         { id: "cp_infect", type: "compartment", x: 600, y: 110, data: { name: "infection", type: "NodeStochastic", params: { rate: 0.05, triggering_status: "Infected" } } },
-                        { id: "cp_recover", type: "compartment", x: 600, y: 250, data: { name: "recovery", type: "NodeStochastic", params: { rate: 0.08, triggering_status: "Infected" } } },
+                        { id: "cp_recover", type: "compartment", x: 600, y: 250, data: { name: "recovery", type: "NodeStochastic", params: { rate: 0.08, triggering_status: "" } } },
                         { id: "cp_mix", type: "compartment", x: 400, y: 260, data: { name: "coupling", type: "ConditionalComposition", params: { condition: "opinion_gate", first_branch: "infection", second_branch: "recovery" } } }
                     ],
                     edges: [
-                        { id: "cp_e1", source: "cp_s", target: "cp_opinion" },
+                        { id: "cp_e1", source: "cp_s", target: "cp_mix" },
                         { id: "cp_e2", source: "cp_opinion", target: "cp_mix", targetPort: "condition" },
                         { id: "cp_e3", source: "cp_infect", target: "cp_mix", targetPort: "if_true" },
                         { id: "cp_e4", source: "cp_recover", target: "cp_mix", targetPort: "if_false" },
@@ -430,7 +430,7 @@
                     label: "Continuous Opinions",
                     description: "Opinion-specific blocks for bounded confidence, biased partner selection, and compromise updates.",
                     templates: ["algorithmic_bias"],
-                    palette: ["status", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "NodeNumericalAttribute", "NodeNumericalVariable", "NodeThreshold", "CountDown", "ConditionalComposition"]
+                    palette: ["status", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "NodeNumericalAttribute", "NodeNumericalVariable", "NodeThreshold", "CountDown", "ConditionalComposition"]
                 },
                 discrete_opinions: {
                     label: "Discrete Opinions",
@@ -442,7 +442,7 @@
                     label: "Coupled / Advanced",
                     description: "All available blocks for mixed epidemic-opinion experiments and custom couplings.",
                     templates: ["coupled", "sir", "algorithmic_bias", "majority_rule"],
-                    palette: ["status", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "NodeNumericalVariable", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "ConditionalComposition"]
+                    palette: ["status", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "NodeNumericalVariable", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "ConditionalComposition"]
                 }
             };
 
@@ -830,6 +830,87 @@
                         icon: "fa-people-arrows",
                         accent: "cyan",
                         onClick: () => addCompartmentNode("OpinionCompromise")
+                    },
+                    {
+                        id: "OpinionStubbornness",
+                        type: "compartment",
+                        label: "Stubbornness",
+                        description: "Reduces responsiveness to neighbors",
+                        icon: "fa-shield-halved",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("OpinionStubbornness")
+                    },
+                    {
+                        id: "OpinionNoise",
+                        type: "compartment",
+                        label: "Opinion Noise",
+                        description: "Adds stochastic perturbation",
+                        icon: "fa-wand-magic-sparkles",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("OpinionNoise")
+                    },
+                    {
+                        id: "OpinionPolarization",
+                        type: "compartment",
+                        label: "Polarization",
+                        description: "Pushes opinions toward the extremes",
+                        icon: "fa-fire-flame-curved",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("OpinionPolarization")
+                    },
+                    {
+                        id: "OpinionExternalField",
+                        type: "compartment",
+                        label: "External Field",
+                        description: "Applies a global opinion pull",
+                        icon: "fa-bullhorn",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("OpinionExternalField")
+                    },
+                    {
+                        id: "OpinionTrustFilter",
+                        type: "compartment",
+                        label: "Trust Filter",
+                        description: "Restricts influence to trusted opinions",
+                        icon: "fa-filter",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("OpinionTrustFilter")
+                    },
+                    {
+                        id: "OpinionMemory",
+                        type: "compartment",
+                        label: "Opinion Memory",
+                        description: "Retains past opinions as inertia",
+                        icon: "fa-clock-rotate-left",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("OpinionMemory")
+                    },
+                    {
+                        id: "OpinionNormalization",
+                        type: "compartment",
+                        label: "Normalization",
+                        description: "Clamps the opinion range",
+                        icon: "fa-sliders",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("OpinionNormalization")
+                    },
+                    {
+                        id: "OpinionQuantization",
+                        type: "compartment",
+                        label: "Quantization",
+                        description: "Binds opinions to discrete bins",
+                        icon: "fa-border-all",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("OpinionQuantization")
+                    },
+                    {
+                        id: "OpinionMediaInfluence",
+                        type: "compartment",
+                        label: "Media Influence",
+                        description: "Mixes nodes with media sources",
+                        icon: "fa-tv",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("OpinionMediaInfluence")
                     },
                     {
                         id: "ConditionalComposition",
@@ -2614,6 +2695,53 @@
                         lines.push(`TYPE OpinionCompromise`);
                         lines.push(`PARAM mu ${n.data.params.mu}`);
                         lines.push("");
+                    } else if (isContinuousOpinionBuilder && n.data.type === "OpinionStubbornness") {
+                        lines.push(`BLOCK ${n.data.name}`);
+                        lines.push(`TYPE OpinionStubbornness`);
+                        lines.push(`PARAM theta ${n.data.params.theta}`);
+                        lines.push("");
+                    } else if (isContinuousOpinionBuilder && n.data.type === "OpinionNoise") {
+                        lines.push(`BLOCK ${n.data.name}`);
+                        lines.push(`TYPE OpinionNoise`);
+                        lines.push(`PARAM sigma ${n.data.params.sigma}`);
+                        lines.push("");
+                    } else if (isContinuousOpinionBuilder && n.data.type === "OpinionPolarization") {
+                        lines.push(`BLOCK ${n.data.name}`);
+                        lines.push(`TYPE OpinionPolarization`);
+                        lines.push(`PARAM strength ${n.data.params.strength}`);
+                        lines.push("");
+                    } else if (isContinuousOpinionBuilder && n.data.type === "OpinionExternalField") {
+                        lines.push(`BLOCK ${n.data.name}`);
+                        lines.push(`TYPE OpinionExternalField`);
+                        lines.push(`PARAM target ${n.data.params.target}`);
+                        lines.push(`PARAM strength ${n.data.params.strength}`);
+                        lines.push("");
+                    } else if (isContinuousOpinionBuilder && n.data.type === "OpinionTrustFilter") {
+                        lines.push(`BLOCK ${n.data.name}`);
+                        lines.push(`TYPE OpinionTrustFilter`);
+                        lines.push(`PARAM trust_threshold ${n.data.params.trust_threshold}`);
+                        lines.push("");
+                    } else if (isContinuousOpinionBuilder && n.data.type === "OpinionMemory") {
+                        lines.push(`BLOCK ${n.data.name}`);
+                        lines.push(`TYPE OpinionMemory`);
+                        lines.push(`PARAM alpha ${n.data.params.alpha}`);
+                        lines.push("");
+                    } else if (isContinuousOpinionBuilder && n.data.type === "OpinionNormalization") {
+                        lines.push(`BLOCK ${n.data.name}`);
+                        lines.push(`TYPE OpinionNormalization`);
+                        lines.push(`PARAM min ${n.data.params.min}`);
+                        lines.push(`PARAM max ${n.data.params.max}`);
+                        lines.push("");
+                    } else if (isContinuousOpinionBuilder && n.data.type === "OpinionQuantization") {
+                        lines.push(`BLOCK ${n.data.name}`);
+                        lines.push(`TYPE OpinionQuantization`);
+                        lines.push(`PARAM bins ${n.data.params.bins}`);
+                        lines.push("");
+                    } else if (isContinuousOpinionBuilder && n.data.type === "OpinionMediaInfluence") {
+                        lines.push(`BLOCK ${n.data.name}`);
+                        lines.push(`TYPE OpinionMediaInfluence`);
+                        lines.push(`PARAM weight ${n.data.params.weight}`);
+                        lines.push("");
                     } else if (n.data.type === "ConditionalComposition") {
                         const condEdge = builderEdges.find(e => e.target === n.id && e.targetPort === "condition");
                         const trueEdge = builderEdges.find(e => e.target === n.id && e.targetPort === "if_true");
@@ -2832,6 +2960,15 @@
                 else if (type === "OpinionDistanceThreshold") params = { epsilon: 0.1 };
                 else if (type === "OpinionSelectionBias") params = { gamma: 1.5 };
                 else if (type === "OpinionCompromise") params = { mu: 0.5 };
+                else if (type === "OpinionStubbornness") params = { theta: 0.1 };
+                else if (type === "OpinionNoise") params = { sigma: 0.0 };
+                else if (type === "OpinionPolarization") params = { strength: 0.0 };
+                else if (type === "OpinionExternalField") params = { target: 0.5, strength: 0.0 };
+                else if (type === "OpinionTrustFilter") params = { trust_threshold: 0.1 };
+                else if (type === "OpinionMemory") params = { alpha: 0.5 };
+                else if (type === "OpinionNormalization") params = { min: 0.0, max: 1.0 };
+                else if (type === "OpinionQuantization") params = { bins: 10 };
+                else if (type === "OpinionMediaInfluence") params = { weight: 0.5 };
                 else if (type === "ConditionalComposition") params = { condition: "", first_branch: "", second_branch: "" };
 
                 const newNode = {
@@ -3424,6 +3561,15 @@
                                                                 else if (type === "OpinionDistanceThreshold") params = { epsilon: 0.1 };
                                                                 else if (type === "OpinionSelectionBias") params = { gamma: 1.5 };
                                                                 else if (type === "OpinionCompromise") params = { mu: 0.5 };
+                                                                else if (type === "OpinionStubbornness") params = { theta: 0.1 };
+                                                                else if (type === "OpinionNoise") params = { sigma: 0.0 };
+                                                                else if (type === "OpinionPolarization") params = { strength: 0.0 };
+                                                                else if (type === "OpinionExternalField") params = { target: 0.5, strength: 0.0 };
+                                                                else if (type === "OpinionTrustFilter") params = { trust_threshold: 0.1 };
+                                                                else if (type === "OpinionMemory") params = { alpha: 0.5 };
+                                                                else if (type === "OpinionNormalization") params = { min: 0.0, max: 1.0 };
+                                                                else if (type === "OpinionQuantization") params = { bins: 10 };
+                                                                else if (type === "OpinionMediaInfluence") params = { weight: 0.5 };
                                                                 else if (type === "ConditionalComposition") params = { condition: "", first_branch: "", second_branch: "" };
                                                                 updateNodeData(selectedElement.id, { type, params });
                                                             }}
@@ -3439,6 +3585,15 @@
                                                             <option value="OpinionDistanceThreshold">Opinion Threshold</option>
                                                             <option value="OpinionSelectionBias">Selection Bias</option>
                                                             <option value="OpinionCompromise">Opinion Compromise</option>
+                                                            <option value="OpinionStubbornness">Stubbornness</option>
+                                                            <option value="OpinionNoise">Opinion Noise</option>
+                                                            <option value="OpinionPolarization">Polarization</option>
+                                                            <option value="OpinionExternalField">External Field</option>
+                                                            <option value="OpinionTrustFilter">Trust Filter</option>
+                                                            <option value="OpinionMemory">Opinion Memory</option>
+                                                            <option value="OpinionNormalization">Normalization</option>
+                                                            <option value="OpinionQuantization">Quantization</option>
+                                                            <option value="OpinionMediaInfluence">Media Influence</option>
                                                             <option value="ConditionalComposition">Conditional Composition</option>
                                                         </select>
                                                     </div>
@@ -3610,6 +3765,191 @@
                                                                 value={selectedElement.data.params.mu}
                                                                 onChange={(e) => updateNodeData(selectedElement.id, {
                                                                     params: { ...selectedElement.data.params, mu: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)) }
+                                                                })}
+                                                                class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    {selectedElement.data.params.theta !== undefined && (
+                                                        <div class="space-y-1">
+                                                            <label class="text-[10px] text-slate-400 block">Stubbornness (theta)</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="1"
+                                                                step="0.01"
+                                                                value={selectedElement.data.params.theta}
+                                                                onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                    params: { ...selectedElement.data.params, theta: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)) }
+                                                                })}
+                                                                class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    {selectedElement.data.params.sigma !== undefined && (
+                                                        <div class="space-y-1">
+                                                            <label class="text-[10px] text-slate-400 block">Noise Sigma</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="1"
+                                                                step="0.01"
+                                                                value={selectedElement.data.params.sigma}
+                                                                onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                    params: { ...selectedElement.data.params, sigma: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)) }
+                                                                })}
+                                                                class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    {selectedElement.data.params.strength !== undefined && selectedElement.data.type === "OpinionPolarization" && (
+                                                        <div class="space-y-1">
+                                                            <label class="text-[10px] text-slate-400 block">Polarization Strength</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="1"
+                                                                step="0.01"
+                                                                value={selectedElement.data.params.strength}
+                                                                onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                    params: { ...selectedElement.data.params, strength: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)) }
+                                                                })}
+                                                                class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    {selectedElement.data.params.target !== undefined && (
+                                                        <div class="space-y-1">
+                                                            <label class="text-[10px] text-slate-400 block">External Field Target</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="1"
+                                                                step="0.01"
+                                                                value={selectedElement.data.params.target}
+                                                                onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                    params: { ...selectedElement.data.params, target: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)) }
+                                                                })}
+                                                                class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    {selectedElement.data.type === "OpinionExternalField" && selectedElement.data.params.strength !== undefined && (
+                                                        <div class="space-y-1">
+                                                            <label class="text-[10px] text-slate-400 block">External Field Strength</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="1"
+                                                                step="0.01"
+                                                                value={selectedElement.data.params.strength}
+                                                                onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                    params: { ...selectedElement.data.params, strength: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)) }
+                                                                })}
+                                                                class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    {selectedElement.data.params.trust_threshold !== undefined && (
+                                                        <div class="space-y-1">
+                                                            <label class="text-[10px] text-slate-400 block">Trust Threshold</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="1"
+                                                                step="0.01"
+                                                                value={selectedElement.data.params.trust_threshold}
+                                                                onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                    params: { ...selectedElement.data.params, trust_threshold: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)) }
+                                                                })}
+                                                                class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    {selectedElement.data.params.alpha !== undefined && (
+                                                        <div class="space-y-1">
+                                                            <label class="text-[10px] text-slate-400 block">Memory Alpha</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="1"
+                                                                step="0.01"
+                                                                value={selectedElement.data.params.alpha}
+                                                                onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                    params: { ...selectedElement.data.params, alpha: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)) }
+                                                                })}
+                                                                class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    {selectedElement.data.params.min !== undefined && selectedElement.data.params.max !== undefined && selectedElement.data.type === "OpinionNormalization" && (
+                                                        <div class="space-y-3">
+                                                            <div class="space-y-1">
+                                                                <label class="text-[10px] text-slate-400 block">Minimum</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="1"
+                                                                    step="0.01"
+                                                                    value={selectedElement.data.params.min}
+                                                                    onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                        params: { ...selectedElement.data.params, min: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)) }
+                                                                    })}
+                                                                    class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                />
+                                                            </div>
+                                                            <div class="space-y-1">
+                                                                <label class="text-[10px] text-slate-400 block">Maximum</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="1"
+                                                                    step="0.01"
+                                                                    value={selectedElement.data.params.max}
+                                                                    onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                        params: { ...selectedElement.data.params, max: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)) }
+                                                                    })}
+                                                                    class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {selectedElement.data.params.bins !== undefined && (
+                                                        <div class="space-y-1">
+                                                            <label class="text-[10px] text-slate-400 block">Quantization Bins</label>
+                                                            <input
+                                                                type="number"
+                                                                min="2"
+                                                                step="1"
+                                                                value={selectedElement.data.params.bins}
+                                                                onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                    params: { ...selectedElement.data.params, bins: Math.max(2, parseInt(e.target.value) || 2) }
+                                                                })}
+                                                                class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    {selectedElement.data.params.weight !== undefined && (
+                                                        <div class="space-y-1">
+                                                            <label class="text-[10px] text-slate-400 block">Media Weight</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="1"
+                                                                step="0.01"
+                                                                value={selectedElement.data.params.weight}
+                                                                onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                    params: { ...selectedElement.data.params, weight: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)) }
                                                                 })}
                                                                 class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
                                                             />

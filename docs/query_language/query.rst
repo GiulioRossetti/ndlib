@@ -27,6 +27,8 @@ It provides a simple, declarative, syntax for describing and executing diffusion
 
 So far, ``NDQL`` supports only static network analysis.
 
+The visual builder guide in :doc:`../network_builder_blocks` documents the current block vocabulary used by the dashboard and the NDQL emitted by the builder.
+
 ===========
 NDQL Syntax
 ===========

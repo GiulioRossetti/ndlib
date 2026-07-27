@@ -190,6 +190,21 @@ class DashboardTest(unittest.TestCase):
                     "params": {
                         "mu": 0.5
                     }
+                },
+                {
+                    "name": "opinion_normalization",
+                    "type": "OpinionNormalization",
+                    "params": {
+                        "min": 0.0,
+                        "max": 1.0
+                    }
+                },
+                {
+                    "name": "opinion_noise",
+                    "type": "OpinionNoise",
+                    "params": {
+                        "sigma": 0.0
+                    }
                 }
             ],
             "rules": [],
@@ -230,6 +245,26 @@ class DashboardTest(unittest.TestCase):
         self.assertIn("TYPE OpinionDistanceThreshold", ndql_script)
         self.assertIn("PARAM epsilon 1.0", ndql_script)
         self.assertIn("TYPE OpinionCompromise", ndql_script)
+        self.assertIn("TYPE OpinionNormalization", ndql_script)
+        self.assertIn("TYPE OpinionNoise", ndql_script)
+
+    def test_build_initial_status_assignment_respects_percentages(self):
+        from ndlib.dashboard.server import build_initial_status_assignment
+        import networkx as nx
+
+        graph = nx.path_graph(10)
+        available_statuses = {"Agree": 0, "Disagree": 1}
+        assignment = build_initial_status_assignment(
+            graph,
+            available_statuses,
+            {"Agree": 70, "Disagree": 30}
+        )
+
+        self.assertEqual(len(assignment), 10)
+        agree_count = sum(1 for status in assignment.values() if status == "Agree")
+        disagree_count = sum(1 for status in assignment.values() if status == "Disagree")
+        self.assertEqual(agree_count + disagree_count, 10)
+        self.assertGreaterEqual(agree_count, disagree_count)
 
     def test_normalize_iteration_record_tuple_payload(self):
         from ndlib.dashboard.server import normalize_iteration_record

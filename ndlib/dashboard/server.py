@@ -41,6 +41,15 @@ CONTINUOUS_OPINION_BLOCK_TYPES = {
     "OpinionDistanceThreshold",
     "OpinionSelectionBias",
     "OpinionCompromise",
+    "OpinionStubbornness",
+    "OpinionNoise",
+    "OpinionPolarization",
+    "OpinionExternalField",
+    "OpinionTrustFilter",
+    "OpinionMemory",
+    "OpinionNormalization",
+    "OpinionQuantization",
+    "OpinionMediaInfluence",
 }
 
 
@@ -98,7 +107,7 @@ def coerce_model_parameter_value(param, val, p_info):
             except Exception:
                 default_val = None
 
-        if isinstance(default_val, (int, float, np.integer, np.floating)) and not isinstance(default_val, bool):
+        if default_val is not None:
             return default_val
 
         range_info = p_info.get("range")
@@ -723,7 +732,8 @@ def generate_custom_model_class(model_data):
     )
     initial_opinion_distribution = model_data.get("initial_opinion_distribution", "uniform")
     continuous_opinion_mode = bool(
-        uses_continuous_opinion_initialization
+        model_data.get("use_case") == "continuous_opinions"
+        or model_data.get("template_id") == "algorithmic_bias"
         or any(comp.get("type") in CONTINUOUS_OPINION_BLOCK_TYPES for comp in compartments)
     )
 
@@ -877,6 +887,7 @@ def generate_custom_model_class(model_data):
 
     code.append("")
     code.append("    def set_initial_status(self, configuration):")
+    code.append("        import numpy as np")
     code.append("        configuration = configuration or None")
     code.append("        model_params = configuration.get_model_parameters() if configuration is not None else {}")
     code.append("        nodes_cfg = configuration.get_nodes_configuration() if configuration is not None else {}")
@@ -909,6 +920,7 @@ def generate_custom_model_class(model_data):
     code.append("                    self.status[node] = self.available_statuses[status_name]")
     if uses_continuous_opinion_initialization:
         code.append("")
+        code.append("        from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions")
         code.append("        opinion_distribution = self.params['model'].get('initial_opinion_distribution', %r)" % initial_opinion_distribution)
         code.append("        sampled_opinions = sample_initial_opinions(len(self.graph.nodes), opinion_distribution)")
         code.append("        for node, opinion in zip(self.graph.nodes, sampled_opinions):")
@@ -953,11 +965,31 @@ def generate_continuous_opinion_custom_model_class(
         "epsilon": None,
         "gamma": None,
         "mu": None,
+        "stubbornness": None,
+        "noise_sigma": None,
+        "polarization_strength": None,
+        "external_target": None,
+        "external_strength": None,
+        "trust_threshold": None,
+        "memory_alpha": None,
+        "normalize_min": 0.0,
+        "normalize_max": 1.0,
+        "quantization_bins": None,
+        "media_weight": None,
     }
     opinion_block_names = {
         "OpinionDistanceThreshold": None,
         "OpinionSelectionBias": None,
         "OpinionCompromise": None,
+        "OpinionStubbornness": None,
+        "OpinionNoise": None,
+        "OpinionPolarization": None,
+        "OpinionExternalField": None,
+        "OpinionTrustFilter": None,
+        "OpinionMemory": None,
+        "OpinionNormalization": None,
+        "OpinionQuantization": None,
+        "OpinionMediaInfluence": None,
     }
 
     for comp in compartments:
@@ -975,6 +1007,41 @@ def generate_continuous_opinion_custom_model_class(
         elif comp_type == "OpinionCompromise" and opinion_params["mu"] is None:
             opinion_params["mu"] = clamp_unit_float(params.get("mu", 0.5), 0.5)
             opinion_block_names[comp_type] = comp.get("name", "compromise")
+        elif comp_type == "OpinionStubbornness" and opinion_params["stubbornness"] is None:
+            opinion_params["stubbornness"] = clamp_unit_float(params.get("theta", params.get("stubbornness", 0.1)), 0.1)
+            opinion_block_names[comp_type] = comp.get("name", "stubbornness")
+        elif comp_type == "OpinionNoise" and opinion_params["noise_sigma"] is None:
+            try:
+                opinion_params["noise_sigma"] = max(0.0, float(params.get("sigma", params.get("noise_sigma", 0.0))))
+            except (TypeError, ValueError):
+                opinion_params["noise_sigma"] = 0.0
+            opinion_block_names[comp_type] = comp.get("name", "noise")
+        elif comp_type == "OpinionPolarization" and opinion_params["polarization_strength"] is None:
+            opinion_params["polarization_strength"] = clamp_unit_float(params.get("strength", 0.0), 0.0)
+            opinion_block_names[comp_type] = comp.get("name", "polarization")
+        elif comp_type == "OpinionExternalField" and opinion_params["external_target"] is None:
+            opinion_params["external_target"] = clamp_unit_float(params.get("target", 0.5), 0.5)
+            opinion_params["external_strength"] = clamp_unit_float(params.get("strength", 0.0), 0.0)
+            opinion_block_names[comp_type] = comp.get("name", "external_field")
+        elif comp_type == "OpinionTrustFilter" and opinion_params["trust_threshold"] is None:
+            opinion_params["trust_threshold"] = clamp_unit_float(params.get("trust_threshold", params.get("epsilon", 0.1)), 0.1)
+            opinion_block_names[comp_type] = comp.get("name", "trust_filter")
+        elif comp_type == "OpinionMemory" and opinion_params["memory_alpha"] is None:
+            opinion_params["memory_alpha"] = clamp_unit_float(params.get("alpha", params.get("memory_alpha", 0.5)), 0.5)
+            opinion_block_names[comp_type] = comp.get("name", "memory")
+        elif comp_type == "OpinionNormalization":
+            opinion_params["normalize_min"] = clamp_unit_float(params.get("min", 0.0), 0.0)
+            opinion_params["normalize_max"] = clamp_unit_float(params.get("max", 1.0), 1.0)
+            opinion_block_names[comp_type] = comp.get("name", "normalization")
+        elif comp_type == "OpinionQuantization" and opinion_params["quantization_bins"] is None:
+            try:
+                opinion_params["quantization_bins"] = max(2, int(params.get("bins", 10)))
+            except (TypeError, ValueError):
+                opinion_params["quantization_bins"] = 10
+            opinion_block_names[comp_type] = comp.get("name", "quantization")
+        elif comp_type == "OpinionMediaInfluence" and opinion_params["media_weight"] is None:
+            opinion_params["media_weight"] = clamp_unit_float(params.get("weight", params.get("media_weight", 0.5)), 0.5)
+            opinion_block_names[comp_type] = comp.get("name", "media_influence")
 
     code = [
         "import numpy as np",
@@ -983,7 +1050,7 @@ def generate_continuous_opinion_custom_model_class(
         "",
         "class %s(DiffusionModel):" % class_name,
         "    def __init__(self, graph, seed=None):",
-        "        super(%s, self).__init__(graph, seed)" % class_name,
+        "        super().__init__(graph, seed)",
         "        self.discrete_state = False",
         "        self.available_statuses = {'Opinion': 0}",
         "        self.parameters = {",
@@ -1023,11 +1090,89 @@ def generate_continuous_opinion_custom_model_class(
         ])
     if opinion_params["mu"] is not None:
         code.extend([
-            "                'mu': {",
-            "                    'descr': 'Opinion compromise strength',",
+        "                'mu': {",
+        "                    'descr': 'Opinion compromise strength',",
+        "                    'range': [0, 1],",
+        "                    'optional': True,",
+        "                    'default': %s" % repr(float(opinion_params["mu"])),
+        "                },",
+        ])
+    if opinion_params["stubbornness"] is not None:
+        code.extend([
+            "                'stubbornness': {",
+            "                    'descr': 'Opinion stubbornness',",
             "                    'range': [0, 1],",
             "                    'optional': True,",
-            "                    'default': %s" % repr(float(opinion_params["mu"])),
+            "                    'default': %s" % repr(float(opinion_params["stubbornness"])),
+            "                },",
+        ])
+    if opinion_params["noise_sigma"] is not None:
+        code.extend([
+            "                'noise_sigma': {",
+            "                    'descr': 'Opinion update noise sigma',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["noise_sigma"])),
+            "                },",
+        ])
+    if opinion_params["polarization_strength"] is not None:
+        code.extend([
+            "                'polarization_strength': {",
+            "                    'descr': 'Opinion polarization strength',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["polarization_strength"])),
+            "                },",
+        ])
+    if opinion_params["external_target"] is not None:
+        code.extend([
+            "                'external_target': {",
+            "                    'descr': 'External field target opinion',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["external_target"])),
+            "                },",
+            "                'external_strength': {",
+            "                    'descr': 'External field strength',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["external_strength"])),
+            "                },",
+        ])
+    if opinion_params["trust_threshold"] is not None:
+        code.extend([
+            "                'trust_threshold': {",
+            "                    'descr': 'Trust threshold for opinion influence',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["trust_threshold"])),
+            "                },",
+        ])
+    if opinion_params["memory_alpha"] is not None:
+        code.extend([
+            "                'memory_alpha': {",
+            "                    'descr': 'Opinion memory strength',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["memory_alpha"])),
+            "                },",
+        ])
+    if opinion_params["quantization_bins"] is not None:
+        code.extend([
+            "                'quantization_bins': {",
+            "                    'descr': 'Opinion quantization bins',",
+            "                    'range': [2, 1000],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(int(opinion_params["quantization_bins"])),
+            "                },",
+        ])
+    if opinion_params["media_weight"] is not None:
+        code.extend([
+            "                'media_weight': {",
+            "                    'descr': 'Weight applied to media influence',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["media_weight"])),
             "                },",
         ])
     code.extend([
@@ -1039,10 +1184,20 @@ def generate_continuous_opinion_custom_model_class(
         "        self.continuous_blocks = {",
         "            'distance_threshold': %r," % opinion_block_names["OpinionDistanceThreshold"],
         "            'selection_bias': %r," % opinion_block_names["OpinionSelectionBias"],
-        "            'compromise': %r" % opinion_block_names["OpinionCompromise"],
+        "            'compromise': %r," % opinion_block_names["OpinionCompromise"],
+        "            'stubbornness': %r," % opinion_block_names["OpinionStubbornness"],
+        "            'noise': %r," % opinion_block_names["OpinionNoise"],
+        "            'polarization': %r," % opinion_block_names["OpinionPolarization"],
+        "            'external_field': %r," % opinion_block_names["OpinionExternalField"],
+        "            'trust_filter': %r," % opinion_block_names["OpinionTrustFilter"],
+        "            'memory': %r," % opinion_block_names["OpinionMemory"],
+        "            'normalization': %r," % opinion_block_names["OpinionNormalization"],
+        "            'quantization': %r," % opinion_block_names["OpinionQuantization"],
+        "            'media_influence': %r" % opinion_block_names["OpinionMediaInfluence"],
         "        }",
         "",
         "    def set_initial_status(self, configuration=None):",
+        "        import numpy as np",
         "        configuration = configuration or None",
         "        model_params = configuration.get_model_parameters() if configuration is not None else {}",
         "        self.params['nodes'] = {}",
@@ -1051,6 +1206,7 @@ def generate_continuous_opinion_custom_model_class(
         "        self.params['model'] = {}",
         "        for param, param_info in self.parameters['model'].items():",
         "            self.params['model'][param] = model_params.get(param, param_info.get('default'))",
+        "        from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions",
         "        opinions = sample_initial_opinions(",
         "            len(self.status),",
         "            self.params['model'].get('initial_opinion_distribution', %r)," % initial_opinion_distribution,
@@ -1062,9 +1218,11 @@ def generate_continuous_opinion_custom_model_class(
         "        return self",
         "",
         "    def _select_neighbor(self, node, actual_status):",
+        "        import numpy as np",
         "        neighbors = list(self.graph.neighbors(node))",
         "        if self.graph.directed:",
         "            neighbors = list(self.graph.predecessors(node))",
+        "        neighbors = [n for n in neighbors if n in actual_status]",
         "        if not neighbors:",
         "            return None",
         "        gamma = self.params['model'].get('gamma', %s)" % repr(float(opinion_params["gamma"] if opinion_params["gamma"] is not None else 0.0)),
@@ -1080,6 +1238,7 @@ def generate_continuous_opinion_custom_model_class(
         "        return neighbors[np.random.choice(len(neighbors), p=weights)]",
         "",
         "    def iteration(self, node_status=True):",
+        "        import numpy as np",
         "        actual_status = self.status.copy()",
         "        if self.actual_iteration == 0:",
         "            self.actual_iteration += 1",
@@ -1089,18 +1248,57 @@ def generate_continuous_opinion_custom_model_class(
         "",
         "        epsilon = self.params['model'].get('epsilon', %s)" % repr(float(opinion_params["epsilon"] if opinion_params["epsilon"] is not None else 0.1)),
         "        mu = self.params['model'].get('mu', %s)" % repr(float(opinion_params["mu"] if opinion_params["mu"] is not None else 0.5)),
-        "        n_nodes = max(1, self.graph.number_of_nodes())",
-        "        for _ in range(n_nodes):",
-        "            node = list(self.graph.nodes)[np.random.randint(0, self.graph.number_of_nodes())]",
+        "        stubbornness = self.params['model'].get('stubbornness', %s)" % repr(float(opinion_params["stubbornness"] if opinion_params["stubbornness"] is not None else 0.0)),
+        "        noise_sigma = self.params['model'].get('noise_sigma', %s)" % repr(float(opinion_params["noise_sigma"] if opinion_params["noise_sigma"] is not None else 0.0)),
+        "        polarization_strength = self.params['model'].get('polarization_strength', %s)" % repr(float(opinion_params["polarization_strength"] if opinion_params["polarization_strength"] is not None else 0.0)),
+        "        external_target = self.params['model'].get('external_target', %s)" % repr(float(opinion_params["external_target"] if opinion_params["external_target"] is not None else 0.5)),
+        "        external_strength = self.params['model'].get('external_strength', %s)" % repr(float(opinion_params["external_strength"] if opinion_params["external_strength"] is not None else 0.0)),
+        "        trust_threshold = self.params['model'].get('trust_threshold', %s)" % repr(float(opinion_params["trust_threshold"] if opinion_params["trust_threshold"] is not None else 1.0)),
+        "        memory_alpha = self.params['model'].get('memory_alpha', %s)" % repr(float(opinion_params["memory_alpha"] if opinion_params["memory_alpha"] is not None else 0.0)),
+        "        quantization_bins = int(self.params['model'].get('quantization_bins', %s))" % repr(int(opinion_params["quantization_bins"] if opinion_params["quantization_bins"] is not None else 0)),
+        "        media_weight = self.params['model'].get('media_weight', %s)" % repr(float(opinion_params["media_weight"] if opinion_params["media_weight"] is not None else 0.0)),
+        "        nodes_list = list(actual_status.keys())",
+        "        if not nodes_list:",
+        "            return {'iteration': self.actual_iteration - 1, 'status': {}, 'node_count': {}, 'status_delta': {}}",
+        "        for _ in range(len(nodes_list)):",
+        "            node = nodes_list[np.random.randint(0, len(nodes_list))]",
         "            neighbor = self._select_neighbor(node, actual_status)",
         "            if neighbor is None:",
         "                continue",
         "            diff = abs(float(actual_status[node]) - float(actual_status[neighbor]))",
-        "            if diff <= epsilon:",
-        "                node_val = float(actual_status[node])",
-        "                neigh_val = float(actual_status[neighbor])",
-        "                actual_status[node] = float(np.clip(node_val + mu * (neigh_val - node_val), 0.0, 1.0))",
-        "                actual_status[neighbor] = float(np.clip(neigh_val + mu * (node_val - neigh_val), 0.0, 1.0))",
+        "            node_val = float(actual_status[node])",
+        "            neigh_val = float(actual_status[neighbor])",
+        "            trust_gate = min(epsilon, trust_threshold)",
+        "            if diff <= trust_gate:",
+        "                node_val = float(np.clip(node_val + mu * (neigh_val - node_val), 0.0, 1.0))",
+        "                neigh_val = float(np.clip(neigh_val + mu * (node_val - neigh_val), 0.0, 1.0))",
+        "            elif polarization_strength > 0.0:",
+        "                if node_val >= neigh_val:",
+        "                    node_val = float(np.clip(node_val + polarization_strength * (1.0 - node_val), 0.0, 1.0))",
+        "                else:",
+        "                    node_val = float(np.clip(node_val - polarization_strength * node_val, 0.0, 1.0))",
+        "            if noise_sigma > 0.0:",
+        "                node_val = float(np.clip(np.random.normal(node_val, noise_sigma), 0.0, 1.0))",
+        "            if external_strength > 0.0:",
+        "                node_val = float(np.clip(node_val + external_strength * (external_target - node_val), 0.0, 1.0))",
+        "            if stubbornness > 0.0 and node in self.initial_status:",
+        "                node_val = float(np.clip((1.0 - stubbornness) * node_val + stubbornness * float(self.initial_status[node]), 0.0, 1.0))",
+        "            actual_status[node] = node_val",
+        "            actual_status[neighbor] = neigh_val",
+        "        if quantization_bins and quantization_bins > 1:",
+        "            step = 1.0 / float(quantization_bins - 1)",
+        "            for node in actual_status:",
+        "                actual_status[node] = float(np.clip(round(actual_status[node] / step) * step, 0.0, 1.0))",
+        "        if media_weight > 0.0 and 'media_opinions' in self.params['model'] and self.params['model'].get('media_opinions'):",
+        "            media_vals = np.clip(np.asarray(self.params['model']['media_opinions'], dtype=float), 0.0, 1.0)",
+        "            for node in actual_status:",
+        "                target_media = float(np.mean(media_vals))",
+        "                actual_status[node] = float(np.clip((1.0 - media_weight) * actual_status[node] + media_weight * target_media, 0.0, 1.0))",
+        "        normalize_min = float(self.params['model'].get('normalize_min', 0.0))",
+        "        normalize_max = float(self.params['model'].get('normalize_max', 1.0))",
+        "        if normalize_max > normalize_min:",
+        "            for node in actual_status:",
+        "                actual_status[node] = float(np.clip(actual_status[node], normalize_min, normalize_max))",
         "        for node, opinion in actual_status.items():",
         "            self.graph.nodes[node]['opinion'] = float(opinion)",
         "        self.status = actual_status",
@@ -1135,23 +1333,36 @@ def generate_ndql_script(model_data):
         ndql.append("INITIAL_OPINION_DISTRIBUTION %s" % model_data.get("initial_opinion_distribution", "uniform"))
         ndql.append("")
 
+        continuous_ndql_params = {
+            "OpinionDistanceThreshold": ("epsilon", "0.1"),
+            "OpinionSelectionBias": ("gamma", "0.0"),
+            "OpinionCompromise": ("mu", "0.5"),
+            "OpinionStubbornness": ("theta", "0.1"),
+            "OpinionNoise": ("sigma", "0.0"),
+            "OpinionPolarization": ("strength", "0.0"),
+            "OpinionExternalField": ("target", "0.5"),
+            "OpinionTrustFilter": ("trust_threshold", "0.1"),
+            "OpinionMemory": ("alpha", "0.5"),
+            "OpinionNormalization": (None, None),
+            "OpinionQuantization": ("bins", "10"),
+            "OpinionMediaInfluence": ("weight", "0.5"),
+        }
+
         for comp in compartments:
             comp_type = comp.get("type")
             params = comp.get("params", {})
-            if comp_type == "OpinionDistanceThreshold":
+            if comp_type in continuous_ndql_params:
                 ndql.append("BLOCK %s" % comp.get("name", comp_type))
-                ndql.append("TYPE OpinionDistanceThreshold")
-                ndql.append("PARAM epsilon %s" % params.get("epsilon", 0.1))
-                ndql.append("")
-            elif comp_type == "OpinionSelectionBias":
-                ndql.append("BLOCK %s" % comp.get("name", comp_type))
-                ndql.append("TYPE OpinionSelectionBias")
-                ndql.append("PARAM gamma %s" % params.get("gamma", 0.0))
-                ndql.append("")
-            elif comp_type == "OpinionCompromise":
-                ndql.append("BLOCK %s" % comp.get("name", comp_type))
-                ndql.append("TYPE OpinionCompromise")
-                ndql.append("PARAM mu %s" % params.get("mu", 0.5))
+                ndql.append("TYPE %s" % comp_type)
+                param_name, fallback = continuous_ndql_params[comp_type]
+                if comp_type == "OpinionNormalization":
+                    ndql.append("PARAM min %s" % params.get("min", 0.0))
+                    ndql.append("PARAM max %s" % params.get("max", 1.0))
+                elif comp_type == "OpinionExternalField":
+                    ndql.append("PARAM target %s" % params.get("target", 0.5))
+                    ndql.append("PARAM strength %s" % params.get("strength", 0.0))
+                elif param_name is not None:
+                    ndql.append("PARAM %s %s" % (param_name, params.get(param_name, fallback)))
                 ndql.append("")
             elif comp_type == "NodeNumericalVariable" and params.get("var") == "opinion" and params.get("var_type") == "ATTRIBUTE":
                 ndql.append("BLOCK %s" % comp.get("name", comp_type))
