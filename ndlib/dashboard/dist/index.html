@@ -352,14 +352,16 @@
                         { id: "ab_threshold", type: "compartment", x: 260, y: 95, data: { name: "bounded_confidence", type: "OpinionDistanceThreshold", params: { epsilon: 0.1 } } },
                         { id: "ab_bias", type: "compartment", x: 500, y: 95, data: { name: "selection_bias", type: "OpinionSelectionBias", params: { gamma: 1.5 } } },
                         { id: "ab_compromise", type: "compartment", x: 620, y: 230, data: { name: "opinion_compromise", type: "OpinionCompromise", params: { mu: 0.5 } } },
-                        { id: "ab_norm", type: "compartment", x: 360, y: 250, data: { name: "opinion_normalization", type: "OpinionNormalization", params: { min: 0.0, max: 1.0 } } }
+                        { id: "ab_norm", type: "compartment", x: 360, y: 250, data: { name: "opinion_normalization", type: "OpinionNormalization", params: { min: 0.0, max: 1.0 } } },
+                        { id: "ab_zealot", type: "compartment", x: 740, y: 250, data: { name: "opinion_zealot", type: "OpinionZealot", params: { share: 0.1, fixed_value: 0.0 } } }
                     ],
                     edges: [
                         { id: "ab_e1", source: "ab_low", target: "ab_threshold" },
                         { id: "ab_e2", source: "ab_threshold", target: "ab_bias" },
                         { id: "ab_e3", source: "ab_bias", target: "ab_compromise" },
                         { id: "ab_e4", source: "ab_compromise", target: "ab_norm" },
-                        { id: "ab_e5", source: "ab_norm", target: "ab_high" }
+                        { id: "ab_e5", source: "ab_norm", target: "ab_zealot" },
+                        { id: "ab_e6", source: "ab_zealot", target: "ab_high" }
                     ],
                     initialStatus: [
                         { status: "LowOpinion", ratio: 0.5 },
@@ -430,7 +432,7 @@
                     label: "Continuous Opinions",
                     description: "Opinion-specific blocks for bounded confidence, biased partner selection, and compromise updates.",
                     templates: ["algorithmic_bias"],
-                    palette: ["status", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "NodeNumericalAttribute", "NodeNumericalVariable", "NodeThreshold", "CountDown", "ConditionalComposition"]
+                    palette: ["status", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "OpinionZealot", "NodeNumericalAttribute", "NodeNumericalVariable", "NodeThreshold", "CountDown", "ConditionalComposition"]
                 },
                 discrete_opinions: {
                     label: "Discrete Opinions",
@@ -442,7 +444,7 @@
                     label: "Coupled / Advanced",
                     description: "All available blocks for mixed epidemic-opinion experiments and custom couplings.",
                     templates: ["coupled", "sir", "algorithmic_bias", "majority_rule"],
-                    palette: ["status", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "NodeNumericalVariable", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "ConditionalComposition"]
+                    palette: ["status", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "NodeNumericalVariable", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "OpinionZealot", "ConditionalComposition"]
                 }
             };
 
@@ -2742,6 +2744,12 @@
                         lines.push(`TYPE OpinionMediaInfluence`);
                         lines.push(`PARAM weight ${n.data.params.weight}`);
                         lines.push("");
+                    } else if (isContinuousOpinionBuilder && n.data.type === "OpinionZealot") {
+                        lines.push(`BLOCK ${n.data.name}`);
+                        lines.push(`TYPE OpinionZealot`);
+                        lines.push(`PARAM share ${n.data.params.share}`);
+                        lines.push(`PARAM fixed_value ${n.data.params.fixed_value}`);
+                        lines.push("");
                     } else if (n.data.type === "ConditionalComposition") {
                         const condEdge = builderEdges.find(e => e.target === n.id && e.targetPort === "condition");
                         const trueEdge = builderEdges.find(e => e.target === n.id && e.targetPort === "if_true");
@@ -2969,6 +2977,7 @@
                 else if (type === "OpinionNormalization") params = { min: 0.0, max: 1.0 };
                 else if (type === "OpinionQuantization") params = { bins: 10 };
                 else if (type === "OpinionMediaInfluence") params = { weight: 0.5 };
+                else if (type === "OpinionZealot") params = { share: 0.1, fixed_value: 0.0 };
                 else if (type === "ConditionalComposition") params = { condition: "", first_branch: "", second_branch: "" };
 
                 const newNode = {
@@ -3570,6 +3579,7 @@
                                                                 else if (type === "OpinionNormalization") params = { min: 0.0, max: 1.0 };
                                                                 else if (type === "OpinionQuantization") params = { bins: 10 };
                                                                 else if (type === "OpinionMediaInfluence") params = { weight: 0.5 };
+                                                                else if (type === "OpinionZealot") params = { share: 0.1, fixed_value: 0.0 };
                                                                 else if (type === "ConditionalComposition") params = { condition: "", first_branch: "", second_branch: "" };
                                                                 updateNodeData(selectedElement.id, { type, params });
                                                             }}
@@ -3594,6 +3604,7 @@
                                                             <option value="OpinionNormalization">Normalization</option>
                                                             <option value="OpinionQuantization">Quantization</option>
                                                             <option value="OpinionMediaInfluence">Media Influence</option>
+                                                            <option value="OpinionZealot">Zealot</option>
                                                             <option value="ConditionalComposition">Conditional Composition</option>
                                                         </select>
                                                     </div>
@@ -3950,6 +3961,40 @@
                                                                 value={selectedElement.data.params.weight}
                                                                 onChange={(e) => updateNodeData(selectedElement.id, {
                                                                     params: { ...selectedElement.data.params, weight: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)) }
+                                                                })}
+                                                                class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    {selectedElement.data.params.share !== undefined && selectedElement.data.type === "OpinionZealot" && (
+                                                        <div class="space-y-1">
+                                                            <label class="text-[10px] text-slate-400 block">Zealot Share</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="1"
+                                                                step="0.01"
+                                                                value={selectedElement.data.params.share}
+                                                                onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                    params: { ...selectedElement.data.params, share: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)) }
+                                                                })}
+                                                                class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    {selectedElement.data.params.fixed_value !== undefined && selectedElement.data.type === "OpinionZealot" && (
+                                                        <div class="space-y-1">
+                                                            <label class="text-[10px] text-slate-400 block">Fixed Opinion Value</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="1"
+                                                                step="0.01"
+                                                                value={selectedElement.data.params.fixed_value}
+                                                                onChange={(e) => updateNodeData(selectedElement.id, {
+                                                                    params: { ...selectedElement.data.params, fixed_value: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)) }
                                                                 })}
                                                                 class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
                                                             />

@@ -261,3 +261,52 @@ class NdlibParserTest(unittest.TestCase):
         self.assertGreaterEqual(len(iterations), 1)
         self.assertIn("status", iterations[0])
         self.assertTrue(all(0.0 <= float(v) <= 1.0 for v in iterations[0]["status"].values()))
+
+    def test_continuous_opinion_builder_ndql_with_zealots(self):
+        query = (
+            "MODEL OpinionZealotModel\n"
+            "TYPE CONTINUOUS_OPINION\n"
+            "INITIAL_OPINION_DISTRIBUTION uniform\n"
+            "\n"
+            "BIN LowOpinion\n"
+            "BIN HighOpinion\n"
+            "\n"
+            "BLOCK bounded_confidence\n"
+            "TYPE OpinionDistanceThreshold\n"
+            "PARAM epsilon 1.0\n"
+            "\n"
+            "BLOCK selection_bias\n"
+            "TYPE OpinionSelectionBias\n"
+            "PARAM gamma 0.0\n"
+            "\n"
+            "BLOCK opinion_compromise\n"
+            "TYPE OpinionCompromise\n"
+            "PARAM mu 0.5\n"
+            "\n"
+            "BLOCK opinion_normalization\n"
+            "TYPE OpinionNormalization\n"
+            "PARAM min 0.0\n"
+            "PARAM max 1.0\n"
+            "\n"
+            "BLOCK opinion_zealot\n"
+            "TYPE OpinionZealot\n"
+            "PARAM share 1.0\n"
+            "PARAM fixed_value 1.0\n"
+            "\n"
+            "EXECUTE OpinionZealotModel ON g1 FOR 4"
+        )
+
+        parser = ep.ExperimentParser()
+        parser.set_query(query)
+        parser.parse()
+
+        local_scope = {}
+        global_scope = {}
+        exec(parser.script, global_scope, local_scope)
+
+        iterations = parser.execute_query()
+        self.assertIsInstance(iterations, list)
+        self.assertGreaterEqual(len(iterations), 1)
+        self.assertIn("status", iterations[0])
+        self.assertTrue(all(0.0 <= float(v) <= 1.0 for v in iterations[0]["status"].values()))
+        self.assertTrue(all(float(v) == 1.0 for v in iterations[0]["status"].values()))

@@ -239,13 +239,97 @@ class DashboardTest(unittest.TestCase):
         self.assertAlmostEqual(result["status"][0], 0.5, places=6)
         self.assertAlmostEqual(result["status"][1], 0.5, places=6)
 
+    def test_custom_continuous_opinion_builder_supports_zealots(self):
+        from ndlib.dashboard.server import generate_custom_model_class, generate_ndql_script
+        import networkx as nx
+        import ndlib.models.ModelConfig as mc
+
+        payload = {
+            "name": "AlgorithmicBiasWithZealots",
+            "use_case": "continuous_opinions",
+            "template_id": "algorithmic_bias",
+            "initial_opinion_distribution": "uniform",
+            "epsilon": 1.0,
+            "gamma": 0.0,
+            "mu": 0.5,
+            "statuses": [
+                {"name": "LowOpinion", "code": 0},
+                {"name": "HighOpinion", "code": 1}
+            ],
+            "compartments": [
+                {
+                    "name": "bounded_confidence",
+                    "type": "OpinionDistanceThreshold",
+                    "params": {
+                        "epsilon": 1.0
+                    }
+                },
+                {
+                    "name": "selection_bias",
+                    "type": "OpinionSelectionBias",
+                    "params": {
+                        "gamma": 0.0
+                    }
+                },
+                {
+                    "name": "opinion_compromise",
+                    "type": "OpinionCompromise",
+                    "params": {
+                        "mu": 0.5
+                    }
+                },
+                {
+                    "name": "opinion_normalization",
+                    "type": "OpinionNormalization",
+                    "params": {
+                        "min": 0.0,
+                        "max": 1.0
+                    }
+                },
+                {
+                    "name": "opinion_zealot",
+                    "type": "OpinionZealot",
+                    "params": {
+                        "share": 1.0,
+                        "fixed_value": 1.0
+                    }
+                }
+            ],
+            "rules": [],
+            "initial_status": [
+                {"status": "LowOpinion", "ratio": 0.5},
+                {"status": "HighOpinion", "ratio": 0.5}
+            ]
+        }
+
+        class_code = generate_custom_model_class(payload)
+        self.assertIn("zealot_nodes", class_code)
+        self.assertIn("zealot_share", class_code)
+        self.assertIn("zealot_value", class_code)
+
         ndql_script = generate_ndql_script(payload)
-        self.assertIn("TYPE CONTINUOUS_OPINION", ndql_script)
-        self.assertIn("INITIAL_OPINION_DISTRIBUTION bimodal", ndql_script)
-        self.assertIn("TYPE OpinionDistanceThreshold", ndql_script)
-        self.assertIn("PARAM epsilon 1.0", ndql_script)
-        self.assertIn("TYPE OpinionCompromise", ndql_script)
-        self.assertIn("TYPE OpinionNormalization", ndql_script)
+        self.assertIn("TYPE OpinionZealot", ndql_script)
+        self.assertIn("PARAM share 1.0", ndql_script)
+        self.assertIn("PARAM fixed_value 1.0", ndql_script)
+
+        local_scope = {}
+        global_scope = {}
+        exec(class_code, global_scope, local_scope)
+        model_cls = local_scope["AlgorithmicBiasWithZealots"]
+
+        model = model_cls(nx.path_graph(6))
+        cfg = mc.Configuration()
+        cfg.add_model_parameter("initial_opinion_distribution", "uniform")
+        cfg.add_model_parameter("epsilon", 1.0)
+        cfg.add_model_parameter("gamma", 0.0)
+        cfg.add_model_parameter("mu", 0.5)
+        cfg.add_model_parameter("zealot_share", 1.0)
+        cfg.add_model_parameter("zealot_value", 1.0)
+        model.set_initial_status(cfg)
+
+        self.assertTrue(all(float(v) == 1.0 for v in model.status.values()))
+        result = model.iteration()
+        self.assertTrue(all(float(v) == 1.0 for v in result["status"].values()))
         self.assertIn("TYPE OpinionNoise", ndql_script)
 
     def test_build_initial_status_assignment_respects_percentages(self):

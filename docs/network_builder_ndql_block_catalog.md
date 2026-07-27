@@ -33,6 +33,7 @@ The following items from this catalog are implemented in the current dashboard a
 - `OpinionSelectionBias`
 - `OpinionCompromise`
 - `OpinionNormalization`
+- `OpinionZealot`
 - continuous-opinion builder palette support
 - continuous-opinion NDQL serialization in the dashboard
 - continuous-opinion custom Python model generation

@@ -50,6 +50,7 @@ CONTINUOUS_OPINION_BLOCK_TYPES = {
     "OpinionNormalization",
     "OpinionQuantization",
     "OpinionMediaInfluence",
+    "OpinionZealot",
 }
 
 
@@ -976,6 +977,8 @@ def generate_continuous_opinion_custom_model_class(
         "normalize_max": 1.0,
         "quantization_bins": None,
         "media_weight": None,
+        "zealot_share": None,
+        "zealot_value": None,
     }
     opinion_block_names = {
         "OpinionDistanceThreshold": None,
@@ -990,6 +993,7 @@ def generate_continuous_opinion_custom_model_class(
         "OpinionNormalization": None,
         "OpinionQuantization": None,
         "OpinionMediaInfluence": None,
+        "OpinionZealot": None,
     }
 
     for comp in compartments:
@@ -1042,6 +1046,10 @@ def generate_continuous_opinion_custom_model_class(
         elif comp_type == "OpinionMediaInfluence" and opinion_params["media_weight"] is None:
             opinion_params["media_weight"] = clamp_unit_float(params.get("weight", params.get("media_weight", 0.5)), 0.5)
             opinion_block_names[comp_type] = comp.get("name", "media_influence")
+        elif comp_type == "OpinionZealot" and opinion_params["zealot_share"] is None:
+            opinion_params["zealot_share"] = clamp_unit_float(params.get("share", params.get("zealot_share", 0.0)), 0.0)
+            opinion_params["zealot_value"] = clamp_unit_float(params.get("fixed_value", params.get("value", 0.0)), 0.0)
+            opinion_block_names[comp_type] = comp.get("name", "zealot")
 
     code = [
         "import numpy as np",
@@ -1175,6 +1183,21 @@ def generate_continuous_opinion_custom_model_class(
             "                    'default': %s" % repr(float(opinion_params["media_weight"])),
             "                },",
         ])
+    if opinion_params["zealot_share"] is not None:
+        code.extend([
+            "                'zealot_share': {",
+            "                    'descr': 'Share of immutable zealot nodes',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["zealot_share"])),
+            "                },",
+            "                'zealot_value': {",
+            "                    'descr': 'Fixed zealot opinion value',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["zealot_value"])),
+            "                },",
+        ])
     code.extend([
         "            },",
         "            'nodes': {},",
@@ -1193,7 +1216,8 @@ def generate_continuous_opinion_custom_model_class(
         "            'memory': %r," % opinion_block_names["OpinionMemory"],
         "            'normalization': %r," % opinion_block_names["OpinionNormalization"],
         "            'quantization': %r," % opinion_block_names["OpinionQuantization"],
-        "            'media_influence': %r" % opinion_block_names["OpinionMediaInfluence"],
+        "            'media_influence': %r," % opinion_block_names["OpinionMediaInfluence"],
+        "            'zealot': %r" % opinion_block_names["OpinionZealot"],
         "        }",
         "",
         "    def set_initial_status(self, configuration=None):",
@@ -1211,9 +1235,22 @@ def generate_continuous_opinion_custom_model_class(
         "            len(self.status),",
         "            self.params['model'].get('initial_opinion_distribution', %r)," % initial_opinion_distribution,
         "        )",
+        "        zealot_share = float(self.params['model'].get('zealot_share', 0.0) or 0.0)",
+        "        zealot_value = float(self.params['model'].get('zealot_value', 0.0) or 0.0)",
+        "        zealot_nodes = set()",
+        "        if zealot_share > 0.0:",
+        "            node_ids = list(self.status.keys())",
+        "            zealot_count = int(round(len(node_ids) * zealot_share))",
+        "            zealot_count = max(0, min(len(node_ids), zealot_count))",
+        "            if zealot_count > 0:",
+        "                zealot_nodes = set(np.random.choice(node_ids, zealot_count, replace=False))",
+        "        self.zealot_nodes = zealot_nodes",
+        "        self.zealot_value = zealot_value",
         "        for node, opinion in zip(self.status, opinions):",
         "            self.status[node] = float(opinion)",
-        "            self.graph.nodes[node]['opinion'] = float(opinion)",
+        "            if node in zealot_nodes:",
+        "                self.status[node] = zealot_value",
+        "            self.graph.nodes[node]['opinion'] = float(self.status[node])",
         "        self.initial_status = self.status.copy()",
         "        return self",
         "",
@@ -1262,6 +1299,8 @@ def generate_continuous_opinion_custom_model_class(
         "            return {'iteration': self.actual_iteration - 1, 'status': {}, 'node_count': {}, 'status_delta': {}}",
         "        for _ in range(len(nodes_list)):",
         "            node = nodes_list[np.random.randint(0, len(nodes_list))]",
+        "            if hasattr(self, 'zealot_nodes') and node in self.zealot_nodes:",
+        "                continue",
         "            neighbor = self._select_neighbor(node, actual_status)",
         "            if neighbor is None:",
         "                continue",
@@ -1292,12 +1331,16 @@ def generate_continuous_opinion_custom_model_class(
         "        if media_weight > 0.0 and 'media_opinions' in self.params['model'] and self.params['model'].get('media_opinions'):",
         "            media_vals = np.clip(np.asarray(self.params['model']['media_opinions'], dtype=float), 0.0, 1.0)",
         "            for node in actual_status:",
+        "                if hasattr(self, 'zealot_nodes') and node in self.zealot_nodes:",
+        "                    continue",
         "                target_media = float(np.mean(media_vals))",
         "                actual_status[node] = float(np.clip((1.0 - media_weight) * actual_status[node] + media_weight * target_media, 0.0, 1.0))",
         "        normalize_min = float(self.params['model'].get('normalize_min', 0.0))",
         "        normalize_max = float(self.params['model'].get('normalize_max', 1.0))",
         "        if normalize_max > normalize_min:",
         "            for node in actual_status:",
+        "                if hasattr(self, 'zealot_nodes') and node in self.zealot_nodes:",
+        "                    continue",
         "                actual_status[node] = float(np.clip(actual_status[node], normalize_min, normalize_max))",
         "        for node, opinion in actual_status.items():",
         "            self.graph.nodes[node]['opinion'] = float(opinion)",
@@ -1346,6 +1389,7 @@ def generate_ndql_script(model_data):
             "OpinionNormalization": (None, None),
             "OpinionQuantization": ("bins", "10"),
             "OpinionMediaInfluence": ("weight", "0.5"),
+            "OpinionZealot": ("share", "0.0"),
         }
 
         for comp in compartments:
@@ -1361,6 +1405,9 @@ def generate_ndql_script(model_data):
                 elif comp_type == "OpinionExternalField":
                     ndql.append("PARAM target %s" % params.get("target", 0.5))
                     ndql.append("PARAM strength %s" % params.get("strength", 0.0))
+                elif comp_type == "OpinionZealot":
+                    ndql.append("PARAM share %s" % params.get("share", 0.0))
+                    ndql.append("PARAM fixed_value %s" % params.get("fixed_value", params.get("value", 0.0)))
                 elif param_name is not None:
                     ndql.append("PARAM %s %s" % (param_name, params.get(param_name, fallback)))
                 ndql.append("")
