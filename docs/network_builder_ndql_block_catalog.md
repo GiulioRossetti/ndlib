@@ -41,6 +41,7 @@ The following items from this catalog are implemented in the current dashboard a
 - discrete-opinion initial class percentages
 - zealot selection in the dashboard for `VoterZealotModel`
 - media opinion count and per-media opinion values for `AlgorithmicBiasMediaModel`
+- zealot block round-trip and runtime validation for continuous-opinion custom models
 
 The remaining blocks below stay in the catalog as future implementation targets.
 
