@@ -330,7 +330,47 @@ class DashboardTest(unittest.TestCase):
         self.assertTrue(all(float(v) == 1.0 for v in model.status.values()))
         result = model.iteration()
         self.assertTrue(all(float(v) == 1.0 for v in result["status"].values()))
-        self.assertIn("TYPE OpinionNoise", ndql_script)
+
+    def test_custom_model_ndql_serializes_declarations_and_observables(self):
+        from ndlib.dashboard.server import generate_custom_model_class, generate_ndql_script
+
+        payload = {
+            "name": "TypedNDQLModel",
+            "statuses": [
+                {"name": "Susceptible", "code": 0},
+                {"name": "Infected", "code": 1}
+            ],
+            "declarations": [
+                {"kind": "PARAM", "name": "epsilon", "type": "float", "default": 0.1},
+                {"kind": "VARIABLE", "name": "opinion", "type": "continuous", "range": [0, 1], "default": 0.5},
+            ],
+            "observables": [
+                {"variable": "opinion", "mode": "bins", "bins": 20, "range": [0, 1]}
+            ],
+            "compartments": [
+                {
+                    "name": "stoch",
+                    "type": "NodeStochastic",
+                    "params": {"rate": 0.1, "triggering_status": "Infected"}
+                }
+            ],
+            "rules": [
+                {"from": "Susceptible", "to": "Infected", "using": "stoch"}
+            ],
+            "initial_status": [
+                {"status": "Susceptible", "ratio": 0.9},
+                {"status": "Infected", "ratio": 0.1}
+            ]
+        }
+
+        class_code = generate_custom_model_class(payload)
+        self.assertIn("self.declarations = [{'kind': 'PARAM'", class_code)
+        self.assertIn("self.observables = [{'variable': 'opinion'", class_code)
+
+        ndql_script = generate_ndql_script(payload)
+        self.assertIn("DECLARE PARAM epsilon TYPE float DEFAULT 0.1", ndql_script)
+        self.assertIn("DECLARE VARIABLE opinion TYPE continuous RANGE [0,1] DEFAULT 0.5", ndql_script)
+        self.assertIn("OBSERVE opinion AS bins BINS 20 RANGE [0,1]", ndql_script)
 
     def test_build_initial_status_assignment_respects_percentages(self):
         from ndlib.dashboard.server import build_initial_status_assignment

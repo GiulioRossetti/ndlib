@@ -77,7 +77,14 @@ class ExperimentParser(object):
         if self.query is None:
             raise ValueError("Experiment description malformed (empty query): check your syntax")
 
-        if "TYPE CONTINUOUS_OPINION" in self.query or "INITIAL_OPINION_DISTRIBUTION" in self.query or "BLOCK " in self.query or "BIN " in self.query:
+        if (
+            "TYPE CONTINUOUS_OPINION" in self.query
+            or "INITIAL_OPINION_DISTRIBUTION" in self.query
+            or "BLOCK " in self.query
+            or "BIN " in self.query
+            or "DECLARE " in self.query
+            or "OBSERVE " in self.query
+        ):
             self.__parse_continuous_query()
             return
 
@@ -158,6 +165,8 @@ class ExperimentParser(object):
         compartments = []
         rules = []
         initial_status = []
+        declarations = []
+        observables = []
         current_block = None
         current_rule = {}
         network_lines = []
@@ -199,6 +208,37 @@ class ExperimentParser(object):
                 current_block = {"name": parts[1], "type": None, "params": {}}
                 compartments.append(current_block)
                 mode = "block"
+                continue
+            if head == "DECLARE":
+                if len(parts) < 3:
+                    raise ValueError("Experiment description malformed (wrong declaration statement): check your syntax")
+                declaration = {"kind": parts[1], "name": parts[2]}
+                idx = 3
+                while idx < len(parts):
+                    token = parts[idx]
+                    if token in {"TYPE", "RANGE", "VALUES", "DEFAULT", "SCOPE"} and idx + 1 < len(parts):
+                        declaration[token.lower()] = self.__coerce_ndql_value(parts[idx + 1])
+                        idx += 2
+                    else:
+                        idx += 1
+                declarations.append(declaration)
+                continue
+            if head == "OBSERVE":
+                if len(parts) < 2:
+                    raise ValueError("Experiment description malformed (wrong observe statement): check your syntax")
+                observable = {"variable": parts[1]}
+                idx = 2
+                while idx < len(parts):
+                    token = parts[idx]
+                    if token == "AS" and idx + 1 < len(parts):
+                        observable["mode"] = parts[idx + 1]
+                        idx += 2
+                    elif token in {"BINS", "RANGE", "MODE"} and idx + 1 < len(parts):
+                        observable[token.lower()] = self.__coerce_ndql_value(parts[idx + 1])
+                        idx += 2
+                    else:
+                        idx += 1
+                observables.append(observable)
                 continue
             if head == "TYPE" and mode == "block" and current_block is not None:
                 if len(parts) < 2:
@@ -263,6 +303,8 @@ class ExperimentParser(object):
             "compartments": compartments,
             "rules": rules,
             "initial_status": initial_status,
+            "declarations": declarations,
+            "observables": observables,
         }
 
         class_code = generate_custom_model_class(payload)

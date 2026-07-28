@@ -285,6 +285,8 @@
                 { status: "Susceptible", ratio: 0.95 },
                 { status: "Infected", ratio: 0.05 }
             ]);
+            const [builderDeclarations, setBuilderDeclarations] = useState([]);
+            const [builderObservables, setBuilderObservables] = useState([]);
             const [builderOpinionDistribution, setBuilderOpinionDistribution] = useState("uniform");
             const [selectedElement, setSelectedElement] = useState(null);
             const [selectedNodeIds, setSelectedNodeIds] = useState([]);
@@ -572,6 +574,8 @@
                 setBuilderTemplateId(templateId);
                 setBuilderModelName(template.modelName);
                 setBuilderOpinionDistribution(template.initialOpinionDistribution || "uniform");
+                setBuilderDeclarations(Array.isArray(template.declarations) ? template.declarations.map(item => ({ ...item })) : []);
+                setBuilderObservables(Array.isArray(template.observables) ? template.observables.map(item => ({ ...item })) : []);
                 setBuilderNodes(template.nodes.map(node => ({
                     ...node,
                     data: {
@@ -2547,6 +2551,8 @@
                     use_case: builderUseCase,
                     template_id: builderTemplateId,
                     initial_opinion_distribution: builderOpinionDistribution,
+                    declarations: builderDeclarations.map(item => ({ ...item })),
+                    observables: builderObservables.map(item => ({ ...item })),
                     statuses: liveNodes.filter(n => n.type === "status").map(n => ({
                         name: n.data.name,
                         code: n.data.code
@@ -2680,6 +2686,28 @@
                 });
                 if (statuses.length > 0) lines.push("");
 
+                builderDeclarations.forEach(declaration => {
+                    const kind = String(declaration.kind || "PARAM").toUpperCase();
+                    const bits = [`DECLARE ${kind}`, declaration.name || ""];
+                    if (declaration.type !== undefined && declaration.type !== null && declaration.type !== "") {
+                        bits.push(`TYPE ${Array.isArray(declaration.type) ? JSON.stringify(declaration.type) : declaration.type}`);
+                    }
+                    if (declaration.scope !== undefined && declaration.scope !== null && declaration.scope !== "") {
+                        bits.push(`SCOPE ${declaration.scope}`);
+                    }
+                    if (declaration.range !== undefined && declaration.range !== null && declaration.range !== "") {
+                        bits.push(`RANGE ${Array.isArray(declaration.range) ? JSON.stringify(declaration.range) : declaration.range}`);
+                    }
+                    if (declaration.values !== undefined && declaration.values !== null && declaration.values !== "") {
+                        bits.push(`VALUES ${Array.isArray(declaration.values) ? JSON.stringify(declaration.values) : declaration.values}`);
+                    }
+                    if (declaration.default !== undefined && declaration.default !== null && declaration.default !== "") {
+                        bits.push(`DEFAULT ${Array.isArray(declaration.default) ? JSON.stringify(declaration.default) : declaration.default}`);
+                    }
+                    lines.push(bits.join(" ").trim());
+                });
+                if (builderDeclarations.length > 0) lines.push("");
+
                 const compartments = builderNodes.filter(n => n.type === "compartment");
                 compartments.forEach(n => {
                     if (isContinuousOpinionBuilder && n.data.type === "OpinionDistanceThreshold") {
@@ -2803,6 +2831,21 @@
                         }
                     });
                 });
+
+                builderObservables.forEach(observable => {
+                    const bits = [`OBSERVE ${observable.variable || ""}`];
+                    if (observable.mode !== undefined && observable.mode !== null && observable.mode !== "") {
+                        bits.push(`AS ${observable.mode}`);
+                    }
+                    if (observable.bins !== undefined && observable.bins !== null && observable.bins !== "") {
+                        bits.push(`BINS ${observable.bins}`);
+                    }
+                    if (observable.range !== undefined && observable.range !== null && observable.range !== "") {
+                        bits.push(`RANGE ${Array.isArray(observable.range) ? JSON.stringify(observable.range) : observable.range}`);
+                    }
+                    lines.push(bits.join(" ").trim());
+                });
+                if (builderObservables.length > 0) lines.push("");
 
                 lines.push("INITIALIZE");
                 if (isContinuousOpinionBuilder) {

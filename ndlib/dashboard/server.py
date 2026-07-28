@@ -92,6 +92,52 @@ def clamp_unit_float(value, fallback=0.1):
     return min(1.0, max(0.0, val))
 
 
+def format_ndql_value(value):
+    if isinstance(value, (list, tuple)):
+        return "[" + ",".join(format_ndql_value(v) for v in value) + "]"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if value is None:
+        return "null"
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (int, float, np.integer, np.floating)):
+        if isinstance(value, float) and value.is_integer():
+            return str(int(value))
+        return str(value)
+    return str(value)
+
+
+def serialize_ndql_declaration(declaration):
+    kind = str(declaration.get("kind", "PARAM")).upper()
+    name = declaration.get("name", "")
+    parts = ["DECLARE", kind, name]
+    dtype = declaration.get("type")
+    if dtype is not None:
+        parts.extend(["TYPE", format_ndql_value(dtype)])
+    scope = declaration.get("scope")
+    if scope is not None:
+        parts.extend(["SCOPE", format_ndql_value(scope)])
+    if "range" in declaration and declaration["range"] is not None:
+        parts.extend(["RANGE", format_ndql_value(declaration["range"])])
+    if "values" in declaration and declaration["values"] is not None:
+        parts.extend(["VALUES", format_ndql_value(declaration["values"])])
+    if "default" in declaration and declaration["default"] is not None:
+        parts.extend(["DEFAULT", format_ndql_value(declaration["default"])])
+    return " ".join(parts)
+
+
+def serialize_ndql_observable(observable):
+    parts = ["OBSERVE", format_ndql_value(observable.get("variable", ""))]
+    if observable.get("mode"):
+        parts.extend(["AS", format_ndql_value(observable["mode"])])
+    if observable.get("bins") is not None:
+        parts.extend(["BINS", format_ndql_value(observable["bins"])])
+    if observable.get("range") is not None:
+        parts.extend(["RANGE", format_ndql_value(observable["range"])])
+    return " ".join(parts)
+
+
 def coerce_model_parameter_value(param, val, p_info):
     """
     Coerce dashboard payload values to the type expected by the model.
@@ -719,6 +765,8 @@ def generate_custom_model_class(model_data):
     compartments = model_data.get("compartments", [])
     rules = model_data.get("rules", [])
     initial_status = model_data.get("initial_status", [])
+    declarations = model_data.get("declarations", [])
+    observables = model_data.get("observables", [])
     opinion_variables = sorted({
         comp.get("params", {}).get("var", "")
         for comp in compartments
@@ -775,6 +823,8 @@ def generate_custom_model_class(model_data):
         "        self.compartment_progressive = 0",
         "        self.status_progressive = 0",
         "        self.name = %r" % model_name,
+        "        self.declarations = %r" % declarations,
+        "        self.observables = %r" % observables,
         "        self.discrete_state = True",
         "        self.available_statuses = {"
     ]
@@ -1204,6 +1254,8 @@ def generate_continuous_opinion_custom_model_class(
         "            'edges': {}",
         "        }",
         "        self.name = %r" % model_data.get("name", "CustomModel"),
+        "        self.declarations = %r" % model_data.get("declarations", []),
+        "        self.observables = %r" % model_data.get("observables", []),
         "        self.continuous_blocks = {",
         "            'distance_threshold': %r," % opinion_block_names["OpinionDistanceThreshold"],
         "            'selection_bias': %r," % opinion_block_names["OpinionSelectionBias"],
@@ -1363,6 +1415,8 @@ def generate_ndql_script(model_data):
     compartments = model_data.get("compartments", [])
     rules = model_data.get("rules", [])
     initial_status = model_data.get("initial_status", [])
+    declarations = model_data.get("declarations", [])
+    observables = model_data.get("observables", [])
     continuous_opinion_mode = bool(
         model_data.get("use_case") == "continuous_opinions"
         or model_data.get("template_id") == "algorithmic_bias"
@@ -1375,6 +1429,13 @@ def generate_ndql_script(model_data):
         ndql.append("TYPE CONTINUOUS_OPINION")
         ndql.append("INITIAL_OPINION_DISTRIBUTION %s" % model_data.get("initial_opinion_distribution", "uniform"))
         ndql.append("")
+
+        for declaration in declarations:
+            if declaration.get("kind", "").upper() in {"STATUS", "BIN"}:
+                continue
+            ndql.append(serialize_ndql_declaration(declaration))
+        if declarations:
+            ndql.append("")
 
         continuous_ndql_params = {
             "OpinionDistanceThreshold": ("epsilon", "0.1"),
@@ -1419,11 +1480,23 @@ def generate_ndql_script(model_data):
                 ndql.append("PARAM threshold %s" % params.get("value", 0.5))
                 ndql.append("")
 
+        for obs in observables:
+            ndql.append(serialize_ndql_observable(obs))
+        if observables:
+            ndql.append("")
+
         return "\n".join(ndql)
 
     ndql = []
     ndql.append("MODEL %s" % model_name)
     ndql.append("")
+
+    for declaration in declarations:
+        if declaration.get("kind", "").upper() in {"STATUS", "BIN"}:
+            continue
+        ndql.append(serialize_ndql_declaration(declaration))
+    if declarations:
+        ndql.append("")
 
     for status in statuses:
         ndql.append("STATUS %s" % status["name"])
@@ -1492,6 +1565,11 @@ def generate_ndql_script(model_data):
     for init in initial_status:
         ndql.append("SET %s %s" % (init["status"], str(init.get("ratio", 0.0))))
     ndql.append("")
+
+    for obs in observables:
+        ndql.append(serialize_ndql_observable(obs))
+    if observables:
+        ndql.append("")
 
     return "\n".join(ndql)
 

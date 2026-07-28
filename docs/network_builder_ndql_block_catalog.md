@@ -38,6 +38,7 @@ The following items from this catalog are implemented in the current dashboard a
 - continuous-opinion NDQL serialization in the dashboard
 - continuous-opinion custom Python model generation
 - parser execution for the builder-emitted continuous-opinion NDQL subset
+- typed NDQL declarations and observables in the builder payload and parser
 - discrete-opinion initial class percentages
 - zealot selection in the dashboard for `VoterZealotModel`
 - media opinion count and per-media opinion values for `AlgorithmicBiasMediaModel`

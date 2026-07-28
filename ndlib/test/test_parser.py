@@ -310,3 +310,42 @@ class NdlibParserTest(unittest.TestCase):
         self.assertIn("status", iterations[0])
         self.assertTrue(all(0.0 <= float(v) <= 1.0 for v in iterations[0]["status"].values()))
         self.assertTrue(all(float(v) == 1.0 for v in iterations[0]["status"].values()))
+
+    def test_continuous_opinion_builder_ndql_with_declarations_and_observables(self):
+        query = (
+            "MODEL TypedNDQLModel\n"
+            "TYPE CONTINUOUS_OPINION\n"
+            "INITIAL_OPINION_DISTRIBUTION normal\n"
+            "\n"
+            "DECLARE PARAM epsilon TYPE float DEFAULT 0.1\n"
+            "DECLARE VARIABLE opinion TYPE continuous RANGE [0,1] DEFAULT 0.5\n"
+            "\n"
+            "BIN LowOpinion\n"
+            "BIN HighOpinion\n"
+            "\n"
+            "BLOCK bounded_confidence\n"
+            "TYPE OpinionDistanceThreshold\n"
+            "PARAM epsilon 0.1\n"
+            "\n"
+            "BLOCK opinion_normalization\n"
+            "TYPE OpinionNormalization\n"
+            "PARAM min 0.0\n"
+            "PARAM max 1.0\n"
+            "\n"
+            "OBSERVE opinion AS bins BINS 20 RANGE [0,1]\n"
+            "\n"
+            "EXECUTE TypedNDQLModel ON g1 FOR 3"
+        )
+
+        parser = ep.ExperimentParser()
+        parser.set_query(query)
+        parser.parse()
+
+        local_scope = {}
+        global_scope = {}
+        exec(parser.script, global_scope, local_scope)
+
+        iterations = parser.execute_query()
+        self.assertIsInstance(iterations, list)
+        self.assertGreaterEqual(len(iterations), 1)
+        self.assertIn("status", iterations[0])
