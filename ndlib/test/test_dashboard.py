@@ -343,6 +343,8 @@ class DashboardTest(unittest.TestCase):
             "declarations": [
                 {"kind": "PARAM", "name": "epsilon", "type": "float", "default": 0.1},
                 {"kind": "VARIABLE", "name": "opinion", "type": "continuous", "range": [0, 1], "default": 0.5},
+                {"kind": "CONSTANT", "name": "tau", "type": "float", "default": 0.25},
+                {"kind": "DISTRIBUTION", "name": "opinion_seed", "type": "continuous", "range": [0, 1], "default": "bimodal"},
             ],
             "observables": [
                 {"variable": "opinion", "mode": "bins", "bins": 20, "range": [0, 1]}
@@ -370,9 +372,11 @@ class DashboardTest(unittest.TestCase):
         ndql_script = generate_ndql_script(payload)
         self.assertIn("DECLARE PARAM epsilon TYPE float DEFAULT 0.1", ndql_script)
         self.assertIn("DECLARE VARIABLE opinion TYPE continuous RANGE [0,1] DEFAULT 0.5", ndql_script)
+        self.assertIn("DECLARE CONSTANT tau TYPE float DEFAULT 0.25", ndql_script)
+        self.assertIn("DECLARE DISTRIBUTION opinion_seed TYPE continuous RANGE [0,1] DEFAULT bimodal", ndql_script)
         self.assertIn("OBSERVE opinion AS bins BINS 20 RANGE [0,1]", ndql_script)
 
-    def test_custom_model_supports_phase1_and_phase2_placeholder_blocks(self):
+    def test_custom_model_supports_shared_execution_blocks(self):
         from ndlib.dashboard.server import generate_custom_model_class, generate_ndql_script
         import networkx as nx
         import ndlib.models.ModelConfig as mc
@@ -385,17 +389,18 @@ class DashboardTest(unittest.TestCase):
                 {"name": "Recovered", "code": 2},
             ],
             "compartments": [
-                {"name": "compose_gate", "type": "Compose", "params": {}},
-                {"name": "transform_gate", "type": "Transform", "params": {"expression": "x"}},
-                {"name": "filter_gate", "type": "Filter", "params": {"predicate": "opinion > 0.5"}},
-                {"name": "selector_gate", "type": "Selector", "params": {"policy": "random"}},
-                {"name": "exposure_gate", "type": "ExposureRate", "params": {"beta": 0.2}},
-                {"name": "recovery_gate", "type": "RecoveryKernel", "params": {"gamma": 0.1}},
-                {"name": "clamp_gate", "type": "ClampNormalize", "params": {"min": 0.0, "max": 1.0}},
+                {"name": "selector_gate", "type": "Selector", "params": {"policy": "random", "share": 1.0}},
+                {"name": "filter_gate", "type": "Filter", "params": {"predicate": "True"}},
+                {"name": "kernel_gate", "type": "Kernel", "params": {"rate": 1.0}},
+                {"name": "transform_gate", "type": "Transform", "params": {"expression": "value", "target": "opinion"}},
+                {"name": "clamp_gate", "type": "ClampNormalize", "params": {"min": 0.0, "max": 1.0, "target": "opinion"}},
+                {"name": "schedule_gate", "type": "Schedule", "params": {"start": 100, "end": 200}},
+                {"name": "observe_gate", "type": "Observe", "params": {"variable": "opinion", "mode": "bins", "bins": 10, "range": [0, 1]}},
+                {"name": "compose_gate", "type": "Compose", "params": {"condition": "selector_gate", "if_true": "filter_gate", "if_false": "kernel_gate"}},
             ],
             "rules": [
                 {"from": "Susceptible", "to": "Infected", "using": "compose_gate"},
-                {"from": "Infected", "to": "Recovered", "using": "recovery_gate"},
+                {"from": "Infected", "to": "Recovered", "using": "kernel_gate"},
             ],
             "initial_status": [
                 {"status": "Susceptible", "ratio": 0.9},
@@ -405,14 +410,15 @@ class DashboardTest(unittest.TestCase):
         }
 
         class_code = generate_custom_model_class(payload)
-        self.assertIn("class _GenericBlock(Compartiment):", class_code)
-        self.assertIn("_GenericBlock(block_type='Compose'", class_code)
-        self.assertIn("_GenericBlock(block_type='ExposureRate'", class_code)
+        self.assertNotIn("_GenericBlock", class_code)
+        self.assertIn("selector_gate = Selector(policy='random', share=1.0)", class_code)
+        self.assertIn("compose_gate = Compose(condition=selector_gate, if_true=filter_gate, if_false=kernel_gate)", class_code)
+        self.assertIn("kernel_gate = Kernel(rate=1.0)", class_code)
 
         ndql_script = generate_ndql_script(payload)
         self.assertIn("TYPE Compose", ndql_script)
-        self.assertIn("TYPE ExposureRate", ndql_script)
-        self.assertIn("TYPE RecoveryKernel", ndql_script)
+        self.assertIn("TYPE Selector", ndql_script)
+        self.assertIn("TYPE Kernel", ndql_script)
 
         scope = {}
         exec(class_code, scope, scope)

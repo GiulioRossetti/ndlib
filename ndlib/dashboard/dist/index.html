@@ -428,25 +428,25 @@
                     label: "Epidemics",
                     description: "Status-based epidemic workflows with stochastic, threshold, and attribute-driven compartments.",
                     templates: ["sir"],
-                    palette: ["status", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "ConditionalComposition"]
+                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "ConditionalComposition"]
                 },
                 continuous_opinions: {
                     label: "Continuous Opinions",
                     description: "Opinion-specific blocks for bounded confidence, biased partner selection, and compromise updates.",
                     templates: ["algorithmic_bias"],
-                    palette: ["status", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "OpinionZealot", "NodeNumericalAttribute", "NodeNumericalVariable", "NodeThreshold", "CountDown", "ConditionalComposition"]
+                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "OpinionZealot", "NodeNumericalAttribute", "NodeNumericalVariable", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "NodeThreshold", "CountDown", "ConditionalComposition"]
                 },
                 discrete_opinions: {
                     label: "Discrete Opinions",
                     description: "Label-based opinion flows with categorical and stochastic influence blocks.",
                     templates: ["majority_rule"],
-                    palette: ["status", "NodeStochastic", "NodeCategoricalAttribute", "NodeNumericalAttribute", "CountDown", "ConditionalComposition"]
+                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "NodeStochastic", "NodeCategoricalAttribute", "NodeNumericalAttribute", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "CountDown", "ConditionalComposition"]
                 },
                 coupled: {
                     label: "Coupled / Advanced",
                     description: "All available blocks for mixed epidemic-opinion experiments and custom couplings.",
                     templates: ["coupled", "sir", "algorithmic_bias", "majority_rule"],
-                    palette: ["status", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "NodeNumericalVariable", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "OpinionZealot", "ConditionalComposition"]
+                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "NodeNumericalVariable", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "OpinionZealot", "ConditionalComposition"]
                 }
             };
 
@@ -809,6 +809,123 @@
                         icon: "fa-wave-square",
                         accent: "cyan",
                         onClick: () => addCompartmentNode("NodeNumericalVariable")
+                    },
+                    {
+                        id: "Parameter",
+                        type: "compartment",
+                        label: "Parameter",
+                        description: "Typed model parameter declaration",
+                        icon: "fa-sliders",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("Parameter")
+                    },
+                    {
+                        id: "Constant",
+                        type: "compartment",
+                        label: "Constant",
+                        description: "Immutable scalar declaration",
+                        icon: "fa-lock",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("Constant")
+                    },
+                    {
+                        id: "Variable",
+                        type: "compartment",
+                        label: "Variable",
+                        description: "Typed node or global variable",
+                        icon: "fa-ruler",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("Variable")
+                    },
+                    {
+                        id: "Distribution",
+                        type: "compartment",
+                        label: "Distribution",
+                        description: "Samples bounded initial values",
+                        icon: "fa-chart-line",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("Distribution")
+                    },
+                    {
+                        id: "Selector",
+                        type: "compartment",
+                        label: "Selector",
+                        description: "Chooses nodes or neighbors",
+                        icon: "fa-bullseye",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("Selector")
+                    },
+                    {
+                        id: "Filter",
+                        type: "compartment",
+                        label: "Filter",
+                        description: "Predicate-based gate",
+                        icon: "fa-filter",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("Filter")
+                    },
+                    {
+                        id: "Aggregator",
+                        type: "compartment",
+                        label: "Aggregator",
+                        description: "Summarizes neighborhood values",
+                        icon: "fa-layer-group",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("Aggregator")
+                    },
+                    {
+                        id: "Kernel",
+                        type: "compartment",
+                        label: "Kernel",
+                        description: "Probabilistic update kernel",
+                        icon: "fa-circle-dot",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("Kernel")
+                    },
+                    {
+                        id: "Transform",
+                        type: "compartment",
+                        label: "Transform",
+                        description: "Deterministic value update",
+                        icon: "fa-pen-ruler",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("Transform")
+                    },
+                    {
+                        id: "Compose",
+                        type: "compartment",
+                        label: "Compose",
+                        description: "Conditional block composition",
+                        icon: "fa-code-fork",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("Compose")
+                    },
+                    {
+                        id: "Schedule",
+                        type: "compartment",
+                        label: "Schedule",
+                        description: "Activates a block in time windows",
+                        icon: "fa-calendar-days",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("Schedule")
+                    },
+                    {
+                        id: "Observe",
+                        type: "compartment",
+                        label: "Observe",
+                        description: "Registers an observable",
+                        icon: "fa-chart-column",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("Observe")
+                    },
+                    {
+                        id: "ClampNormalize",
+                        type: "compartment",
+                        label: "Clamp Normalize",
+                        description: "Bounds a continuous variable",
+                        icon: "fa-compress",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("ClampNormalize")
                     },
                     {
                         id: "OpinionDistanceThreshold",
@@ -3008,6 +3125,19 @@
                 else if (type === "NodeCategoricalAttribute") params = { attribute: "gender", value: "male", probability: 1.0 };
                 else if (type === "NodeNumericalAttribute") params = { attribute: "age", op: "==", value: 25, probability: 1.0 };
                 else if (type === "NodeNumericalVariable") params = { var: "opinion", var_type: "ATTRIBUTE", value: 0.5, op: ">=", probability: 1.0 };
+                else if (type === "Parameter") params = { name: "epsilon", type: "float", default: 0.1 };
+                else if (type === "Constant") params = { name: "tau", type: "float", value: 0.5 };
+                else if (type === "Variable") params = { name: "opinion", scope: "node", type: "continuous", range: [0, 1], default: 0.5 };
+                else if (type === "Distribution") params = { family: "uniform", bounds: [0, 1] };
+                else if (type === "Selector") params = { policy: "random", share: 1.0 };
+                else if (type === "Filter") params = { predicate: "True" };
+                else if (type === "Aggregator") params = { mode: "mean", target: "opinion" };
+                else if (type === "Kernel") params = { rate: 1.0 };
+                else if (type === "Transform") params = { expression: "value", target: "opinion" };
+                else if (type === "Compose") params = { condition: "", if_true: "", if_false: "" };
+                else if (type === "Schedule") params = { start: 0, end: 100, period: 1, phase: 0 };
+                else if (type === "Observe") params = { variable: "opinion", mode: "bins", bins: 20, range: [0, 1] };
+                else if (type === "ClampNormalize") params = { min: 0.0, max: 1.0, target: "opinion" };
                 else if (type === "OpinionDistanceThreshold") params = { epsilon: 0.1 };
                 else if (type === "OpinionSelectionBias") params = { gamma: 1.5 };
                 else if (type === "OpinionCompromise") params = { mu: 0.5 };

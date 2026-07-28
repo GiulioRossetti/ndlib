@@ -27,11 +27,13 @@ class ExperimentParser(object):
             "from ndlib.models.compartments.NodeThreshold import NodeThreshold\n"
             "from ndlib.models.compartments.NodeCategoricalAttribute import NodeCategoricalAttribute\n"
             "from ndlib.models.compartments.NodeNumericalAttribute import NodeNumericalAttribute\n"
+            "from ndlib.models.compartments.NodeNumericalVariable import NodeNumericalVariable\n"
             "from ndlib.models.compartments.EdgeStochastic import EdgeStochastic\n"
             "from ndlib.models.compartments.EdgeCategoricalAttribute import EdgeCategoricalAttribute\n"
             "from ndlib.models.compartments.EdgeNumericalAttribute import EdgeNumericalAttribute\n"
             "from ndlib.models.compartments.ConditionalComposition import ConditionalComposition\n"
             "from ndlib.models.compartments.CountDown import CountDown\n"
+            "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe\n"
         )
 
         self.script = ""
@@ -41,6 +43,8 @@ class ExperimentParser(object):
             "COMPARTMENT",
             "RULE",
             "IF",
+            "DECLARE",
+            "OBSERVE",
             "INITIALIZE",
             "CREATE_NETWORK",
             "LOAD_NETWORK",
@@ -81,10 +85,7 @@ class ExperimentParser(object):
         if (
             "TYPE CONTINUOUS_OPINION" in self.query
             or "INITIAL_OPINION_DISTRIBUTION" in self.query
-            or "BLOCK " in self.query
-            or "BIN " in self.query
-            or "DECLARE " in self.query
-            or "OBSERVE " in self.query
+            or "OPINION_VARIABLE " in self.query
         ):
             self.__parse_continuous_query()
             return
@@ -134,6 +135,12 @@ class ExperimentParser(object):
 
             elif key == "IF":
                 code = self.__conditional_compartment_composition(statement)
+
+            elif key == "DECLARE":
+                code = self.__declaration_statement(statement)
+
+            elif key == "OBSERVE":
+                code = self.__observable_statement(statement)
 
             elif key == "INITIALIZE":
                 code = self.__model_configuration(statement)
@@ -353,6 +360,24 @@ class ExperimentParser(object):
         except ValueError:
             return value
 
+    def __render_compartment_value(self, comp_type, key, value):
+        reference_keys = {"condition", "first_branch", "second_branch", "if_true", "if_false", "composed"}
+        if comp_type == "NodeNumericalVariable" and key in {"var_type", "value_type"}:
+            if value is None:
+                return "None"
+            return "NumericalType.%s" % str(value).upper()
+        if isinstance(value, str):
+            if key in reference_keys and value in self.__compartments:
+                return value
+            try:
+                coerced = self.__coerce_ndql_value(value)
+                if coerced is not value:
+                    return repr(coerced)
+            except Exception:
+                pass
+            return repr(value)
+        return repr(value)
+
     @staticmethod
     def __translate_network_statement(stmt):
         parts = stmt.split()
@@ -403,16 +428,7 @@ class ExperimentParser(object):
             match = r.findall(lib)
             if match:
                 new_imports += "\n%s\n" % lib
-        generic_block = (
-            "\nclass GenericBlock(Compartiment):\n"
-            "    def __init__(self, block_type=None, params=None, **kwargs):\n"
-            "        super(GenericBlock, self).__init__(kwargs)\n"
-            "        self.block_type = block_type\n"
-            "        self.params = params or {}\n"
-            "    def execute(self, *args, **kwargs):\n"
-            "        return self.compose(*args, **kwargs)\n"
-        )
-        self.imports = new_imports + generic_block
+        self.imports = new_imports
 
     def __status_definition(self, desc):
         if len(desc) > 1:
@@ -505,6 +521,16 @@ class ExperimentParser(object):
                 "Experiment description malformed (file not existing): check your syntax"
             )
 
+    def __declaration_statement(self, desc):
+        if len(desc) != 1:
+            raise ValueError("Unsupported description")
+        return "# %s\n" % desc[0]
+
+    def __observable_statement(self, desc):
+        if len(desc) != 1:
+            raise ValueError("Unsupported description")
+        return "# %s\n" % desc[0]
+
     def __model_creation(self, desc):
 
         if len(desc) > 1:
@@ -575,35 +601,64 @@ class ExperimentParser(object):
         return apply
 
     def __compartment_definition(self, desc):
-
         components = {
             "COMPARTMENT": None,
             "TYPE": None,
             "TRIGGER": None,
             "COMPOSE": None,
-            "PARAM": {
-                "probability": 1,
-                "threshold": None,
-                "rate": None,
-                "attribute": None,
-                "attribute_value": None,
-                "name": None,
-                "iterations": None,
-            },
+            "PARAM": {},
+        }
+        freeform_types = {
+            "Parameter",
+            "Constant",
+            "Variable",
+            "Distribution",
+            "Compose",
+            "Filter",
+            "Selector",
+            "Aggregator",
+            "Kernel",
+            "Transform",
+            "ClampNormalize",
+            "Schedule",
+            "Observe",
+            "OpinionDistanceThreshold",
+            "OpinionSelectionBias",
+            "OpinionCompromise",
+            "OpinionStubbornness",
+            "OpinionNoise",
+            "OpinionPolarization",
+            "OpinionExternalField",
+            "OpinionTrustFilter",
+            "OpinionMemory",
+            "OpinionNormalization",
+            "OpinionQuantization",
+            "OpinionMediaInfluence",
+            "OpinionZealot",
         }
         for part in desc:
             part = part.split(" ")
             if part[0] not in components:
                 raise ValueError("Unsupported description")
-            if len(part) == 2:
+            if len(part) == 2 and part[0] not in {"PARAM"}:
                 components[part[0]] = part[1]
-            else:
-                if components["TYPE"] in {"Compose", "Transform", "Filter", "Aggregator", "Kernel", "Selector", "Schedule", "Observe", "ClampNormalize", "ExposureRate", "TransmissionKernel", "DoseResponseBlock", "LatencyPeriod", "IncubationState", "RecoveryKernel", "WaningImmunity", "VaccinationBlock", "QuarantineBlock", "TestingBlock", "TreatmentBlock", "HospitalizationBlock", "MortalityBlock", "ReinfectionBlock", "StrainBlock", "SuperSpreaderBlock", "SeasonalityBlock", "ImportationBlock", "RewiringBlock", "CommunityMixingBlock", "EdgeActivationBlock"}:
-                    components["PARAM"][part[1]] = part[2]
+            elif part[0] == "PARAM":
+                if len(part) < 3:
+                    raise ValueError(
+                        "Experiment description malformed (wrong compartment parameter): check your syntax"
+                    )
+                value = self.__coerce_ndql_value(" ".join(part[2:]))
+                if components["TYPE"] in freeform_types:
+                    components["PARAM"][part[1]] = value
                 else:
-                    if part[1] not in components["PARAM"]:
+                    if part[1] not in {"probability", "threshold", "rate", "attribute", "attribute_value", "name", "iterations", "composed", "triggering_status"}:
                         raise ValueError("Unsupported parameter")
-                    components["PARAM"][part[1]] = part[2]
+                    components["PARAM"][part[1]] = value
+            elif len(part) > 2:
+                if components["TYPE"] in freeform_types:
+                    components["PARAM"][part[1]] = self.__coerce_ndql_value(" ".join(part[2:]))
+                else:
+                    raise ValueError("Unsupported description")
 
         if (
             components["TRIGGER"] is not None
@@ -624,48 +679,73 @@ class ExperimentParser(object):
             "EdgeCategoricalAttribute",
             "EdgeNumericalAttribute",
             "ConditionalComposition",
+            "Compose",
+            "Parameter",
+            "Constant",
+            "Variable",
+            "Distribution",
+            "Filter",
+            "Selector",
+            "Aggregator",
+            "Kernel",
+            "Transform",
+            "ClampNormalize",
+            "Schedule",
+            "Observe",
+            "OpinionDistanceThreshold",
+            "OpinionSelectionBias",
+            "OpinionCompromise",
+            "OpinionStubbornness",
+            "OpinionNoise",
+            "OpinionPolarization",
+            "OpinionExternalField",
+            "OpinionTrustFilter",
+            "OpinionMemory",
+            "OpinionNormalization",
+            "OpinionQuantization",
+            "OpinionMediaInfluence",
+            "OpinionZealot",
         }
-
         if components["TYPE"] not in known_types:
-            params = {
-                k: v for k, v in components["PARAM"].items() if v is not None
-            }
-            rule = (
-                "%s = GenericBlock(block_type=%r, params=%r, composed=%s, triggering_status=%r)\n"
-                % (
-                    components["COMPARTMENT"],
-                    components["TYPE"],
-                    params,
-                    components["COMPOSE"],
-                    components["TRIGGER"],
-                )
-            )
+            raise ValueError("Unsupported compartment type '%s'" % components["TYPE"])
+
+        if components["TYPE"] == "Compose":
+            params = []
+            for key in ("condition", "if_true", "if_false", "first_branch", "second_branch"):
+                if key in components["PARAM"] and components["PARAM"][key] is not None:
+                    params.append("%s=%s" % (key, self.__render_compartment_value(components["TYPE"], key, components["PARAM"][key])))
+            rule = "%s = Compose(%s)\n" % (components["COMPARTMENT"], ", ".join(params))
+        elif components["TYPE"] == "ConditionalComposition":
+            params = []
+            for key in ("condition", "first_branch", "second_branch"):
+                if key in components["PARAM"] and components["PARAM"][key] is not None:
+                    params.append("%s=%s" % (key, self.__render_compartment_value(components["TYPE"], key, components["PARAM"][key])))
+            rule = "%s = ConditionalComposition(%s)\n" % (components["COMPARTMENT"], ", ".join(params))
+        elif components["TYPE"] == "NodeNumericalVariable":
+            params = []
+            for key, value in components["PARAM"].items():
+                if value is None:
+                    continue
+                params.append("%s=%s" % (key, self.__render_compartment_value(components["TYPE"], key, value)))
+            rule = "%s = NodeNumericalVariable(%s)\n" % (components["COMPARTMENT"], ", ".join(params))
+        elif components["TYPE"] in {"NodeStochastic", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "EdgeCategoricalAttribute", "EdgeNumericalAttribute"}:
+            params = []
+            for key, value in components["PARAM"].items():
+                if value is None:
+                    continue
+                params.append("%s=%s" % (key, self.__render_compartment_value(components["TYPE"], key, value)))
+            if components["TRIGGER"] is not None:
+                params.append("triggering_status=%r" % components["TRIGGER"])
+            rule = "%s = %s(%s)\n" % (components["COMPARTMENT"], components["TYPE"], ", ".join(params))
         else:
-            rule = (
-                "%s = %s(composed=%s, triggering_status='%s', "
-                "rate=%s, probability=%s, threshold=%s, attribute='%s', attribute_value=%s, name=\"%s\", iterations=%s)\n"
-                % (
-                    components["COMPARTMENT"],
-                    components["TYPE"],
-                    components["COMPOSE"],
-                    components["TRIGGER"],
-                    components["PARAM"]["rate"],
-                    components["PARAM"]["probability"],
-                    components["PARAM"]["threshold"],
-                    components["PARAM"]["attribute"],
-                    components["PARAM"]["attribute_value"],
-                    components["PARAM"]["name"],
-                    components["PARAM"]["iterations"],
-                )
-            )
-
-            rule = rule.replace("'None'", "None")
-
-            # Code cleaning
-            rule = re.sub(", [a-zA-Z\\_]+=None", "", rule)
-            rule = rule.replace("  ", " ")
-            rule = re.sub("[a-zA-Z\\_]+=None,", "", rule)
-            rule = rule.replace("( ", "(")
+            params = []
+            if components["TRIGGER"] is not None:
+                params.append("triggering_status=%r" % components["TRIGGER"])
+            for key, value in components["PARAM"].items():
+                if value is None:
+                    continue
+                params.append("%s=%s" % (key, self.__render_compartment_value(components["TYPE"], key, value)))
+            rule = "%s = %s(%s)\n" % (components["COMPARTMENT"], components["TYPE"], ", ".join(params))
 
         return rule
 

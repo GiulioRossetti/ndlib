@@ -150,6 +150,19 @@ def is_known_compartment_type(comp_type):
         "EdgeCategoricalAttribute",
         "EdgeNumericalAttribute",
         "ConditionalComposition",
+        "Parameter",
+        "Constant",
+        "Variable",
+        "Distribution",
+        "Compose",
+        "Filter",
+        "Selector",
+        "Aggregator",
+        "Kernel",
+        "Transform",
+        "ClampNormalize",
+        "Schedule",
+        "Observe",
         "OpinionDistanceThreshold",
         "OpinionSelectionBias",
         "OpinionCompromise",
@@ -839,16 +852,9 @@ def generate_custom_model_class(model_data):
         "from ndlib.models.compartments.EdgeNumericalAttribute import EdgeNumericalAttribute",
         "from ndlib.models.compartments.ConditionalComposition import ConditionalComposition",
         "from ndlib.models.compartments.CountDown import CountDown",
+        "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe",
         "from ndlib.models.compartments.enums.NumericalType import NumericalType",
         "from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions",
-        "",
-        "class _GenericBlock(Compartiment):",
-        "    def __init__(self, block_type=None, params=None, **kwargs):",
-        "        super(_GenericBlock, self).__init__(kwargs)",
-        "        self.block_type = block_type",
-        "        self.params = params or {}",
-        "    def execute(self, *args, **kwargs):",
-        "        return self.compose(*args, **kwargs)",
         "",
         "class %s(CompositeModel):" % class_name,
         "    def __init__(self, graph, seed=None):",
@@ -943,11 +949,12 @@ def generate_custom_model_class(model_data):
         comp_type = comp["type"]
         params = comp.get("params", {})
         
+        reference_keys = {"condition", "first_branch", "second_branch", "if_true", "if_false", "composed"}
         args = []
         for k, v in params.items():
             if k == "triggering_status":
                 args.append("triggering_status=%r" % v)
-            elif comp_type == "ConditionalComposition" and k in {"condition", "first_branch", "second_branch"}:
+            elif comp_type in {"ConditionalComposition", "Compose"} and k in reference_keys:
                 args.append("%s=%s" % (k, str(v)))
             elif comp_type == "NodeNumericalVariable" and k in {"var_type", "value_type"}:
                 if v:
@@ -966,19 +973,9 @@ def generate_custom_model_class(model_data):
             else:
                 args.append("%s=%s" % (k, str(v)))
         
-        if is_known_compartment_type(comp_type):
-            code.append("        %s = %s(%s)" % (comp_name, comp_type, ", ".join(args)))
-        else:
-            if args:
-                code.append(
-                    "        %s = _GenericBlock(block_type=%r, params=%r, %s)"
-                    % (comp_name, comp_type, params, ", ".join(args))
-                )
-            else:
-                code.append(
-                    "        %s = _GenericBlock(block_type=%r, params=%r)"
-                    % (comp_name, comp_type, params)
-                )
+        if not is_known_compartment_type(comp_type):
+            raise ValueError("Unsupported compartment type '%s'" % comp_type)
+        code.append("        %s = %s(%s)" % (comp_name, comp_type, ", ".join(args)))
 
     code.append("")
     code.append("        # Define rules")
@@ -1154,15 +1151,8 @@ def generate_continuous_opinion_custom_model_class(
         "import numpy as np",
         "from ndlib.models.DiffusionModel import DiffusionModel",
         "from ndlib.models.compartments.Compartment import Compartiment",
+        "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe",
         "from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions",
-        "",
-        "class _GenericBlock(Compartiment):",
-        "    def __init__(self, block_type=None, params=None, **kwargs):",
-        "        super(_GenericBlock, self).__init__(kwargs)",
-        "        self.block_type = block_type",
-        "        self.params = params or {}",
-        "    def execute(self, *args, **kwargs):",
-        "        return self.compose(*args, **kwargs)",
         "",
         "class %s(DiffusionModel):" % class_name,
         "    def __init__(self, graph, seed=None):",
@@ -1597,12 +1587,31 @@ def generate_ndql_script(model_data):
     for comp in sorted_comps:
         if comp["type"] == "ConditionalComposition":
             params = comp.get("params", {})
-            ndql.append("IF %s THEN %s ELSE %s AS %s" % (
-                params.get("condition", ""),
-                params.get("first_branch", ""),
-                params.get("second_branch", ""),
-                comp["name"]
-            ))
+            condition = params.get("condition", "")
+            ndql.append(
+                "IF %s THEN %s ELSE %s AS %s"
+                % (
+                    condition,
+                    params.get("first_branch", ""),
+                    params.get("second_branch", ""),
+                    comp["name"],
+                )
+            )
+            ndql.append("")
+        elif comp["type"] == "Compose":
+            ndql.append("BLOCK %s" % comp["name"])
+            ndql.append("TYPE Compose")
+            params = comp.get("params", {})
+            if "condition" in params:
+                ndql.append("PARAM condition %s" % params["condition"])
+            if "if_true" in params:
+                ndql.append("PARAM if_true %s" % params["if_true"])
+            if "if_false" in params:
+                ndql.append("PARAM if_false %s" % params["if_false"])
+            if "first_branch" in params:
+                ndql.append("PARAM first_branch %s" % params["first_branch"])
+            if "second_branch" in params:
+                ndql.append("PARAM second_branch %s" % params["second_branch"])
             ndql.append("")
         else:
             ndql.append("COMPARTMENT %s" % comp["name"])
