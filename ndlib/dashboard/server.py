@@ -138,6 +138,34 @@ def serialize_ndql_observable(observable):
     return " ".join(parts)
 
 
+def is_known_compartment_type(comp_type):
+    return comp_type in {
+        "NodeStochastic",
+        "NodeThreshold",
+        "EdgeStochastic",
+        "CountDown",
+        "NodeCategoricalAttribute",
+        "NodeNumericalAttribute",
+        "NodeNumericalVariable",
+        "EdgeCategoricalAttribute",
+        "EdgeNumericalAttribute",
+        "ConditionalComposition",
+        "OpinionDistanceThreshold",
+        "OpinionSelectionBias",
+        "OpinionCompromise",
+        "OpinionStubbornness",
+        "OpinionNoise",
+        "OpinionPolarization",
+        "OpinionExternalField",
+        "OpinionTrustFilter",
+        "OpinionMemory",
+        "OpinionNormalization",
+        "OpinionQuantization",
+        "OpinionMediaInfluence",
+        "OpinionZealot",
+    }
+
+
 def coerce_model_parameter_value(param, val, p_info):
     """
     Coerce dashboard payload values to the type expected by the model.
@@ -800,6 +828,7 @@ def generate_custom_model_class(model_data):
     code = [
         "import numpy as np",
         "from ndlib.models.CompositeModel import CompositeModel",
+        "from ndlib.models.compartments.Compartment import Compartiment",
         "from ndlib.models.compartments.NodeStochastic import NodeStochastic",
         "from ndlib.models.compartments.NodeThreshold import NodeThreshold",
         "from ndlib.models.compartments.NodeCategoricalAttribute import NodeCategoricalAttribute",
@@ -812,6 +841,14 @@ def generate_custom_model_class(model_data):
         "from ndlib.models.compartments.CountDown import CountDown",
         "from ndlib.models.compartments.enums.NumericalType import NumericalType",
         "from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions",
+        "",
+        "class _GenericBlock(Compartiment):",
+        "    def __init__(self, block_type=None, params=None, **kwargs):",
+        "        super(_GenericBlock, self).__init__(kwargs)",
+        "        self.block_type = block_type",
+        "        self.params = params or {}",
+        "    def execute(self, *args, **kwargs):",
+        "        return self.compose(*args, **kwargs)",
         "",
         "class %s(CompositeModel):" % class_name,
         "    def __init__(self, graph, seed=None):",
@@ -929,7 +966,19 @@ def generate_custom_model_class(model_data):
             else:
                 args.append("%s=%s" % (k, str(v)))
         
-        code.append("        %s = %s(%s)" % (comp_name, comp_type, ", ".join(args)))
+        if is_known_compartment_type(comp_type):
+            code.append("        %s = %s(%s)" % (comp_name, comp_type, ", ".join(args)))
+        else:
+            if args:
+                code.append(
+                    "        %s = _GenericBlock(block_type=%r, params=%r, %s)"
+                    % (comp_name, comp_type, params, ", ".join(args))
+                )
+            else:
+                code.append(
+                    "        %s = _GenericBlock(block_type=%r, params=%r)"
+                    % (comp_name, comp_type, params)
+                )
 
     code.append("")
     code.append("        # Define rules")
@@ -1104,7 +1153,16 @@ def generate_continuous_opinion_custom_model_class(
     code = [
         "import numpy as np",
         "from ndlib.models.DiffusionModel import DiffusionModel",
+        "from ndlib.models.compartments.Compartment import Compartiment",
         "from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions",
+        "",
+        "class _GenericBlock(Compartiment):",
+        "    def __init__(self, block_type=None, params=None, **kwargs):",
+        "        super(_GenericBlock, self).__init__(kwargs)",
+        "        self.block_type = block_type",
+        "        self.params = params or {}",
+        "    def execute(self, *args, **kwargs):",
+        "        return self.compose(*args, **kwargs)",
         "",
         "class %s(DiffusionModel):" % class_name,
         "    def __init__(self, graph, seed=None):",
@@ -1478,6 +1536,12 @@ def generate_ndql_script(model_data):
                 ndql.append("PARAM variable opinion")
                 ndql.append("PARAM operator %s" % params.get("op", ">="))
                 ndql.append("PARAM threshold %s" % params.get("value", 0.5))
+                ndql.append("")
+            elif comp_type:
+                ndql.append("BLOCK %s" % comp.get("name", comp_type))
+                ndql.append("TYPE %s" % comp_type)
+                for key, value in params.items():
+                    ndql.append("PARAM %s %s" % (key, format_ndql_value(value)))
                 ndql.append("")
 
         for obs in observables:

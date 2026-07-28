@@ -22,6 +22,7 @@ class ExperimentParser(object):
             "import json\n"
             "from ndlib.models.ModelConfig import Configuration\n"
             "from ndlib.models.CompositeModel import CompositeModel\n"
+            "from ndlib.models.compartments.Compartment import Compartiment\n"
             "from ndlib.models.compartments.NodeStochastic import NodeStochastic\n"
             "from ndlib.models.compartments.NodeThreshold import NodeThreshold\n"
             "from ndlib.models.compartments.NodeCategoricalAttribute import NodeCategoricalAttribute\n"
@@ -370,9 +371,10 @@ class ExperimentParser(object):
         # Query execution
         old_stdout = sys.stdout
         redirected_output = sys.stdout = StringIO()
+        runtime_ns = {}
 
         try:
-            exec(self.script, locals(), globals())
+            exec(self.script, runtime_ns, runtime_ns)
         except SyntaxError:
             raise ValueError(
                 "Experiment description malformed (Incorrect statement ordering): check your syntax"
@@ -391,7 +393,7 @@ class ExperimentParser(object):
     def __clean_imports(self):
 
         libs = self.imports.split("\n")
-        new_imports = "\n".join(libs[:5])
+        new_imports = "\n".join(libs[:6])
         compartments = set(self.__compartments.values())
         rs = ["\\b%s\\b " % x for x in compartments]
         cps = r"|".join(rs)
@@ -401,7 +403,16 @@ class ExperimentParser(object):
             match = r.findall(lib)
             if match:
                 new_imports += "\n%s\n" % lib
-        self.imports = new_imports
+        generic_block = (
+            "\nclass GenericBlock(Compartiment):\n"
+            "    def __init__(self, block_type=None, params=None, **kwargs):\n"
+            "        super(GenericBlock, self).__init__(kwargs)\n"
+            "        self.block_type = block_type\n"
+            "        self.params = params or {}\n"
+            "    def execute(self, *args, **kwargs):\n"
+            "        return self.compose(*args, **kwargs)\n"
+        )
+        self.imports = new_imports + generic_block
 
     def __status_definition(self, desc):
         if len(desc) > 1:
@@ -587,9 +598,12 @@ class ExperimentParser(object):
             if len(part) == 2:
                 components[part[0]] = part[1]
             else:
-                if part[1] not in components["PARAM"]:
-                    raise ValueError("Unsupported parameter")
-                components["PARAM"][part[1]] = part[2]
+                if components["TYPE"] in {"Compose", "Transform", "Filter", "Aggregator", "Kernel", "Selector", "Schedule", "Observe", "ClampNormalize", "ExposureRate", "TransmissionKernel", "DoseResponseBlock", "LatencyPeriod", "IncubationState", "RecoveryKernel", "WaningImmunity", "VaccinationBlock", "QuarantineBlock", "TestingBlock", "TreatmentBlock", "HospitalizationBlock", "MortalityBlock", "ReinfectionBlock", "StrainBlock", "SuperSpreaderBlock", "SeasonalityBlock", "ImportationBlock", "RewiringBlock", "CommunityMixingBlock", "EdgeActivationBlock"}:
+                    components["PARAM"][part[1]] = part[2]
+                else:
+                    if part[1] not in components["PARAM"]:
+                        raise ValueError("Unsupported parameter")
+                    components["PARAM"][part[1]] = part[2]
 
         if (
             components["TRIGGER"] is not None
@@ -599,31 +613,59 @@ class ExperimentParser(object):
 
         self.__compartments[components["COMPARTMENT"]] = components["TYPE"]
 
-        rule = (
-            "%s = %s(composed=%s, triggering_status='%s', "
-            "rate=%s, probability=%s, threshold=%s, attribute='%s', attribute_value=%s, name=\"%s\", iterations=%s)\n"
-            % (
-                components["COMPARTMENT"],
-                components["TYPE"],
-                components["COMPOSE"],
-                components["TRIGGER"],
-                components["PARAM"]["rate"],
-                components["PARAM"]["probability"],
-                components["PARAM"]["threshold"],
-                components["PARAM"]["attribute"],
-                components["PARAM"]["attribute_value"],
-                components["PARAM"]["name"],
-                components["PARAM"]["iterations"],
+        known_types = {
+            "NodeStochastic",
+            "NodeThreshold",
+            "EdgeStochastic",
+            "CountDown",
+            "NodeCategoricalAttribute",
+            "NodeNumericalAttribute",
+            "NodeNumericalVariable",
+            "EdgeCategoricalAttribute",
+            "EdgeNumericalAttribute",
+            "ConditionalComposition",
+        }
+
+        if components["TYPE"] not in known_types:
+            params = {
+                k: v for k, v in components["PARAM"].items() if v is not None
+            }
+            rule = (
+                "%s = GenericBlock(block_type=%r, params=%r, composed=%s, triggering_status=%r)\n"
+                % (
+                    components["COMPARTMENT"],
+                    components["TYPE"],
+                    params,
+                    components["COMPOSE"],
+                    components["TRIGGER"],
+                )
             )
-        )
+        else:
+            rule = (
+                "%s = %s(composed=%s, triggering_status='%s', "
+                "rate=%s, probability=%s, threshold=%s, attribute='%s', attribute_value=%s, name=\"%s\", iterations=%s)\n"
+                % (
+                    components["COMPARTMENT"],
+                    components["TYPE"],
+                    components["COMPOSE"],
+                    components["TRIGGER"],
+                    components["PARAM"]["rate"],
+                    components["PARAM"]["probability"],
+                    components["PARAM"]["threshold"],
+                    components["PARAM"]["attribute"],
+                    components["PARAM"]["attribute_value"],
+                    components["PARAM"]["name"],
+                    components["PARAM"]["iterations"],
+                )
+            )
 
-        rule = rule.replace("'None'", "None")
+            rule = rule.replace("'None'", "None")
 
-        # Code cleaning
-        rule = re.sub(", [a-zA-Z\\_]+=None", "", rule)
-        rule = rule.replace("  ", " ")
-        rule = re.sub("[a-zA-Z\\_]+=None,", "", rule)
-        rule = rule.replace("( ", "(")
+            # Code cleaning
+            rule = re.sub(", [a-zA-Z\\_]+=None", "", rule)
+            rule = rule.replace("  ", " ")
+            rule = re.sub("[a-zA-Z\\_]+=None,", "", rule)
+            rule = rule.replace("( ", "(")
 
         return rule
 

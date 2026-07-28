@@ -372,6 +372,60 @@ class DashboardTest(unittest.TestCase):
         self.assertIn("DECLARE VARIABLE opinion TYPE continuous RANGE [0,1] DEFAULT 0.5", ndql_script)
         self.assertIn("OBSERVE opinion AS bins BINS 20 RANGE [0,1]", ndql_script)
 
+    def test_custom_model_supports_phase1_and_phase2_placeholder_blocks(self):
+        from ndlib.dashboard.server import generate_custom_model_class, generate_ndql_script
+        import networkx as nx
+        import ndlib.models.ModelConfig as mc
+
+        payload = {
+            "name": "PhaseBlocksModel",
+            "statuses": [
+                {"name": "Susceptible", "code": 0},
+                {"name": "Infected", "code": 1},
+                {"name": "Recovered", "code": 2},
+            ],
+            "compartments": [
+                {"name": "compose_gate", "type": "Compose", "params": {}},
+                {"name": "transform_gate", "type": "Transform", "params": {"expression": "x"}},
+                {"name": "filter_gate", "type": "Filter", "params": {"predicate": "opinion > 0.5"}},
+                {"name": "selector_gate", "type": "Selector", "params": {"policy": "random"}},
+                {"name": "exposure_gate", "type": "ExposureRate", "params": {"beta": 0.2}},
+                {"name": "recovery_gate", "type": "RecoveryKernel", "params": {"gamma": 0.1}},
+                {"name": "clamp_gate", "type": "ClampNormalize", "params": {"min": 0.0, "max": 1.0}},
+            ],
+            "rules": [
+                {"from": "Susceptible", "to": "Infected", "using": "compose_gate"},
+                {"from": "Infected", "to": "Recovered", "using": "recovery_gate"},
+            ],
+            "initial_status": [
+                {"status": "Susceptible", "ratio": 0.9},
+                {"status": "Infected", "ratio": 0.1},
+                {"status": "Recovered", "ratio": 0.0},
+            ]
+        }
+
+        class_code = generate_custom_model_class(payload)
+        self.assertIn("class _GenericBlock(Compartiment):", class_code)
+        self.assertIn("_GenericBlock(block_type='Compose'", class_code)
+        self.assertIn("_GenericBlock(block_type='ExposureRate'", class_code)
+
+        ndql_script = generate_ndql_script(payload)
+        self.assertIn("TYPE Compose", ndql_script)
+        self.assertIn("TYPE ExposureRate", ndql_script)
+        self.assertIn("TYPE RecoveryKernel", ndql_script)
+
+        scope = {}
+        exec(class_code, scope, scope)
+        model_cls = scope["PhaseBlocksModel"]
+        model = model_cls(nx.path_graph(8))
+        cfg = mc.Configuration()
+        cfg.add_model_parameter("percentage_Susceptible", 0.9)
+        cfg.add_model_parameter("percentage_Infected", 0.1)
+        cfg.add_model_parameter("percentage_Recovered", 0.0)
+        model.set_initial_status(cfg)
+        result = model.iteration()
+        self.assertIn("status", result)
+
     def test_build_initial_status_assignment_respects_percentages(self):
         from ndlib.dashboard.server import build_initial_status_assignment
         import networkx as nx

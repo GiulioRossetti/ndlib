@@ -349,3 +349,54 @@ class NdlibParserTest(unittest.TestCase):
         self.assertIsInstance(iterations, list)
         self.assertGreaterEqual(len(iterations), 1)
         self.assertIn("status", iterations[0])
+
+    def test_legacy_ndql_supports_placeholder_phase_blocks(self):
+        query = (
+            "CREATE_NETWORK g1\n"
+            "TYPE erdos_renyi_graph\n"
+            "PARAM n 20\n"
+            "PARAM p 0.2\n"
+            "\n"
+            "MODEL phase_model\n"
+            "\n"
+            "STATUS Susceptible\n"
+            "\n"
+            "STATUS Infected\n"
+            "\n"
+            "STATUS Recovered\n"
+            "\n"
+            "COMPARTMENT compose_gate\n"
+            "TYPE Compose\n"
+            "\n"
+            "COMPARTMENT exposure_gate\n"
+            "TYPE ExposureRate\n"
+            "PARAM beta 0.2\n"
+            "\n"
+            "RULE\n"
+            "FROM Susceptible\n"
+            "TO Infected\n"
+            "USING compose_gate\n"
+            "\n"
+            "RULE\n"
+            "FROM Infected\n"
+            "TO Recovered\n"
+            "USING exposure_gate\n"
+            "\n"
+            "INITIALIZE\n"
+            "SET Susceptible 0.9\n"
+            "SET Infected 0.1\n"
+            "SET Recovered 0.0\n"
+            "\n"
+            "EXECUTE phase_model ON g1 FOR 3"
+        )
+
+        parser = ep.ExperimentParser()
+        parser.set_query(query)
+        parser.parse()
+        local_scope = {}
+        global_scope = {}
+        exec(parser.script, global_scope, local_scope)
+        iterations = parser.execute_query()
+        self.assertIsInstance(iterations, list)
+        self.assertGreaterEqual(len(iterations), 1)
+        self.assertIn("trends", iterations[0])

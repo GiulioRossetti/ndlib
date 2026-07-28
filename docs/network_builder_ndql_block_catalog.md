@@ -39,6 +39,8 @@ The following items from this catalog are implemented in the current dashboard a
 - continuous-opinion custom Python model generation
 - parser execution for the builder-emitted continuous-opinion NDQL subset
 - typed NDQL declarations and observables in the builder payload and parser
+- shared execution primitive placeholders for `Compose`, `Transform`, `Filter`, `Selector`, `Aggregator`, `Kernel`, `Schedule`, `Observe`, and `ClampNormalize`
+- epidemic placeholder blocks for `ExposureRate`, `TransmissionKernel`, `DoseResponseBlock`, `RecoveryKernel`, `WaningImmunity`, `VaccinationBlock`, `QuarantineBlock`, `TestingBlock`, `TreatmentBlock`, `HospitalizationBlock`, `MortalityBlock`, `ReinfectionBlock`, `StrainBlock`, `SuperSpreaderBlock`, `SeasonalityBlock`, `ImportationBlock`, `RewiringBlock`, `CommunityMixingBlock`, and `EdgeActivationBlock`
 - discrete-opinion initial class percentages
 - zealot selection in the dashboard for `VoterZealotModel`
 - media opinion count and per-media opinion values for `AlgorithmicBiasMediaModel`
