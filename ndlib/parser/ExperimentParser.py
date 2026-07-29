@@ -33,7 +33,7 @@ class ExperimentParser(object):
             "from ndlib.models.compartments.EdgeNumericalAttribute import EdgeNumericalAttribute\n"
             "from ndlib.models.compartments.ConditionalComposition import ConditionalComposition\n"
             "from ndlib.models.compartments.CountDown import CountDown\n"
-            "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, ExposureRate, TransmissionKernel, DoseResponseBlock, LatencyPeriod, IncubationState, RecoveryKernel, WaningImmunity, VaccinationBlock, QuarantineBlock, TestingBlock, TreatmentBlock, HospitalizationBlock, MortalityBlock, ReinfectionBlock, StrainBlock, SuperSpreaderBlock, SeasonalityBlock, ImportationBlock, RewiringBlock, CommunityMixingBlock, EdgeActivationBlock, AttributeCoupling, OpinionAffectsInfection, OpinionAffectsRecovery, OpinionAffectsContactRate, InfectionAffectsOpinion, StatusDependentOpinionUpdate, EpidemicDependentBias, PolicyIntervention, CommunityCoupling, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift\n"
+            "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, ExposureRate, TransmissionKernel, DoseResponseBlock, LatencyPeriod, IncubationState, RecoveryKernel, WaningImmunity, VaccinationBlock, QuarantineBlock, TestingBlock, TreatmentBlock, HospitalizationBlock, MortalityBlock, ReinfectionBlock, StrainBlock, SuperSpreaderBlock, SeasonalityBlock, ImportationBlock, RewiringBlock, CommunityMixingBlock, EdgeActivationBlock, SeedSelection, NodeRoleAssignment, AttributeInitializer, GraphImport, CommunityAssignment, RuleAlias, PreviewObservable, ValidationHint, AttributeCoupling, OpinionAffectsInfection, OpinionAffectsRecovery, OpinionAffectsContactRate, InfectionAffectsOpinion, StatusDependentOpinionUpdate, EpidemicDependentBias, PolicyIntervention, CommunityCoupling, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift\n"
         )
 
         self.script = ""
@@ -647,6 +647,14 @@ class ExperimentParser(object):
             "OpinionDistribution",
             "OpinionMultiTopic",
             "OpinionLabelSwitch",
+            "SeedSelection",
+            "NodeRoleAssignment",
+            "AttributeInitializer",
+            "GraphImport",
+            "CommunityAssignment",
+            "RuleAlias",
+            "PreviewObservable",
+            "ValidationHint",
             "ExposureRate",
             "TransmissionKernel",
             "DoseResponseBlock",
@@ -754,6 +762,14 @@ class ExperimentParser(object):
             "OpinionDistribution",
             "OpinionMultiTopic",
             "OpinionLabelSwitch",
+            "SeedSelection",
+            "NodeRoleAssignment",
+            "AttributeInitializer",
+            "GraphImport",
+            "CommunityAssignment",
+            "RuleAlias",
+            "PreviewObservable",
+            "ValidationHint",
             "ExposureRate",
             "TransmissionKernel",
             "DoseResponseBlock",

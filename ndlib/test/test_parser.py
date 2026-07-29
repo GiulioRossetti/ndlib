@@ -498,6 +498,107 @@ class NdlibParserTest(unittest.TestCase):
         self.assertGreaterEqual(len(iterations), 1)
         self.assertIn("trends", iterations[0])
 
+    def test_utility_blocks_ndql_roundtrip(self):
+        import tempfile
+
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
+            fh.write('{"graph": {"source": "imported"}, "nodes": {"0": {"label": "seed"}}}')
+            graph_path = fh.name
+
+        try:
+            query = (
+                "CREATE_NETWORK g1\n"
+                "TYPE erdos_renyi_graph\n"
+                "PARAM n 12\n"
+                "PARAM p 0.2\n"
+                "\n"
+                "MODEL UtilityBlocksModel\n"
+                "\n"
+                "STATUS Susceptible\n"
+                "STATUS Infected\n"
+                "\n"
+                "COMPARTMENT seed_selection\n"
+                "TYPE SeedSelection\n"
+                "PARAM nodes [0,1]\n"
+                "\n"
+                "COMPARTMENT role_assignment\n"
+                "TYPE NodeRoleAssignment\n"
+                "PARAM role zealot\n"
+                "PARAM nodes [0,1]\n"
+                "\n"
+                "COMPARTMENT attr_init\n"
+                "TYPE AttributeInitializer\n"
+                "PARAM attribute opinion\n"
+                "PARAM value 0.25\n"
+                "\n"
+                "COMPARTMENT graph_import\n"
+                "TYPE GraphImport\n"
+                "PARAM source %s\n"
+                "PARAM merge True\n"
+                "\n"
+                "COMPARTMENT community\n"
+                "TYPE CommunityAssignment\n"
+                "PARAM algorithm greedy_modularity_communities\n"
+                "PARAM target com\n"
+                "\n"
+                "COMPARTMENT alias\n"
+                "TYPE RuleAlias\n"
+                "PARAM alias infection_rule\n"
+                "PARAM target infection\n"
+                "PARAM description Reusable rule\n"
+                "\n"
+                "COMPARTMENT preview\n"
+                "TYPE PreviewObservable\n"
+                "PARAM variable opinion\n"
+                "PARAM mode bins\n"
+                "PARAM bins 10\n"
+                "PARAM range [0,1]\n"
+                "\n"
+                "COMPARTMENT hint\n"
+                "TYPE ValidationHint\n"
+                "PARAM name opinion_range\n"
+                "PARAM minimum 0.0\n"
+                "PARAM maximum 1.0\n"
+                "PARAM target opinion\n"
+                "\n"
+                "COMPARTMENT infection\n"
+                "TYPE NodeStochastic\n"
+                "PARAM rate 0.1\n"
+                "TRIGGER Infected\n"
+                "\n"
+                "RULE\n"
+                "FROM Susceptible\n"
+                "TO Infected\n"
+                "USING infection\n"
+                "\n"
+                "INITIALIZE\n"
+                "SET Infected 0.1\n"
+                "\n"
+                "EXECUTE UtilityBlocksModel ON g1 FOR 3" % graph_path
+            )
+
+            parser = ep.ExperimentParser()
+            parser.set_query(query)
+            parser.parse()
+
+            self.assertIn("SeedSelection", parser.script)
+            self.assertIn("GraphImport", parser.script)
+            self.assertIn("ValidationHint", parser.script)
+
+            local_scope = {}
+            global_scope = {}
+            exec(parser.script, global_scope, local_scope)
+
+            iterations = parser.execute_query()
+            self.assertIsInstance(iterations, list)
+            self.assertGreaterEqual(len(iterations), 1)
+            self.assertIn("trends", iterations[0])
+        finally:
+            try:
+                os.remove(graph_path)
+            except OSError:
+                pass
+
     def test_continuous_opinion_builder_ndql_with_zealots(self):
         query = (
             "MODEL OpinionZealotModel\n"

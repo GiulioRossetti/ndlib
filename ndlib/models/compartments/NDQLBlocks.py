@@ -1,3 +1,4 @@
+import json
 import math
 import random
 import statistics
@@ -195,6 +196,39 @@ def _random_node(graph, exclude=None):
 def _sample_bool(probability):
     probability = _clamp(probability, 0.0, 1.0)
     return bool(np.random.random_sample() <= probability)
+
+
+def _resolve_node_selection(graph, params=None, nodes=None, share=None, attribute=None, value=None, community_field="com", community=None):
+    params = params or {}
+    selected = []
+    if nodes is None and isinstance(params, dict):
+        nodes = params.get("nodes")
+        share = params.get("share", share)
+        attribute = params.get("attribute", attribute)
+        value = params.get("value", value)
+        community_field = params.get("community_field", community_field)
+        community = params.get("community", community)
+    if nodes is not None:
+        selected = [n for n in _coerce_list(nodes) if n in graph]
+    elif attribute is not None:
+        for node in graph.nodes():
+            node_value = graph.nodes[node].get(attribute)
+            if value is None:
+                if node_value is not None:
+                    selected.append(node)
+            elif node_value == value:
+                selected.append(node)
+    elif community is not None:
+        for node in graph.nodes():
+            if graph.nodes[node].get(community_field, graph.graph.get(community_field)) == community:
+                selected.append(node)
+    elif share is not None:
+        share = _clamp(share, 0.0, 1.0)
+        count = max(0, min(len(graph), int(round(len(graph) * share))))
+        nodes_pool = list(graph.nodes())
+        if count > 0 and nodes_pool:
+            selected = list(np.random.choice(nodes_pool, size=count, replace=False))
+    return selected
 
 
 class NDQLBlockBase(Compartiment):
@@ -1057,6 +1091,231 @@ class CommunityCoupling(NDQLBlockBase):
         return self.compose(node, graph, status, status_map, params, kwargs)
 
 
+class SeedSelection(NDQLBlockBase):
+    def __init__(self, nodes=None, share=None, attribute=None, value=None, target="seed_nodes", **kwargs):
+        super(SeedSelection, self).__init__(kwargs)
+        self.nodes = nodes
+        self.share = share
+        self.attribute = attribute
+        self.value = value
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        selected = _resolve_node_selection(
+            graph,
+            params=params,
+            nodes=self.nodes,
+            share=self.share,
+            attribute=self.attribute,
+            value=self.value,
+        )
+        graph.graph[self.target] = [n for n in selected]
+        graph.nodes[node][self.target] = node in selected
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class NodeRoleAssignment(NDQLBlockBase):
+    def __init__(self, role="seed", nodes=None, share=None, attribute=None, value=None, target="role", **kwargs):
+        super(NodeRoleAssignment, self).__init__(kwargs)
+        self.role = role
+        self.nodes = nodes
+        self.share = share
+        self.attribute = attribute
+        self.value = value
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        selected = _resolve_node_selection(
+            graph,
+            params=params,
+            nodes=self.nodes,
+            share=self.share,
+            attribute=self.attribute,
+            value=self.value,
+        )
+        if node in selected:
+            graph.nodes[node][self.target] = self.role
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class AttributeInitializer(NDQLBlockBase):
+    def __init__(self, attribute=None, value=None, distribution=None, scope="node", target=None, **kwargs):
+        super(AttributeInitializer, self).__init__(kwargs)
+        self.attribute = attribute
+        self.value = value
+        self.distribution = distribution
+        self.scope = str(scope or "node").lower()
+        self.target = target or attribute
+
+    def _sample_value(self):
+        if self.value is not None:
+            return self.value
+        if isinstance(self.distribution, dict):
+            sample = sample_initial_opinions(1, self.distribution)
+            return float(sample[0]) if len(sample) else 0.0
+        if isinstance(self.distribution, (list, tuple)):
+            return self.distribution[np.random.randint(0, len(self.distribution))] if self.distribution else None
+        if self.distribution is not None:
+            sample = sample_initial_opinions(1, self.distribution)
+            return float(sample[0]) if len(sample) else 0.0
+        return None
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        value = self._sample_value()
+        if self.scope == "graph":
+            graph.graph[self.target or self.attribute] = value
+        else:
+            graph.nodes[node][self.target or self.attribute] = value
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class GraphImport(NDQLBlockBase):
+    def __init__(self, graph_data=None, source=None, merge=True, scope="graph", **kwargs):
+        super(GraphImport, self).__init__(kwargs)
+        self.graph_data = graph_data
+        self.source = source
+        self.merge = bool(merge)
+        self.scope = str(scope or "graph").lower()
+
+    def _load_graph_data(self):
+        if self.graph_data is not None:
+            return self.graph_data
+        if isinstance(self.source, str):
+            try:
+                with open(self.source, "r") as f:
+                    return json.load(f)
+            except Exception:
+                return None
+        return None
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        data = self._load_graph_data()
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except Exception:
+                data = None
+        if isinstance(data, dict):
+            if self.merge:
+                graph.graph.update(data.get("graph", {}))
+            if self.scope in {"graph", "metadata"}:
+                graph.graph.setdefault("imported_graph_data", {})
+                graph.graph["imported_graph_data"].update(data)
+            for n, attrs in data.get("nodes", {}).items() if isinstance(data.get("nodes"), dict) else []:
+                if n in graph:
+                    graph.nodes[n].update(attrs)
+            for edge_key, attrs in data.get("edges", {}).items() if isinstance(data.get("edges"), dict) else []:
+                if isinstance(edge_key, (list, tuple)) and len(edge_key) >= 2 and graph.has_edge(edge_key[0], edge_key[1]):
+                    graph.edges[edge_key[0], edge_key[1]].update(attrs)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class CommunityAssignment(NDQLBlockBase):
+    def __init__(self, algorithm="louvain_communities", community_map=None, field="com", target="com", **kwargs):
+        super(CommunityAssignment, self).__init__(kwargs)
+        self.algorithm = str(algorithm or "louvain_communities")
+        self.community_map = community_map
+        self.field = field
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        if isinstance(self.community_map, dict) and self.community_map:
+            community = self.community_map.get(node, graph.nodes[node].get(self.field, 0))
+        else:
+            base_graph = graph.to_undirected() if graph.is_directed() else graph
+            try:
+                if self.algorithm == "greedy_modularity_communities":
+                    communities = list(nx.algorithms.community.greedy_modularity_communities(base_graph))
+                elif self.algorithm == "label_propagation_communities":
+                    communities = list(nx.algorithms.community.label_propagation_communities(base_graph))
+                elif self.algorithm == "asyn_lpa_communities":
+                    communities = list(nx.algorithms.community.asyn_lpa_communities(base_graph, seed=42))
+                else:
+                    communities = list(nx.algorithms.community.louvain_communities(base_graph, seed=42))
+                community = 0
+                for idx, group in enumerate(communities):
+                    if node in group:
+                        community = idx
+                        break
+            except Exception:
+                community = 0
+        graph.nodes[node][self.target] = community
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class RuleAlias(NDQLBlockBase):
+    def __init__(self, alias=None, target=None, description=None, **kwargs):
+        super(RuleAlias, self).__init__(kwargs)
+        self.alias = alias
+        self.target = target
+        self.description = description
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        aliases = graph.graph.setdefault("ndql_rule_aliases", {})
+        if self.alias is not None:
+            aliases[self.alias] = {
+                "target": self.target,
+                "description": self.description,
+            }
+        graph.nodes[node]["rule_alias"] = self.alias
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class PreviewObservable(NDQLBlockBase):
+    def __init__(self, variable=None, mode="value", bins=None, range=None, target=None, **kwargs):
+        super(PreviewObservable, self).__init__(kwargs)
+        self.variable = variable
+        self.mode = mode
+        self.bins = bins
+        self.range = range
+        self.target = target or variable
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        preview = graph.graph.setdefault("_ndql_preview_observables", [])
+        preview.append({
+            "variable": self.variable,
+            "mode": self.mode,
+            "bins": self.bins,
+            "range": self.range,
+            "target": self.target,
+        })
+        graph.nodes[node]["preview_observable"] = self.variable
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class ValidationHint(NDQLBlockBase):
+    def __init__(self, name=None, minimum=None, maximum=None, values=None, message=None, target=None, **kwargs):
+        super(ValidationHint, self).__init__(kwargs)
+        self.name = name
+        self.minimum = minimum
+        self.maximum = maximum
+        self.values = values
+        self.message = message
+        self.target = target or name
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        context = _node_context(node, graph, status, params)
+        value = context.get(self.target, graph.nodes[node].get(self.target)) if self.target else None
+        valid = True
+        if self.values is not None:
+            valid = value in _coerce_list(self.values)
+        if self.minimum is not None and value is not None:
+            valid = valid and _coerce_number(value, self.minimum) >= _coerce_number(self.minimum, self.minimum)
+        if self.maximum is not None and value is not None:
+            valid = valid and _coerce_number(value, self.maximum) <= _coerce_number(self.maximum, self.maximum)
+        hints = graph.graph.setdefault("_ndql_validation_hints", [])
+        hints.append({
+            "name": self.name,
+            "target": self.target,
+            "valid": bool(valid),
+            "message": self.message,
+        })
+        if not valid and self.message:
+            raise ConfigurationException(self.message)
+        graph.nodes[node]["validation_hint_valid"] = bool(valid)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
 class ExposureRate(NDQLBlockBase):
     def __init__(self, beta=0.1, contact_weight=1.0, mixing=1.0, infected_statuses=None, target="exposure", **kwargs):
         super(ExposureRate, self).__init__(kwargs)
@@ -1491,4 +1750,12 @@ __all__ = [
     "RewiringBlock",
     "CommunityMixingBlock",
     "EdgeActivationBlock",
+    "SeedSelection",
+    "NodeRoleAssignment",
+    "AttributeInitializer",
+    "GraphImport",
+    "CommunityAssignment",
+    "RuleAlias",
+    "PreviewObservable",
+    "ValidationHint",
 ]

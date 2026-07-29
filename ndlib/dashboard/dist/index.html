@@ -428,25 +428,25 @@
                     label: "Epidemics",
                     description: "Status-based epidemic workflows with stochastic, threshold, and attribute-driven compartments.",
                     templates: ["sir"],
-                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "ExposureRate", "TransmissionKernel", "DoseResponseBlock", "LatencyPeriod", "IncubationState", "RecoveryKernel", "WaningImmunity", "VaccinationBlock", "QuarantineBlock", "TestingBlock", "TreatmentBlock", "HospitalizationBlock", "MortalityBlock", "ReinfectionBlock", "StrainBlock", "SuperSpreaderBlock", "SeasonalityBlock", "ImportationBlock", "RewiringBlock", "CommunityMixingBlock", "EdgeActivationBlock", "ConditionalComposition"]
+                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "ExposureRate", "TransmissionKernel", "DoseResponseBlock", "LatencyPeriod", "IncubationState", "RecoveryKernel", "WaningImmunity", "VaccinationBlock", "QuarantineBlock", "TestingBlock", "TreatmentBlock", "HospitalizationBlock", "MortalityBlock", "ReinfectionBlock", "StrainBlock", "SuperSpreaderBlock", "SeasonalityBlock", "ImportationBlock", "RewiringBlock", "CommunityMixingBlock", "EdgeActivationBlock", "SeedSelection", "NodeRoleAssignment", "AttributeInitializer", "GraphImport", "CommunityAssignment", "RuleAlias", "PreviewObservable", "ValidationHint", "ConditionalComposition"]
                 },
                 continuous_opinions: {
                     label: "Continuous Opinions",
                     description: "Opinion-specific blocks for bounded confidence, biased partner selection, and compromise updates.",
                     templates: ["algorithmic_bias"],
-                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "OpinionZealot", "NodeNumericalAttribute", "NodeNumericalVariable", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "NodeThreshold", "CountDown", "ConditionalComposition"]
+                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "OpinionZealot", "NodeNumericalAttribute", "NodeNumericalVariable", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "NodeThreshold", "CountDown", "SeedSelection", "NodeRoleAssignment", "AttributeInitializer", "GraphImport", "CommunityAssignment", "RuleAlias", "PreviewObservable", "ValidationHint", "ConditionalComposition"]
                 },
                 discrete_opinions: {
                     label: "Discrete Opinions",
                     description: "Label-based opinion flows with categorical and stochastic influence blocks.",
                     templates: ["majority_rule"],
-                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "NodeStochastic", "NodeCategoricalAttribute", "NodeNumericalAttribute", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "CountDown", "ConditionalComposition"]
+                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "NodeStochastic", "NodeCategoricalAttribute", "NodeNumericalAttribute", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "CountDown", "SeedSelection", "NodeRoleAssignment", "AttributeInitializer", "GraphImport", "CommunityAssignment", "RuleAlias", "PreviewObservable", "ValidationHint", "ConditionalComposition"]
                 },
                 coupled: {
                     label: "Coupled / Advanced",
                     description: "All available blocks for mixed epidemic-opinion experiments and custom couplings.",
                     templates: ["coupled", "sir", "algorithmic_bias", "majority_rule"],
-                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "NodeNumericalVariable", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "ExposureRate", "TransmissionKernel", "DoseResponseBlock", "LatencyPeriod", "IncubationState", "RecoveryKernel", "WaningImmunity", "VaccinationBlock", "QuarantineBlock", "TestingBlock", "TreatmentBlock", "HospitalizationBlock", "MortalityBlock", "ReinfectionBlock", "StrainBlock", "SuperSpreaderBlock", "SeasonalityBlock", "ImportationBlock", "RewiringBlock", "CommunityMixingBlock", "EdgeActivationBlock", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "OpinionZealot", "ConditionalComposition"]
+                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "NodeNumericalVariable", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "ExposureRate", "TransmissionKernel", "DoseResponseBlock", "LatencyPeriod", "IncubationState", "RecoveryKernel", "WaningImmunity", "VaccinationBlock", "QuarantineBlock", "TestingBlock", "TreatmentBlock", "HospitalizationBlock", "MortalityBlock", "ReinfectionBlock", "StrainBlock", "SuperSpreaderBlock", "SeasonalityBlock", "ImportationBlock", "RewiringBlock", "CommunityMixingBlock", "EdgeActivationBlock", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "OpinionZealot", "SeedSelection", "NodeRoleAssignment", "AttributeInitializer", "GraphImport", "CommunityAssignment", "RuleAlias", "PreviewObservable", "ValidationHint", "ConditionalComposition"]
                 }
             };
 
@@ -1223,6 +1223,78 @@
                         icon: "fa-tv",
                         accent: "cyan",
                         onClick: () => addCompartmentNode("OpinionMediaInfluence")
+                    },
+                    {
+                        id: "SeedSelection",
+                        type: "compartment",
+                        label: "Seed Selection",
+                        description: "Stores a reusable seed node set",
+                        icon: "fa-bullseye",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("SeedSelection")
+                    },
+                    {
+                        id: "NodeRoleAssignment",
+                        type: "compartment",
+                        label: "Role Assignment",
+                        description: "Tags nodes with a reusable role",
+                        icon: "fa-id-badge",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("NodeRoleAssignment")
+                    },
+                    {
+                        id: "AttributeInitializer",
+                        type: "compartment",
+                        label: "Attribute Initializer",
+                        description: "Initializes node or graph attributes",
+                        icon: "fa-sliders",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("AttributeInitializer")
+                    },
+                    {
+                        id: "GraphImport",
+                        type: "compartment",
+                        label: "Graph Import",
+                        description: "Imports node and edge metadata",
+                        icon: "fa-file-import",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("GraphImport")
+                    },
+                    {
+                        id: "CommunityAssignment",
+                        type: "compartment",
+                        label: "Community Assignment",
+                        description: "Assigns or recomputes communities",
+                        icon: "fa-people-group",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("CommunityAssignment")
+                    },
+                    {
+                        id: "RuleAlias",
+                        type: "compartment",
+                        label: "Rule Alias",
+                        description: "Creates reusable rule aliases",
+                        icon: "fa-link",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("RuleAlias")
+                    },
+                    {
+                        id: "PreviewObservable",
+                        type: "compartment",
+                        label: "Preview Observable",
+                        description: "Previews a network-level observable",
+                        icon: "fa-eye",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("PreviewObservable")
+                    },
+                    {
+                        id: "ValidationHint",
+                        type: "compartment",
+                        label: "Validation Hint",
+                        description: "Adds a model validation constraint",
+                        icon: "fa-circle-exclamation",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("ValidationHint")
                     },
                     {
                         id: "ConditionalComposition",
@@ -3361,6 +3433,14 @@
                 else if (type === "OpinionQuantization") params = { bins: 10 };
                 else if (type === "OpinionMediaInfluence") params = { weight: 0.5 };
                 else if (type === "OpinionZealot") params = { share: 0.1, fixed_value: 0.0 };
+                else if (type === "SeedSelection") params = { share: 0.1, target: "seed_nodes" };
+                else if (type === "NodeRoleAssignment") params = { role: "seed", share: 0.1, target: "role" };
+                else if (type === "AttributeInitializer") params = { attribute: "opinion", distribution: "uniform", scope: "node" };
+                else if (type === "GraphImport") params = { graph_data: { graph: {}, nodes: {}, edges: {} }, merge: true, scope: "graph" };
+                else if (type === "CommunityAssignment") params = { algorithm: "louvain_communities", target: "com", field: "com" };
+                else if (type === "RuleAlias") params = { alias: "", target: "", description: "" };
+                else if (type === "PreviewObservable") params = { variable: "opinion", mode: "bins", bins: 20, range: [0, 1] };
+                else if (type === "ValidationHint") params = { name: "opinion_range", minimum: 0.0, maximum: 1.0, target: "opinion" };
                 else if (type === "ConditionalComposition") params = { condition: "", first_branch: "", second_branch: "" };
 
                 const newNode = {
@@ -3963,6 +4043,14 @@
                                                                 else if (type === "OpinionQuantization") params = { bins: 10 };
                                                                 else if (type === "OpinionMediaInfluence") params = { weight: 0.5 };
                                                                 else if (type === "OpinionZealot") params = { share: 0.1, fixed_value: 0.0 };
+                                                                else if (type === "SeedSelection") params = { share: 0.1, target: "seed_nodes" };
+                                                                else if (type === "NodeRoleAssignment") params = { role: "seed", share: 0.1, target: "role" };
+                                                                else if (type === "AttributeInitializer") params = { attribute: "opinion", distribution: "uniform", scope: "node" };
+                                                                else if (type === "GraphImport") params = { graph_data: { graph: {}, nodes: {}, edges: {} }, merge: true, scope: "graph" };
+                                                                else if (type === "CommunityAssignment") params = { algorithm: "louvain_communities", target: "com", field: "com" };
+                                                                else if (type === "RuleAlias") params = { alias: "", target: "", description: "" };
+                                                                else if (type === "PreviewObservable") params = { variable: "opinion", mode: "bins", bins: 20, range: [0, 1] };
+                                                                else if (type === "ValidationHint") params = { name: "opinion_range", minimum: 0.0, maximum: 1.0, target: "opinion" };
                                                                 else if (type === "ConditionalComposition") params = { condition: "", first_branch: "", second_branch: "" };
                                                                 updateNodeData(selectedElement.id, { type, params });
                                                             }}
@@ -4009,6 +4097,14 @@
                                                             <option value="OpinionQuantization">Quantization</option>
                                                             <option value="OpinionMediaInfluence">Media Influence</option>
                                                             <option value="OpinionZealot">Zealot</option>
+                                                            <option value="SeedSelection">Seed Selection</option>
+                                                            <option value="NodeRoleAssignment">Role Assignment</option>
+                                                            <option value="AttributeInitializer">Attribute Initializer</option>
+                                                            <option value="GraphImport">Graph Import</option>
+                                                            <option value="CommunityAssignment">Community Assignment</option>
+                                                            <option value="RuleAlias">Rule Alias</option>
+                                                            <option value="PreviewObservable">Preview Observable</option>
+                                                            <option value="ValidationHint">Validation Hint</option>
                                                             <option value="ConditionalComposition">Conditional Composition</option>
                                                         </select>
                                                     </div>

@@ -50,6 +50,8 @@ The following items from this catalog are implemented in the current dashboard a
 - hybrid coupling blocks for `AttributeCoupling`, `OpinionAffectsInfection`, `OpinionAffectsRecovery`, `OpinionAffectsContactRate`, `InfectionAffectsOpinion`, `StatusDependentOpinionUpdate`, `EpidemicDependentBias`, `PolicyIntervention`, and `CommunityCoupling`
 - builder and parser support for the hybrid coupling block family
 - runtime validation for coupled opinion/epidemic state updates and policy scheduling
+- builder-only utility blocks for `SeedSelection`, `NodeRoleAssignment`, `AttributeInitializer`, `GraphImport`, `CommunityAssignment`, `RuleAlias`, `PreviewObservable`, and `ValidationHint`
+- builder palette, inspector defaults, parser whitelist, and generated Python support for the utility block family
 
 The remaining blocks below stay in the catalog as future implementation targets.
 
@@ -205,6 +207,8 @@ These blocks are needed when epidemic and opinion dynamics interact.
 ## 8. Builder-Only Utility Blocks
 
 Some blocks are not model dynamics themselves, but they make the builder usable for complex models.
+
+Status: implemented in the current branch across the runtime blocks, dashboard palette, parser whitelist, and generated Python code path.
 
 | Block | Purpose |
 | --- | --- |

@@ -559,6 +559,70 @@ class DashboardTest(unittest.TestCase):
         self.assertIn("mixing_rate", graph.nodes[0])
         self.assertIn("active", graph.nodes[0])
 
+    def test_phase5_utility_blocks_execute(self):
+        from ndlib.models.compartments.NDQLBlocks import (
+            AttributeInitializer,
+            CommunityAssignment,
+            GraphImport,
+            NodeRoleAssignment,
+            PreviewObservable,
+            RuleAlias,
+            SeedSelection,
+            ValidationHint,
+        )
+        import json
+        import os
+        import tempfile
+        import networkx as nx
+
+        graph = nx.Graph()
+        graph.add_nodes_from(["a", "b", "c"])
+        graph.add_edges_from([("a", "b"), ("b", "c")])
+        for node in graph.nodes():
+            graph.nodes[node]["opinion"] = 0.25
+            graph.nodes[node]["community"] = 1
+
+        status = {node: 0 for node in graph.nodes()}
+        params = {"model": {"iteration": 0, "available_statuses": {"Susceptible": 0}}}
+
+        SeedSelection(nodes=["a", "c"], target="seed_nodes").execute("a", graph, status, status, params)
+        self.assertEqual(graph.graph["seed_nodes"], ["a", "c"])
+        self.assertTrue(graph.nodes["a"]["seed_nodes"])
+
+        NodeRoleAssignment(role="zealot", nodes=["a", "c"], target="role").execute("a", graph, status, status, params)
+        self.assertEqual(graph.nodes["a"]["role"], "zealot")
+
+        AttributeInitializer(attribute="opinion", value=0.33).execute("b", graph, status, status, params)
+        self.assertAlmostEqual(graph.nodes["b"]["opinion"], 0.33, places=6)
+
+        AttributeInitializer(attribute="mixing_seed", distribution=[0.1, 0.9], scope="graph").execute("b", graph, status, status, params)
+        self.assertIn(graph.graph["mixing_seed"], [0.1, 0.9])
+
+        GraphImport(
+            graph_data={
+                "graph": {"title": "imported"},
+                "nodes": {"a": {"label": "A"}},
+                "edges": {},
+            }
+        ).execute("a", graph, status, status, params)
+        self.assertEqual(graph.graph["title"], "imported")
+        self.assertEqual(graph.graph["imported_graph_data"]["graph"]["title"], "imported")
+        self.assertEqual(graph.nodes["a"]["label"], "A")
+
+        CommunityAssignment(community_map={"a": 0, "b": 0, "c": 1}, target="com", field="community").execute("a", graph, status, status, params)
+        self.assertEqual(graph.nodes["a"]["com"], 0)
+
+        RuleAlias(alias="infection_rule", target="infection", description="Reusable rule").execute("a", graph, status, status, params)
+        self.assertEqual(graph.graph["ndql_rule_aliases"]["infection_rule"]["target"], "infection")
+        self.assertEqual(graph.nodes["a"]["rule_alias"], "infection_rule")
+
+        PreviewObservable(variable="opinion", mode="bins", bins=10, range=[0, 1]).execute("a", graph, status, status, params)
+        self.assertEqual(graph.graph["_ndql_preview_observables"][0]["variable"], "opinion")
+        self.assertEqual(graph.nodes["a"]["preview_observable"], "opinion")
+
+        ValidationHint(name="opinion_range", minimum=0.0, maximum=1.0, target="opinion").execute("a", graph, status, status, params)
+        self.assertTrue(graph.nodes["a"]["validation_hint_valid"])
+
     def test_custom_model_ndql_serializes_declarations_and_observables(self):
         from ndlib.dashboard.server import generate_custom_model_class, generate_ndql_script
 
