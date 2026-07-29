@@ -302,3 +302,5 @@ For continuous opinions, the format is:
    PARAM mu 0.5
 
 The builder also emits opinion-processing blocks such as normalization or quantization when they are present in the canvas.
+
+For a complete reference that explains the NDQL language itself, see ``docs/ndql_user_manual.md``.

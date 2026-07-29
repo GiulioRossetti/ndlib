@@ -55,6 +55,7 @@ The following items from this catalog are implemented in the current dashboard a
 - typed NDQL declarations, observables, and update directives for continuous-opinion round-trips
 - `DECLARE GLOBAL`, `DECLARE EDGE_VARIABLE`, `WHEN`, `SCHEDULE`, and `UPDATE` language support in the parser and dashboard serializer
 - builder dashboard support for editing declarations, observables, and update directives with live NDQL preview synchronization
+- a complete NDQL user manual with syntax reference, worked examples, and troubleshooting guidance
 
 The remaining blocks below stay in the catalog as future implementation targets.
 
