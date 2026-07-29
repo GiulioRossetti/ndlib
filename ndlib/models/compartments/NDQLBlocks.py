@@ -1,4 +1,5 @@
 import math
+import random
 import statistics
 
 import networkx as nx
@@ -6,6 +7,7 @@ import numpy as np
 
 from ndlib.models.compartments.Compartment import Compartiment, ConfigurationException
 from ndlib.models.compartments.ConditionalComposition import ConditionalComposition
+from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions
 
 __author__ = "Antigravity"
 __license__ = "BSD-2-Clause"
@@ -100,6 +102,32 @@ def _node_context(node, graph, status, params=None):
     }
     context.update(node_attrs)
     return context
+
+
+def _get_opinion_value(graph, status, node, fallback=0.0):
+    value = status.get(node, fallback)
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        try:
+            return float(graph.nodes[node].get("opinion", fallback))
+        except Exception:
+            return float(fallback)
+
+
+def _set_opinion_value(graph, status, node, value, topic=None):
+    if topic is None:
+        try:
+            graph.nodes[node]["opinion"] = float(value)
+        except Exception:
+            pass
+        if node in status:
+            status[node] = float(value)
+        return
+    try:
+        graph.nodes[node][topic] = float(value)
+    except Exception:
+        pass
 
 
 class NDQLBlockBase(Compartiment):
@@ -470,6 +498,290 @@ class Observe(NDQLBlockBase):
         return self.compose(node, graph, status, status_map, params, kwargs)
 
 
+class OpinionDistribution(Distribution):
+    def __init__(self, family="uniform", params=None, bounds=None, **kwargs):
+        super(OpinionDistribution, self).__init__(family=family, params=params, bounds=bounds, **kwargs)
+
+    def sample(self, size=1):
+        return sample_initial_opinions(size, {"family": self.family, "params": self.params, "bounds": self.bounds})
+
+
+class OpinionStubbornness(NDQLBlockBase):
+    def __init__(self, theta=0.1, floor=0.0, **kwargs):
+        super(OpinionStubbornness, self).__init__(kwargs)
+        self.theta = _clamp(theta, 0.0, 1.0)
+        self.floor = _clamp(floor, 0.0, 1.0)
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        initial_map = {}
+        if isinstance(params, dict):
+            initial_map = params.get("model", {}).get("initial_opinion_map", {}) or {}
+        baseline = initial_map.get(node, _get_opinion_value(graph, status, node))
+        current = _get_opinion_value(graph, status, node)
+        new_value = (1.0 - self.theta) * current + self.theta * _coerce_number(baseline, current)
+        new_value = _clamp(new_value, self.floor, 1.0)
+        _set_opinion_value(graph, status, node, new_value)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class OpinionNoise(NDQLBlockBase):
+    def __init__(self, sigma=0.0, distribution="gaussian", **kwargs):
+        super(OpinionNoise, self).__init__(kwargs)
+        self.sigma = max(0.0, _coerce_number(sigma, 0.0))
+        self.distribution = str(distribution or "gaussian").lower()
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        current = _get_opinion_value(graph, status, node)
+        if self.sigma > 0.0:
+            if self.distribution in {"uniform", "u"}:
+                noise = np.random.uniform(-self.sigma, self.sigma)
+            else:
+                noise = np.random.normal(0.0, self.sigma)
+            current = current + noise
+        current = _clamp(current, 0.0, 1.0)
+        _set_opinion_value(graph, status, node, current)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class OpinionPolarization(NDQLBlockBase):
+    def __init__(self, strength=0.0, attractor_points=None, **kwargs):
+        super(OpinionPolarization, self).__init__(kwargs)
+        self.strength = _clamp(strength, 0.0, 1.0)
+        self.attractor_points = attractor_points or [0.0, 1.0]
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        current = _get_opinion_value(graph, status, node)
+        if current >= 0.5:
+            current = current + self.strength * (1.0 - current)
+        else:
+            current = current - self.strength * current
+        current = _clamp(current, 0.0, 1.0)
+        _set_opinion_value(graph, status, node, current)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class OpinionMediaInfluence(NDQLBlockBase):
+    def __init__(self, k=1, media_opinions=None, weights=None, weight=None, **kwargs):
+        super(OpinionMediaInfluence, self).__init__(kwargs)
+        self.k = max(1, int(round(_coerce_number(k, 1))))
+        self.media_opinions = media_opinions or []
+        self.weights = weights
+        self.weight = _clamp(weight if weight is not None else 0.5, 0.0, 1.0)
+
+    def _media_values(self, params=None):
+        media = self.media_opinions
+        if isinstance(params, dict):
+            media = params.get("model", {}).get("media_opinions", media)
+        if isinstance(media, (list, tuple, np.ndarray)) and len(media) > 0:
+            arr = np.clip(np.asarray(media, dtype=float), 0.0, 1.0)
+            if len(arr) < self.k:
+                pad_value = float(arr[-1]) if len(arr) > 0 else 0.5
+                arr = np.pad(arr, (0, self.k - len(arr)), mode="constant", constant_values=pad_value)
+            return arr[: self.k]
+        return np.full(self.k, 0.5, dtype=float)
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        current = _get_opinion_value(graph, status, node)
+        media_vals = self._media_values(params)
+        target = float(np.mean(media_vals))
+        current = _clamp((1.0 - self.weight) * current + self.weight * target, 0.0, 1.0)
+        _set_opinion_value(graph, status, node, current)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class OpinionTrustFilter(NDQLBlockBase):
+    def __init__(self, trust_threshold=0.1, signed=False, asymmetry=1.0, **kwargs):
+        super(OpinionTrustFilter, self).__init__(kwargs)
+        self.trust_threshold = _clamp(trust_threshold, 0.0, 1.0)
+        self.signed = bool(signed)
+        self.asymmetry = _coerce_number(asymmetry, 1.0)
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        context = _node_context(node, graph, status, params)
+        threshold = self.trust_threshold
+        if self.signed and context["neighbor_statuses"]:
+            threshold *= max(0.0, self.asymmetry)
+        current = float(context.get("value") or 0.0)
+        if abs(current - context["neighbor_mean"]) <= threshold:
+            return self.compose(node, graph, status, status_map, params, kwargs)
+        return False
+
+
+class OpinionConsensusBlock(NDQLBlockBase):
+    def __init__(self, mode="mean", weights=None, confidence=None, target="opinion", **kwargs):
+        super(OpinionConsensusBlock, self).__init__(kwargs)
+        self.mode = str(mode or "mean").lower()
+        self.weights = weights
+        self.confidence = confidence
+        self.target = target
+        self.last_value = None
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        context = _node_context(node, graph, status, params)
+        values = context["neighbor_statuses"]
+        numeric = []
+        for value in values:
+            try:
+                numeric.append(float(value))
+            except (TypeError, ValueError):
+                continue
+        if not numeric:
+            consensus = context.get("value")
+            if consensus is None:
+                return False
+        elif self.mode in {"median"}:
+            consensus = float(statistics.median(numeric))
+        elif self.mode in {"majority"}:
+            uniques, counts = np.unique(np.asarray(numeric), return_counts=True)
+            consensus = float(uniques[np.argmax(counts)])
+        elif self.mode in {"min"}:
+            consensus = float(min(numeric))
+        elif self.mode in {"max"}:
+            consensus = float(max(numeric))
+        else:
+            consensus = float(np.mean(numeric))
+        self.last_value = consensus
+        if self.target in {"opinion", "value", "status"}:
+            _set_opinion_value(graph, status, node, _clamp(consensus, 0.0, 1.0))
+        else:
+            try:
+                graph.nodes[node][self.target] = consensus
+            except Exception:
+                pass
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class OpinionRepulsion(NDQLBlockBase):
+    def __init__(self, epsilon=0.1, strength=0.1, **kwargs):
+        super(OpinionRepulsion, self).__init__(kwargs)
+        self.epsilon = _clamp(epsilon, 0.0, 1.0)
+        self.strength = _clamp(strength, 0.0, 1.0)
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        context = _node_context(node, graph, status, params)
+        current = _coerce_number(context.get("value"), 0.0)
+        neighbor_mean = context["neighbor_mean"]
+        if abs(current - neighbor_mean) > self.epsilon:
+            if current >= neighbor_mean:
+                current = current + self.strength * (1.0 - current)
+            else:
+                current = current - self.strength * current
+            _set_opinion_value(graph, status, node, _clamp(current, 0.0, 1.0))
+            return self.compose(node, graph, status, status_map, params, kwargs)
+        return False
+
+
+class OpinionAssimilation(NDQLBlockBase):
+    def __init__(self, rate=0.5, window=None, **kwargs):
+        super(OpinionAssimilation, self).__init__(kwargs)
+        self.rate = _clamp(rate, 0.0, 1.0)
+        self.window = window
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        context = _node_context(node, graph, status, params)
+        current = _coerce_number(context.get("value"), 0.0)
+        target = context["neighbor_mean"]
+        current = _clamp((1.0 - self.rate) * current + self.rate * target, 0.0, 1.0)
+        _set_opinion_value(graph, status, node, current)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class OpinionExternalField(NDQLBlockBase):
+    def __init__(self, target=0.5, strength=0.0, schedule=None, **kwargs):
+        super(OpinionExternalField, self).__init__(kwargs)
+        self.target = _clamp(target, 0.0, 1.0)
+        self.strength = _clamp(strength, 0.0, 1.0)
+        self.schedule = schedule
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        current = _get_opinion_value(graph, status, node)
+        current = _clamp(current + self.strength * (self.target - current), 0.0, 1.0)
+        _set_opinion_value(graph, status, node, current)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class OpinionMultiTopic(NDQLBlockBase):
+    def __init__(self, topics=None, coupling=None, correlation=None, **kwargs):
+        super(OpinionMultiTopic, self).__init__(kwargs)
+        self.topics = list(topics or [])
+        self.coupling = coupling if coupling is not None else 0.0
+        self.correlation = correlation if correlation is not None else 0.0
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        if not self.topics:
+            return self.compose(node, graph, status, status_map, params, kwargs)
+        context = _node_context(node, graph, status, params)
+        topic_values = []
+        for topic in self.topics:
+            try:
+                value = float(graph.nodes[node].get(topic, context.get("value", 0.0)))
+            except (TypeError, ValueError):
+                value = float(context.get("value", 0.0))
+            neighbors = context["neighbors"]
+            neigh_vals = []
+            for neigh in neighbors:
+                try:
+                    neigh_vals.append(float(graph.nodes[neigh].get(topic, value)))
+                except (TypeError, ValueError):
+                    continue
+            if neigh_vals:
+                value = (1.0 - self.coupling) * value + self.coupling * float(np.mean(neigh_vals))
+            topic_values.append(_clamp(value, 0.0, 1.0))
+        graph.nodes[node]["opinion_vector"] = topic_values
+        for topic, value in zip(self.topics, topic_values):
+            graph.nodes[node][topic] = float(value)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class OpinionLabelSwitch(NDQLBlockBase):
+    def __init__(self, labels=None, probability=1.0, triggering_status=None, target=None, **kwargs):
+        super(OpinionLabelSwitch, self).__init__(kwargs)
+        self.labels = list(labels or [])
+        self.probability = _clamp(probability, 0.0, 1.0)
+        self.triggering_status = triggering_status
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        if self.triggering_status is not None:
+            current = status.get(node)
+            if isinstance(self.triggering_status, str):
+                if current != status_map.get(self.triggering_status, current):
+                    return False
+            elif current != self.triggering_status:
+                return False
+        if self.labels:
+            current = status.get(node)
+            if current not in self.labels and str(current) not in {str(x) for x in self.labels}:
+                return False
+        if random.random() <= self.probability:
+            return self.compose(node, graph, status, status_map, params, kwargs)
+        return False
+
+
+class OpinionBoundedDrift(NDQLBlockBase):
+    def __init__(self, step=0.1, bounds=None, noise=0.0, **kwargs):
+        super(OpinionBoundedDrift, self).__init__(kwargs)
+        self.step = _clamp(step, 0.0, 1.0)
+        self.bounds = bounds if bounds is not None else [0.0, 1.0]
+        self.noise = max(0.0, _coerce_number(noise, 0.0))
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        context = _node_context(node, graph, status, params)
+        current = _coerce_number(context.get("value"), 0.0)
+        target = context["neighbor_mean"]
+        if self.noise > 0.0:
+            current += np.random.normal(0.0, self.noise)
+        current = current + self.step * (target - current)
+        low = 0.0
+        high = 1.0
+        if isinstance(self.bounds, (list, tuple)) and len(self.bounds) >= 2:
+            low = _coerce_number(self.bounds[0], 0.0)
+            high = _coerce_number(self.bounds[1], 1.0)
+        current = _clamp(current, low, high)
+        _set_opinion_value(graph, status, node, current)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
 __all__ = [
     "NDQLBlockBase",
     "Parameter",
@@ -485,4 +797,17 @@ __all__ = [
     "ClampNormalize",
     "Schedule",
     "Observe",
+    "OpinionDistribution",
+    "OpinionStubbornness",
+    "OpinionNoise",
+    "OpinionPolarization",
+    "OpinionMediaInfluence",
+    "OpinionTrustFilter",
+    "OpinionConsensusBlock",
+    "OpinionRepulsion",
+    "OpinionAssimilation",
+    "OpinionExternalField",
+    "OpinionMultiTopic",
+    "OpinionLabelSwitch",
+    "OpinionBoundedDrift",
 ]

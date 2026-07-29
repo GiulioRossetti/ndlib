@@ -262,6 +262,83 @@ class NdlibParserTest(unittest.TestCase):
         self.assertIn("status", iterations[0])
         self.assertTrue(all(0.0 <= float(v) <= 1.0 for v in iterations[0]["status"].values()))
 
+    def test_continuous_opinion_builder_ndql_supports_opinion_blocks(self):
+        query = (
+            "MODEL OpinionPhase3Model\n"
+            "TYPE CONTINUOUS_OPINION\n"
+            "INITIAL_OPINION_DISTRIBUTION {\"family\":\"gaussian\",\"params\":{\"mean\":0.4,\"sigma\":0.1},\"bounds\":[0,1]}\n"
+            "\n"
+            "BIN LowOpinion\n"
+            "BIN HighOpinion\n"
+            "\n"
+            "BLOCK distribution\n"
+            "TYPE OpinionDistribution\n"
+            "PARAM family gaussian\n"
+            "PARAM params {\"mean\":0.4,\"sigma\":0.1}\n"
+            "PARAM bounds [0,1]\n"
+            "\n"
+            "BLOCK stubbornness\n"
+            "TYPE OpinionStubbornness\n"
+            "PARAM theta 0.1\n"
+            "\n"
+            "BLOCK noise\n"
+            "TYPE OpinionNoise\n"
+            "PARAM sigma 0.02\n"
+            "\n"
+            "BLOCK consensus\n"
+            "TYPE OpinionConsensusBlock\n"
+            "PARAM mode mean\n"
+            "PARAM confidence 0.5\n"
+            "\n"
+            "BLOCK assimilation\n"
+            "TYPE OpinionAssimilation\n"
+            "PARAM rate 0.3\n"
+            "\n"
+            "BLOCK repulsion\n"
+            "TYPE OpinionRepulsion\n"
+            "PARAM strength 0.1\n"
+            "\n"
+            "BLOCK bounded_drift\n"
+            "TYPE OpinionBoundedDrift\n"
+            "PARAM step 0.1\n"
+            "PARAM bounds [0,1]\n"
+            "\n"
+            "BLOCK media_influence\n"
+            "TYPE OpinionMediaInfluence\n"
+            "PARAM weight 0.2\n"
+            "PARAM k 2\n"
+            "PARAM media_opinions [0.1,0.9]\n"
+            "\n"
+            "BLOCK multi_topic\n"
+            "TYPE OpinionMultiTopic\n"
+            "PARAM topics [economy,health]\n"
+            "PARAM coupling 0.2\n"
+            "\n"
+            "BLOCK label_switch\n"
+            "TYPE OpinionLabelSwitch\n"
+            "PARAM probability 0.25\n"
+            "\n"
+            "EXECUTE OpinionPhase3Model ON g1 FOR 4"
+        )
+
+        parser = ep.ExperimentParser()
+        parser.set_query(query)
+        parser.parse()
+
+        self.assertIn("OpinionDistribution", parser.script)
+        self.assertIn("OpinionMediaInfluence", parser.script)
+        self.assertIn("OpinionLabelSwitch", parser.script)
+
+        local_scope = {}
+        global_scope = {}
+        exec(parser.script, global_scope, local_scope)
+
+        iterations = parser.execute_query()
+        self.assertIsInstance(iterations, list)
+        self.assertGreaterEqual(len(iterations), 1)
+        self.assertIn("status", iterations[0])
+        self.assertTrue(all(0.0 <= float(v) <= 1.0 for v in iterations[0]["status"].values()))
+
     def test_continuous_opinion_builder_ndql_with_zealots(self):
         query = (
             "MODEL OpinionZealotModel\n"

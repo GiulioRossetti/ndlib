@@ -331,6 +331,99 @@ class DashboardTest(unittest.TestCase):
         result = model.iteration()
         self.assertTrue(all(float(v) == 1.0 for v in result["status"].values()))
 
+    def test_custom_continuous_opinion_builder_supports_opinion_blocks(self):
+        from ndlib.dashboard.server import generate_custom_model_class, generate_ndql_script
+        import networkx as nx
+        import ndlib.models.ModelConfig as mc
+
+        payload = {
+            "name": "OpinionBlockModel",
+            "use_case": "continuous_opinions",
+            "template_id": "algorithmic_bias",
+            "initial_opinion_distribution": {
+                "family": "bimodal",
+                "params": {"low": 0.2, "high": 0.8, "mix": 0.5, "sigma": 0.05},
+                "bounds": [0.0, 1.0]
+            },
+            "epsilon": 0.8,
+            "gamma": 0.0,
+            "mu": 0.4,
+            "statuses": [
+                {"name": "LowOpinion", "code": 0},
+                {"name": "HighOpinion", "code": 1}
+            ],
+            "compartments": [
+                {"name": "distribution", "type": "OpinionDistribution", "params": {"family": "bimodal", "params": {"low": 0.2, "high": 0.8, "mix": 0.5}, "bounds": [0.0, 1.0]}},
+                {"name": "stubbornness", "type": "OpinionStubbornness", "params": {"theta": 0.15}},
+                {"name": "noise", "type": "OpinionNoise", "params": {"sigma": 0.02}},
+                {"name": "consensus", "type": "OpinionConsensusBlock", "params": {"mode": "mean", "confidence": 0.6}},
+                {"name": "assimilation", "type": "OpinionAssimilation", "params": {"rate": 0.3}},
+                {"name": "repulsion", "type": "OpinionRepulsion", "params": {"strength": 0.1}},
+                {"name": "bounded_drift", "type": "OpinionBoundedDrift", "params": {"step": 0.1, "bounds": [0.0, 1.0]}},
+                {"name": "media_influence", "type": "OpinionMediaInfluence", "params": {"weight": 0.25, "k": 2, "media_opinions": [0.15, 0.85]}},
+                {"name": "multi_topic", "type": "OpinionMultiTopic", "params": {"topics": ["economy", "health"], "coupling": 0.2}},
+                {"name": "label_switch", "type": "OpinionLabelSwitch", "params": {"probability": 0.25, "triggering_status": "HighOpinion"}}
+            ],
+            "rules": [],
+            "initial_status": [
+                {"status": "LowOpinion", "ratio": 0.5},
+                {"status": "HighOpinion", "ratio": 0.5}
+            ]
+        }
+
+        class_code = generate_custom_model_class(payload)
+        self.assertIn("OpinionDistribution", class_code)
+        self.assertIn("media_count", class_code)
+        self.assertIn("multi_topic_names", class_code)
+        self.assertIn("consensus_mode", class_code)
+        self.assertIn("bounded_drift_step", class_code)
+
+        ndql_script = generate_ndql_script(payload)
+        self.assertIn("TYPE OpinionDistribution", ndql_script)
+        self.assertIn("TYPE OpinionMediaInfluence", ndql_script)
+        self.assertIn("TYPE OpinionMultiTopic", ndql_script)
+        self.assertIn("PARAM family bimodal", ndql_script)
+        self.assertIn("PARAM k 2", ndql_script)
+        self.assertIn("PARAM topics [economy,health]", ndql_script)
+
+        local_scope = {}
+        global_scope = {}
+        exec(class_code, global_scope, local_scope)
+        model_cls = local_scope["OpinionBlockModel"]
+
+        model = model_cls(nx.path_graph(6))
+        cfg = mc.Configuration()
+        cfg.add_model_parameter("initial_opinion_distribution", {
+            "family": "bimodal",
+            "params": {"low": 0.2, "high": 0.8, "mix": 0.5, "sigma": 0.05},
+            "bounds": [0.0, 1.0]
+        })
+        cfg.add_model_parameter("epsilon", 0.8)
+        cfg.add_model_parameter("gamma", 0.0)
+        cfg.add_model_parameter("mu", 0.4)
+        cfg.add_model_parameter("assimilation_rate", 0.3)
+        cfg.add_model_parameter("stubbornness", 0.15)
+        cfg.add_model_parameter("noise_sigma", 0.02)
+        cfg.add_model_parameter("repulsion_strength", 0.1)
+        cfg.add_model_parameter("bounded_drift_step", 0.1)
+        cfg.add_model_parameter("media_weight", 0.25)
+        cfg.add_model_parameter("media_count", 2)
+        cfg.add_model_parameter("media_opinions", [0.15, 0.85])
+        cfg.add_model_parameter("consensus_mode", "mean")
+        cfg.add_model_parameter("consensus_weight", 0.6)
+        cfg.add_model_parameter("multi_topic_names", ["economy", "health"])
+        cfg.add_model_parameter("multi_topic_coupling", 0.2)
+        cfg.add_model_parameter("quantization_bins", 0)
+        model.set_initial_status(cfg)
+        model.status = {node: float(node) / 5.0 for node in model.status}
+        model.initial_status = model.status.copy()
+        model.actual_iteration = 1
+
+        result = model.iteration()
+        self.assertIn("status", result)
+        self.assertTrue(all(0.0 <= float(v) <= 1.0 for v in result["status"].values()))
+        self.assertTrue(all("opinion" in model.graph.nodes[node] for node in model.graph.nodes()))
+
     def test_custom_model_ndql_serializes_declarations_and_observables(self):
         from ndlib.dashboard.server import generate_custom_model_class, generate_ndql_script
 

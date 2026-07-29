@@ -38,6 +38,7 @@ COMMUNITY_DETECTION_ALGORITHMS = [
     {"value": "asyn_fluidc", "label": "Async Fluid Communities"},
 ]
 CONTINUOUS_OPINION_BLOCK_TYPES = {
+    "OpinionDistribution",
     "OpinionDistanceThreshold",
     "OpinionSelectionBias",
     "OpinionCompromise",
@@ -46,11 +47,17 @@ CONTINUOUS_OPINION_BLOCK_TYPES = {
     "OpinionPolarization",
     "OpinionExternalField",
     "OpinionTrustFilter",
+    "OpinionConsensusBlock",
+    "OpinionRepulsion",
+    "OpinionAssimilation",
     "OpinionMemory",
     "OpinionNormalization",
     "OpinionQuantization",
     "OpinionMediaInfluence",
     "OpinionZealot",
+    "OpinionMultiTopic",
+    "OpinionLabelSwitch",
+    "OpinionBoundedDrift",
 }
 
 
@@ -95,6 +102,8 @@ def clamp_unit_float(value, fallback=0.1):
 def format_ndql_value(value):
     if isinstance(value, (list, tuple)):
         return "[" + ",".join(format_ndql_value(v) for v in value) + "]"
+    if isinstance(value, dict):
+        return json.dumps(value, separators=(",", ":"))
     if isinstance(value, bool):
         return "true" if value else "false"
     if value is None:
@@ -163,6 +172,7 @@ def is_known_compartment_type(comp_type):
         "ClampNormalize",
         "Schedule",
         "Observe",
+        "OpinionDistribution",
         "OpinionDistanceThreshold",
         "OpinionSelectionBias",
         "OpinionCompromise",
@@ -171,11 +181,17 @@ def is_known_compartment_type(comp_type):
         "OpinionPolarization",
         "OpinionExternalField",
         "OpinionTrustFilter",
+        "OpinionConsensusBlock",
+        "OpinionRepulsion",
+        "OpinionAssimilation",
         "OpinionMemory",
         "OpinionNormalization",
         "OpinionQuantization",
         "OpinionMediaInfluence",
         "OpinionZealot",
+        "OpinionMultiTopic",
+        "OpinionLabelSwitch",
+        "OpinionBoundedDrift",
     }
 
 
@@ -852,7 +868,7 @@ def generate_custom_model_class(model_data):
         "from ndlib.models.compartments.EdgeNumericalAttribute import EdgeNumericalAttribute",
         "from ndlib.models.compartments.ConditionalComposition import ConditionalComposition",
         "from ndlib.models.compartments.CountDown import CountDown",
-        "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe",
+        "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift",
         "from ndlib.models.compartments.enums.NumericalType import NumericalType",
         "from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions",
         "",
@@ -1059,42 +1075,73 @@ def generate_continuous_opinion_custom_model_class(
     Generates a Python source string for continuous opinion custom models.
     """
     opinion_params = {
+        "distribution_spec": None,
         "epsilon": None,
         "gamma": None,
         "mu": None,
+        "assimilation_rate": None,
         "stubbornness": None,
         "noise_sigma": None,
+        "repulsion_strength": None,
+        "bounded_drift_step": None,
         "polarization_strength": None,
         "external_target": None,
         "external_strength": None,
         "trust_threshold": None,
+        "consensus_mode": None,
+        "consensus_weight": None,
         "memory_alpha": None,
         "normalize_min": 0.0,
         "normalize_max": 1.0,
         "quantization_bins": None,
         "media_weight": None,
+        "media_count": None,
+        "media_opinions": None,
         "zealot_share": None,
         "zealot_value": None,
+        "multi_topic_names": None,
+        "multi_topic_coupling": None,
     }
     opinion_block_names = {
+        "OpinionDistribution": None,
         "OpinionDistanceThreshold": None,
         "OpinionSelectionBias": None,
         "OpinionCompromise": None,
+        "OpinionAssimilation": None,
         "OpinionStubbornness": None,
         "OpinionNoise": None,
+        "OpinionRepulsion": None,
+        "OpinionBoundedDrift": None,
         "OpinionPolarization": None,
         "OpinionExternalField": None,
         "OpinionTrustFilter": None,
+        "OpinionConsensusBlock": None,
         "OpinionMemory": None,
         "OpinionNormalization": None,
         "OpinionQuantization": None,
         "OpinionMediaInfluence": None,
         "OpinionZealot": None,
+        "OpinionMultiTopic": None,
+        "OpinionLabelSwitch": None,
     }
 
     for comp in compartments:
         comp_type = comp.get("type")
         params = comp.get("params", {})
+        if comp_type == "OpinionDistribution" and opinion_params["distribution_spec"] is None:
+            family = params.get("family", params.get("distribution", params.get("name", "uniform")))
+            bounds = params.get("bounds", [0.0, 1.0])
+            dist_params = {
+                k: v
+                for k, v in params.items()
+                if k not in {"family", "distribution", "bounds", "name"}
+            }
+            opinion_params["distribution_spec"] = {
+                "family": family,
+                "params": dist_params,
+                "bounds": bounds,
+            }
+            opinion_block_names[comp_type] = comp.get("name", "opinion_distribution")
         if comp_type == "OpinionDistanceThreshold" and opinion_params["epsilon"] is None:
             opinion_params["epsilon"] = clamp_unit_float(params.get("epsilon", 0.1), 0.1)
             opinion_block_names[comp_type] = comp.get("name", "opinion_threshold")
@@ -1107,6 +1154,9 @@ def generate_continuous_opinion_custom_model_class(
         elif comp_type == "OpinionCompromise" and opinion_params["mu"] is None:
             opinion_params["mu"] = clamp_unit_float(params.get("mu", 0.5), 0.5)
             opinion_block_names[comp_type] = comp.get("name", "compromise")
+        elif comp_type == "OpinionAssimilation" and opinion_params["assimilation_rate"] is None:
+            opinion_params["assimilation_rate"] = clamp_unit_float(params.get("rate", params.get("mu", 0.5)), 0.5)
+            opinion_block_names[comp_type] = comp.get("name", "assimilation")
         elif comp_type == "OpinionStubbornness" and opinion_params["stubbornness"] is None:
             opinion_params["stubbornness"] = clamp_unit_float(params.get("theta", params.get("stubbornness", 0.1)), 0.1)
             opinion_block_names[comp_type] = comp.get("name", "stubbornness")
@@ -1116,6 +1166,12 @@ def generate_continuous_opinion_custom_model_class(
             except (TypeError, ValueError):
                 opinion_params["noise_sigma"] = 0.0
             opinion_block_names[comp_type] = comp.get("name", "noise")
+        elif comp_type == "OpinionRepulsion" and opinion_params["repulsion_strength"] is None:
+            opinion_params["repulsion_strength"] = clamp_unit_float(params.get("strength", 0.1), 0.1)
+            opinion_block_names[comp_type] = comp.get("name", "repulsion")
+        elif comp_type == "OpinionBoundedDrift" and opinion_params["bounded_drift_step"] is None:
+            opinion_params["bounded_drift_step"] = clamp_unit_float(params.get("step", 0.1), 0.1)
+            opinion_block_names[comp_type] = comp.get("name", "bounded_drift")
         elif comp_type == "OpinionPolarization" and opinion_params["polarization_strength"] is None:
             opinion_params["polarization_strength"] = clamp_unit_float(params.get("strength", 0.0), 0.0)
             opinion_block_names[comp_type] = comp.get("name", "polarization")
@@ -1126,6 +1182,10 @@ def generate_continuous_opinion_custom_model_class(
         elif comp_type == "OpinionTrustFilter" and opinion_params["trust_threshold"] is None:
             opinion_params["trust_threshold"] = clamp_unit_float(params.get("trust_threshold", params.get("epsilon", 0.1)), 0.1)
             opinion_block_names[comp_type] = comp.get("name", "trust_filter")
+        elif comp_type == "OpinionConsensusBlock" and opinion_params["consensus_mode"] is None:
+            opinion_params["consensus_mode"] = str(params.get("mode", "mean"))
+            opinion_params["consensus_weight"] = clamp_unit_float(params.get("confidence", params.get("weight", 0.5)), 0.5)
+            opinion_block_names[comp_type] = comp.get("name", "consensus")
         elif comp_type == "OpinionMemory" and opinion_params["memory_alpha"] is None:
             opinion_params["memory_alpha"] = clamp_unit_float(params.get("alpha", params.get("memory_alpha", 0.5)), 0.5)
             opinion_block_names[comp_type] = comp.get("name", "memory")
@@ -1141,17 +1201,33 @@ def generate_continuous_opinion_custom_model_class(
             opinion_block_names[comp_type] = comp.get("name", "quantization")
         elif comp_type == "OpinionMediaInfluence" and opinion_params["media_weight"] is None:
             opinion_params["media_weight"] = clamp_unit_float(params.get("weight", params.get("media_weight", 0.5)), 0.5)
+            try:
+                opinion_params["media_count"] = max(1, int(params.get("k", params.get("media_count", 1))))
+            except (TypeError, ValueError):
+                opinion_params["media_count"] = 1
+            media_vals = params.get("media_opinions")
+            if isinstance(media_vals, list):
+                opinion_params["media_opinions"] = media_vals
             opinion_block_names[comp_type] = comp.get("name", "media_influence")
         elif comp_type == "OpinionZealot" and opinion_params["zealot_share"] is None:
             opinion_params["zealot_share"] = clamp_unit_float(params.get("share", params.get("zealot_share", 0.0)), 0.0)
             opinion_params["zealot_value"] = clamp_unit_float(params.get("fixed_value", params.get("value", 0.0)), 0.0)
             opinion_block_names[comp_type] = comp.get("name", "zealot")
+        elif comp_type == "OpinionMultiTopic" and opinion_params["multi_topic_names"] is None:
+            topics = params.get("topics", [])
+            if isinstance(topics, str):
+                topics = [t.strip() for t in topics.split(",") if t.strip()]
+            opinion_params["multi_topic_names"] = topics if isinstance(topics, list) else []
+            opinion_params["multi_topic_coupling"] = clamp_unit_float(params.get("coupling", 0.0), 0.0)
+            opinion_block_names[comp_type] = comp.get("name", "multi_topic")
+        elif comp_type == "OpinionLabelSwitch":
+            opinion_block_names[comp_type] = comp.get("name", "label_switch")
 
     code = [
         "import numpy as np",
         "from ndlib.models.DiffusionModel import DiffusionModel",
         "from ndlib.models.compartments.Compartment import Compartiment",
-        "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe",
+        "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift",
         "from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions",
         "",
         "class %s(DiffusionModel):" % class_name,
@@ -1281,6 +1357,29 @@ def generate_continuous_opinion_custom_model_class(
             "                    'default': %s" % repr(float(opinion_params["media_weight"])),
             "                },",
         ])
+    if opinion_params["media_count"] is not None:
+        code.extend([
+            "                'k': {",
+            "                    'descr': 'Number of media sources',",
+            "                    'range': [1, 1000],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(int(opinion_params["media_count"])),
+            "                },",
+            "                'media_count': {",
+            "                    'descr': 'Number of media sources',",
+            "                    'range': [1, 1000],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(int(opinion_params["media_count"])),
+            "                },",
+        ])
+    if opinion_params["media_opinions"] is not None:
+        code.extend([
+            "                'media_opinions': {",
+            "                    'descr': 'Opinion values for each media source',",
+            "                    'optional': True,",
+            "                    'default': %r" % opinion_params["media_opinions"],
+            "                },",
+        ])
     if opinion_params["zealot_share"] is not None:
         code.extend([
             "                'zealot_share': {",
@@ -1296,6 +1395,20 @@ def generate_continuous_opinion_custom_model_class(
             "                    'default': %s" % repr(float(opinion_params["zealot_value"])),
             "                },",
         ])
+    if opinion_params["multi_topic_names"] is not None:
+        code.extend([
+            "                'multi_topic_names': {",
+            "                    'descr': 'Topics tracked by the opinion multi-topic block',",
+            "                    'optional': True,",
+            "                    'default': %r" % opinion_params["multi_topic_names"],
+            "                },",
+            "                'multi_topic_coupling': {",
+            "                    'descr': 'Coupling among opinion topics',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["multi_topic_coupling"] if opinion_params["multi_topic_coupling"] is not None else 0.0)),
+            "                },",
+        ])
     code.extend([
         "            },",
         "            'nodes': {},",
@@ -1305,18 +1418,25 @@ def generate_continuous_opinion_custom_model_class(
         "        self.declarations = %r" % model_data.get("declarations", []),
         "        self.observables = %r" % model_data.get("observables", []),
         "        self.continuous_blocks = {",
+        "            'distribution': %r," % opinion_block_names["OpinionDistribution"],
         "            'distance_threshold': %r," % opinion_block_names["OpinionDistanceThreshold"],
         "            'selection_bias': %r," % opinion_block_names["OpinionSelectionBias"],
         "            'compromise': %r," % opinion_block_names["OpinionCompromise"],
+        "            'assimilation': %r," % opinion_block_names["OpinionAssimilation"],
         "            'stubbornness': %r," % opinion_block_names["OpinionStubbornness"],
         "            'noise': %r," % opinion_block_names["OpinionNoise"],
+        "            'repulsion': %r," % opinion_block_names["OpinionRepulsion"],
+        "            'bounded_drift': %r," % opinion_block_names["OpinionBoundedDrift"],
         "            'polarization': %r," % opinion_block_names["OpinionPolarization"],
         "            'external_field': %r," % opinion_block_names["OpinionExternalField"],
         "            'trust_filter': %r," % opinion_block_names["OpinionTrustFilter"],
+        "            'consensus': %r," % opinion_block_names["OpinionConsensusBlock"],
         "            'memory': %r," % opinion_block_names["OpinionMemory"],
         "            'normalization': %r," % opinion_block_names["OpinionNormalization"],
         "            'quantization': %r," % opinion_block_names["OpinionQuantization"],
         "            'media_influence': %r," % opinion_block_names["OpinionMediaInfluence"],
+        "            'multi_topic': %r," % opinion_block_names["OpinionMultiTopic"],
+        "            'label_switch': %r," % opinion_block_names["OpinionLabelSwitch"],
         "            'zealot': %r" % opinion_block_names["OpinionZealot"],
         "        }",
         "",
@@ -1385,15 +1505,32 @@ def generate_continuous_opinion_custom_model_class(
         "",
         "        epsilon = self.params['model'].get('epsilon', %s)" % repr(float(opinion_params["epsilon"] if opinion_params["epsilon"] is not None else 0.1)),
         "        mu = self.params['model'].get('mu', %s)" % repr(float(opinion_params["mu"] if opinion_params["mu"] is not None else 0.5)),
+        "        assimilation_rate = self.params['model'].get('assimilation_rate', %s)" % repr(float(opinion_params["assimilation_rate"] if opinion_params["assimilation_rate"] is not None else 0.5)),
         "        stubbornness = self.params['model'].get('stubbornness', %s)" % repr(float(opinion_params["stubbornness"] if opinion_params["stubbornness"] is not None else 0.0)),
         "        noise_sigma = self.params['model'].get('noise_sigma', %s)" % repr(float(opinion_params["noise_sigma"] if opinion_params["noise_sigma"] is not None else 0.0)),
+        "        repulsion_strength = self.params['model'].get('repulsion_strength', %s)" % repr(float(opinion_params["repulsion_strength"] if opinion_params["repulsion_strength"] is not None else 0.0)),
+        "        bounded_drift_step = self.params['model'].get('bounded_drift_step', %s)" % repr(float(opinion_params["bounded_drift_step"] if opinion_params["bounded_drift_step"] is not None else 0.0)),
         "        polarization_strength = self.params['model'].get('polarization_strength', %s)" % repr(float(opinion_params["polarization_strength"] if opinion_params["polarization_strength"] is not None else 0.0)),
         "        external_target = self.params['model'].get('external_target', %s)" % repr(float(opinion_params["external_target"] if opinion_params["external_target"] is not None else 0.5)),
         "        external_strength = self.params['model'].get('external_strength', %s)" % repr(float(opinion_params["external_strength"] if opinion_params["external_strength"] is not None else 0.0)),
         "        trust_threshold = self.params['model'].get('trust_threshold', %s)" % repr(float(opinion_params["trust_threshold"] if opinion_params["trust_threshold"] is not None else 1.0)),
+        "        consensus_mode = str(self.params['model'].get('consensus_mode', %r))" % (opinion_params["consensus_mode"] if opinion_params["consensus_mode"] is not None else "mean"),
+        "        consensus_weight = self.params['model'].get('consensus_weight', %s)" % repr(float(opinion_params["consensus_weight"] if opinion_params["consensus_weight"] is not None else 0.5)),
         "        memory_alpha = self.params['model'].get('memory_alpha', %s)" % repr(float(opinion_params["memory_alpha"] if opinion_params["memory_alpha"] is not None else 0.0)),
         "        quantization_bins = int(self.params['model'].get('quantization_bins', %s))" % repr(int(opinion_params["quantization_bins"] if opinion_params["quantization_bins"] is not None else 0)),
         "        media_weight = self.params['model'].get('media_weight', %s)" % repr(float(opinion_params["media_weight"] if opinion_params["media_weight"] is not None else 0.0)),
+        "        media_count = int(self.params['model'].get('k', self.params['model'].get('media_count', %s)))" % repr(int(opinion_params["media_count"] if opinion_params["media_count"] is not None else 0)),
+        "        media_opinions = self.params['model'].get('media_opinions', %r)" % (opinion_params["media_opinions"] if opinion_params["media_opinions"] is not None else []),
+        "        if not isinstance(media_opinions, (list, tuple)):",
+        "            media_opinions = []",
+        "        if media_count > 0 and len(media_opinions) < media_count:",
+        "            while len(media_opinions) < media_count:",
+        "                media_opinions.append(float(len(media_opinions)) / float(max(1, media_count - 1)) if media_count > 1 else 0.5)",
+        "        media_opinions = [float(np.clip(v, 0.0, 1.0)) for v in media_opinions[:max(0, media_count or len(media_opinions))]]",
+        "        multi_topic_names = self.params['model'].get('multi_topic_names', %r)" % (opinion_params["multi_topic_names"] if opinion_params["multi_topic_names"] is not None else []),
+        "        if isinstance(multi_topic_names, str):",
+        "            multi_topic_names = [t.strip() for t in multi_topic_names.split(',') if t.strip()]",
+        "        multi_topic_coupling = self.params['model'].get('multi_topic_coupling', %s)" % repr(float(opinion_params["multi_topic_coupling"] if opinion_params["multi_topic_coupling"] is not None else 0.0)),
         "        nodes_list = list(actual_status.keys())",
         "        if not nodes_list:",
         "            return {'iteration': self.actual_iteration - 1, 'status': {}, 'node_count': {}, 'status_delta': {}}",
@@ -1409,8 +1546,18 @@ def generate_continuous_opinion_custom_model_class(
         "            neigh_val = float(actual_status[neighbor])",
         "            trust_gate = min(epsilon, trust_threshold)",
         "            if diff <= trust_gate:",
+        "                avg_val = float(np.clip(0.5 * (node_val + neigh_val), 0.0, 1.0))",
         "                node_val = float(np.clip(node_val + mu * (neigh_val - node_val), 0.0, 1.0))",
-        "                neigh_val = float(np.clip(neigh_val + mu * (node_val - neigh_val), 0.0, 1.0))",
+        "                neigh_val = float(np.clip(neigh_val + assimilation_rate * (avg_val - neigh_val), 0.0, 1.0))",
+        "                if consensus_mode.lower() in {'mean', 'average', 'consensus'}:",
+        "                    consensus_val = float(np.clip(consensus_weight * avg_val + (1.0 - consensus_weight) * node_val, 0.0, 1.0))",
+        "                    node_val = consensus_val",
+        "                    neigh_val = consensus_val",
+        "            elif repulsion_strength > 0.0:",
+        "                if node_val >= neigh_val:",
+        "                    node_val = float(np.clip(node_val + repulsion_strength * (1.0 - neigh_val), 0.0, 1.0))",
+        "                else:",
+        "                    node_val = float(np.clip(node_val - repulsion_strength * neigh_val, 0.0, 1.0))",
         "            elif polarization_strength > 0.0:",
         "                if node_val >= neigh_val:",
         "                    node_val = float(np.clip(node_val + polarization_strength * (1.0 - node_val), 0.0, 1.0))",
@@ -1428,13 +1575,25 @@ def generate_continuous_opinion_custom_model_class(
         "            step = 1.0 / float(quantization_bins - 1)",
         "            for node in actual_status:",
         "                actual_status[node] = float(np.clip(round(actual_status[node] / step) * step, 0.0, 1.0))",
-        "        if media_weight > 0.0 and 'media_opinions' in self.params['model'] and self.params['model'].get('media_opinions'):",
-        "            media_vals = np.clip(np.asarray(self.params['model']['media_opinions'], dtype=float), 0.0, 1.0)",
+        "        if media_weight > 0.0 and media_opinions:",
+        "            media_vals = np.clip(np.asarray(media_opinions, dtype=float), 0.0, 1.0)",
         "            for node in actual_status:",
         "                if hasattr(self, 'zealot_nodes') and node in self.zealot_nodes:",
         "                    continue",
         "                target_media = float(np.mean(media_vals))",
         "                actual_status[node] = float(np.clip((1.0 - media_weight) * actual_status[node] + media_weight * target_media, 0.0, 1.0))",
+        "        if multi_topic_names:",
+        "            for node in actual_status:",
+        "                node_topics = self.graph.nodes[node].get('opinion_vector') or {}",
+        "                if not isinstance(node_topics, dict):",
+        "                    node_topics = {}",
+        "                for topic in multi_topic_names:",
+        "                    topic_val = float(np.clip(actual_status[node] + multi_topic_coupling * (0.5 - actual_status[node]), 0.0, 1.0))",
+        "                    node_topics[topic] = topic_val",
+        "                    self.graph.nodes[node][topic] = topic_val",
+        "                self.graph.nodes[node]['opinion_vector'] = node_topics",
+        "                if node_topics:",
+        "                    actual_status[node] = float(np.mean(list(node_topics.values())))",
         "        normalize_min = float(self.params['model'].get('normalize_min', 0.0))",
         "        normalize_max = float(self.params['model'].get('normalize_max', 1.0))",
         "        if normalize_max > normalize_min:",
@@ -1475,7 +1634,7 @@ def generate_ndql_script(model_data):
         ndql = []
         ndql.append("MODEL %s" % model_name)
         ndql.append("TYPE CONTINUOUS_OPINION")
-        ndql.append("INITIAL_OPINION_DISTRIBUTION %s" % model_data.get("initial_opinion_distribution", "uniform"))
+        ndql.append("INITIAL_OPINION_DISTRIBUTION %s" % format_ndql_value(model_data.get("initial_opinion_distribution", "uniform")))
         ndql.append("")
 
         for declaration in declarations:
@@ -1486,19 +1645,26 @@ def generate_ndql_script(model_data):
             ndql.append("")
 
         continuous_ndql_params = {
+            "OpinionDistribution": (None, None),
             "OpinionDistanceThreshold": ("epsilon", "0.1"),
             "OpinionSelectionBias": ("gamma", "0.0"),
             "OpinionCompromise": ("mu", "0.5"),
+            "OpinionAssimilation": ("rate", "0.5"),
             "OpinionStubbornness": ("theta", "0.1"),
             "OpinionNoise": ("sigma", "0.0"),
+            "OpinionRepulsion": ("strength", "0.1"),
+            "OpinionBoundedDrift": ("step", "0.1"),
             "OpinionPolarization": ("strength", "0.0"),
             "OpinionExternalField": ("target", "0.5"),
             "OpinionTrustFilter": ("trust_threshold", "0.1"),
+            "OpinionConsensusBlock": ("mode", "mean"),
             "OpinionMemory": ("alpha", "0.5"),
             "OpinionNormalization": (None, None),
             "OpinionQuantization": ("bins", "10"),
             "OpinionMediaInfluence": ("weight", "0.5"),
             "OpinionZealot": ("share", "0.0"),
+            "OpinionMultiTopic": ("topics", []),
+            "OpinionLabelSwitch": ("probability", "0.5"),
         }
 
         for comp in compartments:
@@ -1508,15 +1674,44 @@ def generate_ndql_script(model_data):
                 ndql.append("BLOCK %s" % comp.get("name", comp_type))
                 ndql.append("TYPE %s" % comp_type)
                 param_name, fallback = continuous_ndql_params[comp_type]
-                if comp_type == "OpinionNormalization":
+                if comp_type == "OpinionDistribution":
+                    ndql.append("PARAM family %s" % params.get("family", params.get("distribution", "uniform")))
+                    if params.get("params") is not None:
+                        ndql.append("PARAM params %s" % format_ndql_value(params.get("params")))
+                    if params.get("bounds") is not None:
+                        ndql.append("PARAM bounds %s" % format_ndql_value(params.get("bounds")))
+                elif comp_type == "OpinionNormalization":
                     ndql.append("PARAM min %s" % params.get("min", 0.0))
                     ndql.append("PARAM max %s" % params.get("max", 1.0))
                 elif comp_type == "OpinionExternalField":
                     ndql.append("PARAM target %s" % params.get("target", 0.5))
                     ndql.append("PARAM strength %s" % params.get("strength", 0.0))
+                elif comp_type == "OpinionAssimilation":
+                    ndql.append("PARAM rate %s" % params.get("rate", params.get("mu", 0.5)))
+                elif comp_type == "OpinionRepulsion":
+                    ndql.append("PARAM strength %s" % params.get("strength", 0.1))
+                elif comp_type == "OpinionBoundedDrift":
+                    ndql.append("PARAM step %s" % params.get("step", 0.1))
+                    if params.get("bounds") is not None:
+                        ndql.append("PARAM bounds %s" % format_ndql_value(params.get("bounds")))
+                elif comp_type == "OpinionConsensusBlock":
+                    ndql.append("PARAM mode %s" % format_ndql_value(params.get("mode", "mean")))
+                    ndql.append("PARAM confidence %s" % params.get("confidence", params.get("weight", 0.5)))
                 elif comp_type == "OpinionZealot":
                     ndql.append("PARAM share %s" % params.get("share", 0.0))
                     ndql.append("PARAM fixed_value %s" % params.get("fixed_value", params.get("value", 0.0)))
+                elif comp_type == "OpinionMediaInfluence":
+                    ndql.append("PARAM weight %s" % params.get("weight", 0.5))
+                    ndql.append("PARAM k %s" % params.get("k", params.get("media_count", 1)))
+                    if params.get("media_opinions") is not None:
+                        ndql.append("PARAM media_opinions %s" % format_ndql_value(params.get("media_opinions")))
+                elif comp_type == "OpinionMultiTopic":
+                    ndql.append("PARAM topics %s" % format_ndql_value(params.get("topics", [])))
+                    ndql.append("PARAM coupling %s" % params.get("coupling", 0.0))
+                elif comp_type == "OpinionLabelSwitch":
+                    ndql.append("PARAM probability %s" % params.get("probability", 0.5))
+                    if params.get("triggering_status") is not None:
+                        ndql.append("PARAM triggering_status %s" % format_ndql_value(params.get("triggering_status")))
                 elif param_name is not None:
                     ndql.append("PARAM %s %s" % (param_name, params.get(param_name, fallback)))
                 ndql.append("")

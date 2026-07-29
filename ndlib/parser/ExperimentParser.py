@@ -33,7 +33,7 @@ class ExperimentParser(object):
             "from ndlib.models.compartments.EdgeNumericalAttribute import EdgeNumericalAttribute\n"
             "from ndlib.models.compartments.ConditionalComposition import ConditionalComposition\n"
             "from ndlib.models.compartments.CountDown import CountDown\n"
-            "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe\n"
+            "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift\n"
         )
 
         self.script = ""
@@ -350,6 +350,11 @@ class ExperimentParser(object):
             return value
         if value.lower() in {"none", "null"}:
             return None
+        if value.startswith("{") and value.endswith("}"):
+            try:
+                return json.loads(value)
+            except Exception:
+                pass
         if value.startswith("[") and value.endswith("]"):
             items = [x.strip() for x in value[1:-1].split(",") if x.strip()]
             return [ExperimentParser.__coerce_ndql_value(x) for x in items]
@@ -625,16 +630,23 @@ class ExperimentParser(object):
             "OpinionDistanceThreshold",
             "OpinionSelectionBias",
             "OpinionCompromise",
+            "OpinionAssimilation",
             "OpinionStubbornness",
             "OpinionNoise",
+            "OpinionRepulsion",
+            "OpinionBoundedDrift",
             "OpinionPolarization",
             "OpinionExternalField",
             "OpinionTrustFilter",
+            "OpinionConsensusBlock",
             "OpinionMemory",
             "OpinionNormalization",
             "OpinionQuantization",
             "OpinionMediaInfluence",
             "OpinionZealot",
+            "OpinionDistribution",
+            "OpinionMultiTopic",
+            "OpinionLabelSwitch",
         }
         for part in desc:
             part = part.split(" ")
@@ -695,16 +707,23 @@ class ExperimentParser(object):
             "OpinionDistanceThreshold",
             "OpinionSelectionBias",
             "OpinionCompromise",
+            "OpinionAssimilation",
             "OpinionStubbornness",
             "OpinionNoise",
+            "OpinionRepulsion",
+            "OpinionBoundedDrift",
             "OpinionPolarization",
             "OpinionExternalField",
             "OpinionTrustFilter",
+            "OpinionConsensusBlock",
             "OpinionMemory",
             "OpinionNormalization",
             "OpinionQuantization",
             "OpinionMediaInfluence",
             "OpinionZealot",
+            "OpinionDistribution",
+            "OpinionMultiTopic",
+            "OpinionLabelSwitch",
         }
         if components["TYPE"] not in known_types:
             raise ValueError("Unsupported compartment type '%s'" % components["TYPE"])
