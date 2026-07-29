@@ -287,6 +287,7 @@
             ]);
             const [builderDeclarations, setBuilderDeclarations] = useState([]);
             const [builderObservables, setBuilderObservables] = useState([]);
+            const [builderUpdates, setBuilderUpdates] = useState([]);
             const [builderOpinionDistribution, setBuilderOpinionDistribution] = useState("uniform");
             const [selectedElement, setSelectedElement] = useState(null);
             const [selectedNodeIds, setSelectedNodeIds] = useState([]);
@@ -576,6 +577,7 @@
                 setBuilderOpinionDistribution(template.initialOpinionDistribution || "uniform");
                 setBuilderDeclarations(Array.isArray(template.declarations) ? template.declarations.map(item => ({ ...item })) : []);
                 setBuilderObservables(Array.isArray(template.observables) ? template.observables.map(item => ({ ...item })) : []);
+                setBuilderUpdates(Array.isArray(template.updates) ? template.updates.map(item => ({ ...item })) : []);
                 setBuilderNodes(template.nodes.map(node => ({
                     ...node,
                     data: {
@@ -2931,6 +2933,10 @@
                     initial_opinion_distribution: builderOpinionDistribution,
                     declarations: builderDeclarations.map(item => ({ ...item })),
                     observables: builderObservables.map(item => ({ ...item })),
+                    updates: builderUpdates.map(item => ({
+                        ...item,
+                        schedule: item.schedule && typeof item.schedule === "object" ? { ...item.schedule } : item.schedule
+                    })),
                     statuses: liveNodes.filter(n => n.type === "status").map(n => ({
                         name: n.data.name,
                         code: n.data.code
@@ -3039,6 +3045,9 @@
                     setBuilderNodes(modelData.nodes);
                     setBuilderEdges(modelData.edges);
                     setBuilderInitialStatus(modelData.initial_status || []);
+                    setBuilderDeclarations(Array.isArray(modelData.declarations) ? modelData.declarations.map(item => ({ ...item })) : []);
+                    setBuilderObservables(Array.isArray(modelData.observables) ? modelData.observables.map(item => ({ ...item })) : []);
+                    setBuilderUpdates(Array.isArray(modelData.updates) ? modelData.updates.map(item => ({ ...item })) : []);
                     clearBuilderSelection();
                     clearBuilderInteractionState();
                 } else {
@@ -3224,6 +3233,11 @@
                     lines.push(bits.join(" ").trim());
                 });
                 if (builderObservables.length > 0) lines.push("");
+
+                builderUpdates.forEach(update => {
+                    serializeBuilderUpdate(update).forEach(line => lines.push(line));
+                    lines.push("");
+                });
 
                 lines.push("INITIALIZE");
                 if (isContinuousOpinionBuilder) {
@@ -3548,6 +3562,59 @@
                 setBuilderInitialStatus(prev => prev.map(init => 
                     init.status === statusName ? { ...init, ratio: parseFloat(ratio) || 0 } : init
                 ));
+            };
+
+            const createBuilderDeclaration = () => ({
+                kind: "PARAM",
+                name: "",
+                type: "",
+                scope: "",
+                range: "",
+                values: "",
+                default: ""
+            });
+
+            const createBuilderObservable = () => ({
+                variable: "opinion",
+                mode: "bins",
+                bins: 20,
+                range: "[0, 1]"
+            });
+
+            const createBuilderUpdate = () => ({
+                target: "opinion",
+                expression: "opinion",
+                when: "",
+                schedule: null
+            });
+
+            const updateBuilderListItem = (setter, index, patch) => {
+                setter(prev => prev.map((item, itemIndex) => (
+                    itemIndex === index ? { ...item, ...patch } : item
+                )));
+            };
+
+            const removeBuilderListItem = (setter, index) => {
+                setter(prev => prev.filter((_, itemIndex) => itemIndex !== index));
+            };
+
+            const serializeBuilderUpdate = (update) => {
+                const lines = [];
+                if (update.when) {
+                    lines.push(`WHEN ${update.when}`);
+                }
+                if (update.schedule && typeof update.schedule === "object") {
+                    const scheduleBits = [`SCHEDULE ${update.schedule.start ?? 0} ${update.schedule.end ?? 0}`];
+                    if (update.schedule.period !== undefined && update.schedule.period !== null && update.schedule.period !== "") {
+                        scheduleBits.push(`PERIOD ${update.schedule.period}`);
+                    }
+                    if (update.schedule.phase !== undefined && update.schedule.phase !== null && update.schedule.phase !== "") {
+                        scheduleBits.push(`PHASE ${update.schedule.phase}`);
+                    }
+                    lines.push(scheduleBits.join(" "));
+                }
+                lines.push(`UPDATE ${update.target || "opinion"} = ${update.expression || "value"}`);
+                return lines;
             };
 
             const renderModelBuilder = () => {
@@ -4613,6 +4680,295 @@
                                                 </div>
                                             </div>
                                         )}
+
+                                        <div class="border-t border-slate-800/80 pt-4">
+                                            <div class="flex items-center justify-between mb-3 gap-3">
+                                                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Model Directives</h4>
+                                                <span class="text-[10px] text-slate-500">Declarations, observables, and updates are stored with the custom model.</span>
+                                            </div>
+
+                                            <div class="space-y-4">
+                                                <div class={`p-3 border rounded-xl space-y-3 text-xs ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
+                                                    <div class="flex items-center justify-between gap-2">
+                                                        <h5 class="text-[11px] font-semibold uppercase tracking-wider text-indigo-300">Declarations</h5>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setBuilderDeclarations(prev => [...prev, createBuilderDeclaration()])}
+                                                            class="px-2 py-1 text-[10px] rounded border border-slate-700 text-slate-300 hover:text-white hover:border-cyan-500 hover:bg-cyan-500/10 transition cursor-pointer"
+                                                        >
+                                                            Add
+                                                        </button>
+                                                    </div>
+                                                    {builderDeclarations.length === 0 ? (
+                                                        <p class="text-[10px] text-slate-500 italic">Add typed declarations, parameters, or variables for the generated NDQL.</p>
+                                                    ) : (
+                                                        <div class="space-y-3">
+                                                            {builderDeclarations.map((declaration, index) => (
+                                                                <div key={`decl-${index}`} class={`p-2.5 rounded-lg border space-y-2 ${isDarkMode ? "border-slate-800 bg-slate-950/80" : "border-slate-200 bg-slate-50"}`}>
+                                                                    <div class="flex items-center justify-between gap-2">
+                                                                        <span class="text-[10px] font-semibold text-slate-400">Declaration {index + 1}</span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => removeBuilderListItem(setBuilderDeclarations, index)}
+                                                                            class="text-slate-500 hover:text-red-400 transition cursor-pointer"
+                                                                            title="Remove declaration"
+                                                                        >
+                                                                            <i class="fa-solid fa-trash-can"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                        <select
+                                                                            value={declaration.kind || "PARAM"}
+                                                                            onChange={(e) => updateBuilderListItem(setBuilderDeclarations, index, { kind: e.target.value })}
+                                                                            class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                        >
+                                                                            <option value="PARAM">PARAM</option>
+                                                                            <option value="GLOBAL">GLOBAL</option>
+                                                                            <option value="EDGE_VARIABLE">EDGE_VARIABLE</option>
+                                                                            <option value="VARIABLE">VARIABLE</option>
+                                                                            <option value="CONSTANT">CONSTANT</option>
+                                                                            <option value="STATUS">STATUS</option>
+                                                                            <option value="BIN">BIN</option>
+                                                                        </select>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={declaration.name || ""}
+                                                                            onChange={(e) => updateBuilderListItem(setBuilderDeclarations, index, { name: e.target.value })}
+                                                                            placeholder="name"
+                                                                            class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                        />
+                                                                        <input
+                                                                            type="text"
+                                                                            value={declaration.type || ""}
+                                                                            onChange={(e) => updateBuilderListItem(setBuilderDeclarations, index, { type: e.target.value })}
+                                                                            placeholder="type"
+                                                                            class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                        />
+                                                                        <input
+                                                                            type="text"
+                                                                            value={declaration.scope || ""}
+                                                                            onChange={(e) => updateBuilderListItem(setBuilderDeclarations, index, { scope: e.target.value })}
+                                                                            placeholder="scope"
+                                                                            class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                        />
+                                                                        <input
+                                                                            type="text"
+                                                                            value={Array.isArray(declaration.range) ? JSON.stringify(declaration.range) : (declaration.range || "")}
+                                                                            onChange={(e) => updateBuilderListItem(setBuilderDeclarations, index, { range: e.target.value })}
+                                                                            placeholder="[0,1]"
+                                                                            class={`w-full border rounded px-2 py-1.5 sm:col-span-2 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                        />
+                                                                        <input
+                                                                            type="text"
+                                                                            value={Array.isArray(declaration.values) ? JSON.stringify(declaration.values) : (declaration.values || "")}
+                                                                            onChange={(e) => updateBuilderListItem(setBuilderDeclarations, index, { values: e.target.value })}
+                                                                            placeholder="choices or values"
+                                                                            class={`w-full border rounded px-2 py-1.5 sm:col-span-2 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                        />
+                                                                        <input
+                                                                            type="text"
+                                                                            value={Array.isArray(declaration.default) ? JSON.stringify(declaration.default) : (declaration.default || "")}
+                                                                            onChange={(e) => updateBuilderListItem(setBuilderDeclarations, index, { default: e.target.value })}
+                                                                            placeholder="default"
+                                                                            class={`w-full border rounded px-2 py-1.5 sm:col-span-2 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div class={`p-3 border rounded-xl space-y-3 text-xs ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
+                                                    <div class="flex items-center justify-between gap-2">
+                                                        <h5 class="text-[11px] font-semibold uppercase tracking-wider text-indigo-300">Observables</h5>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setBuilderObservables(prev => [...prev, createBuilderObservable()])}
+                                                            class="px-2 py-1 text-[10px] rounded border border-slate-700 text-slate-300 hover:text-white hover:border-cyan-500 hover:bg-cyan-500/10 transition cursor-pointer"
+                                                        >
+                                                            Add
+                                                        </button>
+                                                    </div>
+                                                    {builderObservables.length === 0 ? (
+                                                        <p class="text-[10px] text-slate-500 italic">Add observables for distribution bins, ranges, or time series summaries.</p>
+                                                    ) : (
+                                                        <div class="space-y-3">
+                                                            {builderObservables.map((observable, index) => (
+                                                                <div key={`obs-${index}`} class={`p-2.5 rounded-lg border space-y-2 ${isDarkMode ? "border-slate-800 bg-slate-950/80" : "border-slate-200 bg-slate-50"}`}>
+                                                                    <div class="flex items-center justify-between gap-2">
+                                                                        <span class="text-[10px] font-semibold text-slate-400">Observable {index + 1}</span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => removeBuilderListItem(setBuilderObservables, index)}
+                                                                            class="text-slate-500 hover:text-red-400 transition cursor-pointer"
+                                                                            title="Remove observable"
+                                                                        >
+                                                                            <i class="fa-solid fa-trash-can"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                        <input
+                                                                            type="text"
+                                                                            value={observable.variable || ""}
+                                                                            onChange={(e) => updateBuilderListItem(setBuilderObservables, index, { variable: e.target.value })}
+                                                                            placeholder="variable"
+                                                                            class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                        />
+                                                                        <select
+                                                                            value={observable.mode || "bins"}
+                                                                            onChange={(e) => updateBuilderListItem(setBuilderObservables, index, { mode: e.target.value })}
+                                                                            class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                        >
+                                                                            <option value="bins">bins</option>
+                                                                            <option value="hist">hist</option>
+                                                                            <option value="line">line</option>
+                                                                            <option value="mean">mean</option>
+                                                                        </select>
+                                                                        <input
+                                                                            type="number"
+                                                                            min="1"
+                                                                            step="1"
+                                                                            value={observable.bins ?? 20}
+                                                                            onChange={(e) => updateBuilderListItem(setBuilderObservables, index, { bins: parseInt(e.target.value) || 1 })}
+                                                                            class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                        />
+                                                                        <input
+                                                                            type="text"
+                                                                            value={Array.isArray(observable.range) ? JSON.stringify(observable.range) : (observable.range || "")}
+                                                                            onChange={(e) => updateBuilderListItem(setBuilderObservables, index, { range: e.target.value })}
+                                                                            placeholder="[0,1]"
+                                                                            class={`w-full border rounded px-2 py-1.5 sm:col-span-2 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div class={`p-3 border rounded-xl space-y-3 text-xs ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
+                                                    <div class="flex items-center justify-between gap-2">
+                                                        <h5 class="text-[11px] font-semibold uppercase tracking-wider text-indigo-300">Update Rules</h5>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setBuilderUpdates(prev => [...prev, createBuilderUpdate()])}
+                                                            class="px-2 py-1 text-[10px] rounded border border-slate-700 text-slate-300 hover:text-white hover:border-cyan-500 hover:bg-cyan-500/10 transition cursor-pointer"
+                                                        >
+                                                            Add
+                                                        </button>
+                                                    </div>
+                                                    {builderUpdates.length === 0 ? (
+                                                        <p class="text-[10px] text-slate-500 italic">Add explicit update rules for opinion or attribute changes.</p>
+                                                    ) : (
+                                                        <div class="space-y-3">
+                                                            {builderUpdates.map((update, index) => (
+                                                                <div key={`upd-${index}`} class={`p-2.5 rounded-lg border space-y-2 ${isDarkMode ? "border-slate-800 bg-slate-950/80" : "border-slate-200 bg-slate-50"}`}>
+                                                                    <div class="flex items-center justify-between gap-2">
+                                                                        <span class="text-[10px] font-semibold text-slate-400">Update {index + 1}</span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => removeBuilderListItem(setBuilderUpdates, index)}
+                                                                            class="text-slate-500 hover:text-red-400 transition cursor-pointer"
+                                                                            title="Remove update"
+                                                                        >
+                                                                            <i class="fa-solid fa-trash-can"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                    <div class="grid grid-cols-1 gap-2">
+                                                                        <input
+                                                                            type="text"
+                                                                            value={update.target || "opinion"}
+                                                                            onChange={(e) => updateBuilderListItem(setBuilderUpdates, index, { target: e.target.value })}
+                                                                            placeholder="target"
+                                                                            class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                        />
+                                                                        <input
+                                                                            type="text"
+                                                                            value={update.expression || "opinion"}
+                                                                            onChange={(e) => updateBuilderListItem(setBuilderUpdates, index, { expression: e.target.value })}
+                                                                            placeholder="expression"
+                                                                            class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                        />
+                                                                        <input
+                                                                            type="text"
+                                                                            value={update.when || ""}
+                                                                            onChange={(e) => updateBuilderListItem(setBuilderUpdates, index, { when: e.target.value })}
+                                                                            placeholder="when condition"
+                                                                            class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                        />
+                                                                    </div>
+                                                                    {update.schedule && typeof update.schedule === "object" ? (
+                                                                        <div class={`space-y-2 pt-1 border-t ${isDarkMode ? "border-slate-800" : "border-slate-200"}`}>
+                                                                            <div class="flex items-center justify-between gap-2">
+                                                                                <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Schedule</span>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => updateBuilderListItem(setBuilderUpdates, index, { schedule: null })}
+                                                                                    class="text-[10px] text-slate-400 hover:text-red-400 transition cursor-pointer"
+                                                                                >
+                                                                                    Remove schedule
+                                                                                </button>
+                                                                            </div>
+                                                                            <div class="grid grid-cols-2 gap-2">
+                                                                                <input
+                                                                                    type="number"
+                                                                                    min="0"
+                                                                                    step="1"
+                                                                                    value={update.schedule.start ?? 0}
+                                                                                    onChange={(e) => updateBuilderListItem(setBuilderUpdates, index, {
+                                                                                        schedule: { ...update.schedule, start: parseInt(e.target.value) || 0 }
+                                                                                    })}
+                                                                                    class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                                />
+                                                                                <input
+                                                                                    type="number"
+                                                                                    min="0"
+                                                                                    step="1"
+                                                                                    value={update.schedule.end ?? 0}
+                                                                                    onChange={(e) => updateBuilderListItem(setBuilderUpdates, index, {
+                                                                                        schedule: { ...update.schedule, end: parseInt(e.target.value) || 0 }
+                                                                                    })}
+                                                                                    class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                                />
+                                                                                <input
+                                                                                    type="number"
+                                                                                    min="1"
+                                                                                    step="1"
+                                                                                    value={update.schedule.period ?? 1}
+                                                                                    onChange={(e) => updateBuilderListItem(setBuilderUpdates, index, {
+                                                                                        schedule: { ...update.schedule, period: parseInt(e.target.value) || 1 }
+                                                                                    })}
+                                                                                    class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                                />
+                                                                                <input
+                                                                                    type="number"
+                                                                                    min="0"
+                                                                                    step="1"
+                                                                                    value={update.schedule.phase ?? 0}
+                                                                                    onChange={(e) => updateBuilderListItem(setBuilderUpdates, index, {
+                                                                                        schedule: { ...update.schedule, phase: parseInt(e.target.value) || 0 }
+                                                                                    })}
+                                                                                    class={`w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`}
+                                                                                />
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => updateBuilderListItem(setBuilderUpdates, index, { schedule: { start: 0, end: 0, period: 1, phase: 0 } })}
+                                                                            class="text-[10px] px-2 py-1 rounded border border-slate-700 text-slate-300 hover:text-white hover:border-cyan-500 hover:bg-cyan-500/10 transition cursor-pointer"
+                                                                        >
+                                                                            Add schedule
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
 
                                         {/* Code Preview Panel */}
                                         <div class="border-t border-slate-800/80 pt-4 flex-grow flex flex-col min-h-[200px]">
