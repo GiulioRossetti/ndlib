@@ -599,6 +599,47 @@ class NdlibParserTest(unittest.TestCase):
             except OSError:
                 pass
 
+    def test_phase6_ndql_updates_roundtrip(self):
+        query = (
+            "MODEL Phase6UpdateModel\n"
+            "TYPE CONTINUOUS_OPINION\n"
+            "INITIAL_OPINION_DISTRIBUTION uniform\n"
+            "\n"
+            "DECLARE GLOBAL simulation_name TYPE string DEFAULT phase6\n"
+            "DECLARE EDGE_VARIABLE edge_weight TYPE float DEFAULT 1.0\n"
+            "\n"
+            "BIN LowOpinion\n"
+            "BIN HighOpinion\n"
+            "\n"
+            "BLOCK opinion_normalization\n"
+            "TYPE OpinionNormalization\n"
+            "PARAM min 0.0\n"
+            "PARAM max 1.0\n"
+            "\n"
+            "WHEN iteration >= 0\n"
+            "SCHEDULE 0 10 PERIOD 1 PHASE 0\n"
+            "UPDATE opinion = 1.0\n"
+            "\n"
+            "EXECUTE Phase6UpdateModel ON g1 FOR 3"
+        )
+
+        parser = ep.ExperimentParser()
+        parser.set_query(query)
+        parser.parse()
+
+        self.assertIn("'kind': 'GLOBAL'", parser.script)
+        self.assertIn("'kind': 'EDGE_VARIABLE'", parser.script)
+        self.assertIn("self.update_rules", parser.script)
+        self.assertIn("when", parser.script)
+
+        local_scope = {}
+        global_scope = {}
+        exec(parser.script, global_scope, local_scope)
+        iterations = parser.execute_query()
+        self.assertIsInstance(iterations, list)
+        self.assertGreaterEqual(len(iterations), 2)
+        self.assertTrue(all(float(v) == 1.0 for v in iterations[-1]["status"].values()))
+
     def test_continuous_opinion_builder_ndql_with_zealots(self):
         query = (
             "MODEL OpinionZealotModel\n"

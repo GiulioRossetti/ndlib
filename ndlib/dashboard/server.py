@@ -155,6 +155,25 @@ def serialize_ndql_observable(observable):
     return " ".join(parts)
 
 
+def serialize_ndql_update(update):
+    lines = []
+    if update.get("when"):
+        lines.append("WHEN %s" % format_ndql_value(update["when"]))
+    schedule = update.get("schedule")
+    if isinstance(schedule, dict):
+        schedule_line = "SCHEDULE %s %s" % (
+            format_ndql_value(schedule.get("start", 0)),
+            format_ndql_value(schedule.get("end", 0)),
+        )
+        if schedule.get("period") is not None:
+            schedule_line += " PERIOD %s" % format_ndql_value(schedule["period"])
+        if schedule.get("phase") is not None:
+            schedule_line += " PHASE %s" % format_ndql_value(schedule["phase"])
+        lines.append(schedule_line)
+    lines.append("UPDATE %s = %s" % (format_ndql_value(update.get("target", "opinion")), format_ndql_value(update.get("expression", "value"))))
+    return lines
+
+
 def is_known_compartment_type(comp_type):
     return comp_type in {
         "NodeStochastic",
@@ -870,6 +889,7 @@ def generate_custom_model_class(model_data):
     initial_status = model_data.get("initial_status", [])
     declarations = model_data.get("declarations", [])
     observables = model_data.get("observables", [])
+    updates = model_data.get("updates", [])
     opinion_variables = sorted({
         comp.get("params", {}).get("var", "")
         for comp in compartments
@@ -914,7 +934,7 @@ def generate_custom_model_class(model_data):
         "from ndlib.models.compartments.EdgeNumericalAttribute import EdgeNumericalAttribute",
         "from ndlib.models.compartments.ConditionalComposition import ConditionalComposition",
         "from ndlib.models.compartments.CountDown import CountDown",
-        "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, ExposureRate, TransmissionKernel, DoseResponseBlock, LatencyPeriod, IncubationState, RecoveryKernel, WaningImmunity, VaccinationBlock, QuarantineBlock, TestingBlock, TreatmentBlock, HospitalizationBlock, MortalityBlock, ReinfectionBlock, StrainBlock, SuperSpreaderBlock, SeasonalityBlock, ImportationBlock, RewiringBlock, CommunityMixingBlock, EdgeActivationBlock, SeedSelection, NodeRoleAssignment, AttributeInitializer, GraphImport, CommunityAssignment, RuleAlias, PreviewObservable, ValidationHint, AttributeCoupling, OpinionAffectsInfection, OpinionAffectsRecovery, OpinionAffectsContactRate, InfectionAffectsOpinion, StatusDependentOpinionUpdate, EpidemicDependentBias, PolicyIntervention, CommunityCoupling, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift",
+        "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, ExposureRate, TransmissionKernel, DoseResponseBlock, LatencyPeriod, IncubationState, RecoveryKernel, WaningImmunity, VaccinationBlock, QuarantineBlock, TestingBlock, TreatmentBlock, HospitalizationBlock, MortalityBlock, ReinfectionBlock, StrainBlock, SuperSpreaderBlock, SeasonalityBlock, ImportationBlock, RewiringBlock, CommunityMixingBlock, EdgeActivationBlock, SeedSelection, NodeRoleAssignment, AttributeInitializer, GraphImport, CommunityAssignment, RuleAlias, PreviewObservable, ValidationHint, AttributeCoupling, OpinionAffectsInfection, OpinionAffectsRecovery, OpinionAffectsContactRate, InfectionAffectsOpinion, StatusDependentOpinionUpdate, EpidemicDependentBias, PolicyIntervention, CommunityCoupling, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift, _safe_eval, _clamp, _graph_iteration",
         "from ndlib.models.compartments.enums.NumericalType import NumericalType",
         "from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions",
         "",
@@ -1273,7 +1293,7 @@ def generate_continuous_opinion_custom_model_class(
         "import numpy as np",
         "from ndlib.models.DiffusionModel import DiffusionModel",
         "from ndlib.models.compartments.Compartment import Compartiment",
-        "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, ExposureRate, TransmissionKernel, DoseResponseBlock, LatencyPeriod, IncubationState, RecoveryKernel, WaningImmunity, VaccinationBlock, QuarantineBlock, TestingBlock, TreatmentBlock, HospitalizationBlock, MortalityBlock, ReinfectionBlock, StrainBlock, SuperSpreaderBlock, SeasonalityBlock, ImportationBlock, RewiringBlock, CommunityMixingBlock, EdgeActivationBlock, SeedSelection, NodeRoleAssignment, AttributeInitializer, GraphImport, CommunityAssignment, RuleAlias, PreviewObservable, ValidationHint, AttributeCoupling, OpinionAffectsInfection, OpinionAffectsRecovery, OpinionAffectsContactRate, InfectionAffectsOpinion, StatusDependentOpinionUpdate, EpidemicDependentBias, PolicyIntervention, CommunityCoupling, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift",
+        "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, ExposureRate, TransmissionKernel, DoseResponseBlock, LatencyPeriod, IncubationState, RecoveryKernel, WaningImmunity, VaccinationBlock, QuarantineBlock, TestingBlock, TreatmentBlock, HospitalizationBlock, MortalityBlock, ReinfectionBlock, StrainBlock, SuperSpreaderBlock, SeasonalityBlock, ImportationBlock, RewiringBlock, CommunityMixingBlock, EdgeActivationBlock, SeedSelection, NodeRoleAssignment, AttributeInitializer, GraphImport, CommunityAssignment, RuleAlias, PreviewObservable, ValidationHint, AttributeCoupling, OpinionAffectsInfection, OpinionAffectsRecovery, OpinionAffectsContactRate, InfectionAffectsOpinion, StatusDependentOpinionUpdate, EpidemicDependentBias, PolicyIntervention, CommunityCoupling, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift, _safe_eval, _clamp, _graph_iteration",
         "from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions",
         "",
         "class %s(DiffusionModel):" % class_name,
@@ -1463,6 +1483,7 @@ def generate_continuous_opinion_custom_model_class(
         "        self.name = %r" % model_data.get("name", "CustomModel"),
         "        self.declarations = %r" % model_data.get("declarations", []),
         "        self.observables = %r" % model_data.get("observables", []),
+        "        self.update_rules = %r" % model_data.get("updates", []),
         "        self.continuous_blocks = {",
         "            'distribution': %r," % opinion_block_names["OpinionDistribution"],
         "            'distance_threshold': %r," % opinion_block_names["OpinionDistanceThreshold"],
@@ -1647,6 +1668,51 @@ def generate_continuous_opinion_custom_model_class(
         "                if hasattr(self, 'zealot_nodes') and node in self.zealot_nodes:",
         "                    continue",
         "                actual_status[node] = float(np.clip(actual_status[node], normalize_min, normalize_max))",
+        "        update_rules = self.update_rules if hasattr(self, 'update_rules') else []",
+        "        if update_rules:",
+        "            iteration_index = int(self.actual_iteration)",
+        "            for node in list(actual_status.keys()):",
+        "                context = {",
+        "                    'node': node,",
+        "                    'graph': self.graph,",
+        "                    'status': actual_status,",
+        "                    'params': self.params,",
+        "                    'model': self.params.get('model', {}),",
+        "                    'iteration': iteration_index,",
+        "                    'opinion': actual_status.get(node, 0.0),",
+        "                    'value': actual_status.get(node, 0.0),",
+        "                    'np': np,",
+        "                    'math': __import__('math'),",
+        "                }",
+        "                for rule in update_rules:",
+        "                    if not isinstance(rule, dict):",
+        "                        continue",
+        "                    schedule = rule.get('schedule')",
+        "                    if isinstance(schedule, dict):",
+        "                        start = int(schedule.get('start', 0) or 0)",
+        "                        end = int(schedule.get('end', iteration_index) or iteration_index)",
+        "                        period = int(schedule.get('period', 1) or 1)",
+        "                        phase = int(schedule.get('phase', 0) or 0)",
+        "                        if iteration_index < start or iteration_index > end:",
+        "                            continue",
+        "                        if period > 1 and ((iteration_index - phase) % period) != 0:",
+        "                            continue",
+        "                    when_expr = rule.get('when')",
+        "                    if when_expr is not None and not bool(__import__('ndlib.models.compartments.NDQLBlocks', fromlist=['_safe_eval'])._safe_eval(when_expr, context, default=False)):",
+        "                        continue",
+        "                    target_name = str(rule.get('target', 'opinion'))",
+        "                    expression = rule.get('expression', 'opinion')",
+        "                    value = __import__('ndlib.models.compartments.NDQLBlocks', fromlist=['_safe_eval'])._safe_eval(expression, context, default=context.get(target_name, context.get('opinion', 0.0)))",
+        "                    if value is None:",
+        "                        continue",
+        "                    if target_name == 'opinion':",
+        "                        value = float(np.clip(value, 0.0, 1.0))",
+        "                        actual_status[node] = value",
+        "                        self.graph.nodes[node]['opinion'] = value",
+        "                    else:",
+        "                        self.graph.nodes[node][target_name] = value",
+        "                    context[target_name] = value",
+        "                    context['opinion'] = actual_status.get(node, context.get('opinion', 0.0))",
         "        for node, opinion in actual_status.items():",
         "            self.graph.nodes[node]['opinion'] = float(opinion)",
         "        self.status = actual_status",
@@ -1670,6 +1736,7 @@ def generate_ndql_script(model_data):
     initial_status = model_data.get("initial_status", [])
     declarations = model_data.get("declarations", [])
     observables = model_data.get("observables", [])
+    updates = model_data.get("updates", [])
     continuous_opinion_mode = bool(
         model_data.get("use_case") == "continuous_opinions"
         or model_data.get("template_id") == "algorithmic_bias"
@@ -1780,6 +1847,10 @@ def generate_ndql_script(model_data):
         if observables:
             ndql.append("")
 
+        for update in updates:
+            ndql.extend(serialize_ndql_update(update))
+            ndql.append("")
+
         return "\n".join(ndql)
 
     ndql = []
@@ -1801,7 +1872,7 @@ def generate_ndql_script(model_data):
     sorted_comps = []
     pending = list(compartments)
     defined_names = set()
-    
+
     for _ in range(10):
         if not pending:
             break
@@ -1809,21 +1880,21 @@ def generate_ndql_script(model_data):
         for comp in pending:
             comp_type = comp["type"]
             params = comp.get("params", {})
-            
             deps = []
             if comp_type == "ConditionalComposition":
-                if params.get("condition"): deps.append(params["condition"])
-                if params.get("first_branch"): deps.append(params["first_branch"])
-                if params.get("second_branch"): deps.append(params["second_branch"])
-            
+                if params.get("condition"):
+                    deps.append(params["condition"])
+                if params.get("first_branch"):
+                    deps.append(params["first_branch"])
+                if params.get("second_branch"):
+                    deps.append(params["second_branch"])
             if all(d in defined_names for d in deps):
                 sorted_comps.append(comp)
                 defined_names.add(comp["name"])
             else:
                 next_pending.append(comp)
         pending = next_pending
-    for comp in pending:
-        sorted_comps.append(comp)
+    sorted_comps.extend(pending)
 
     for comp in sorted_comps:
         if comp["type"] == "ConditionalComposition":
@@ -1873,6 +1944,10 @@ def generate_ndql_script(model_data):
         ndql.append("FROM %s" % rule["from"])
         ndql.append("TO %s" % rule["to"])
         ndql.append("USING %s" % rule["using"])
+        ndql.append("")
+
+    for update in updates:
+        ndql.extend(serialize_ndql_update(update))
         ndql.append("")
 
     ndql.append("INITIALIZE")

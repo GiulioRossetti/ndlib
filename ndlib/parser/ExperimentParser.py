@@ -45,6 +45,9 @@ class ExperimentParser(object):
             "IF",
             "DECLARE",
             "OBSERVE",
+            "UPDATE",
+            "WHEN",
+            "SCHEDULE",
             "INITIALIZE",
             "CREATE_NETWORK",
             "LOAD_NETWORK",
@@ -142,6 +145,15 @@ class ExperimentParser(object):
             elif key == "OBSERVE":
                 code = self.__observable_statement(statement)
 
+            elif key == "UPDATE":
+                code = self.__update_statement(statement)
+
+            elif key == "WHEN":
+                code = self.__when_statement(statement)
+
+            elif key == "SCHEDULE":
+                code = self.__schedule_statement(statement)
+
             elif key == "INITIALIZE":
                 code = self.__model_configuration(statement)
 
@@ -175,14 +187,35 @@ class ExperimentParser(object):
         initial_status = []
         declarations = []
         observables = []
+        updates = []
         current_block = None
         current_rule = {}
         network_lines = []
         execution_line = None
         mode = None
+        pending_when = None
+        pending_schedule = None
 
         for raw_line in lines:
             if len(raw_line) == 0 or raw_line[0] == "#":
+                continue
+            raw_stripped = raw_line.strip()
+            if raw_stripped.upper().startswith("WHEN "):
+                pending_when = raw_stripped[5:].strip()
+                continue
+            if raw_stripped.upper().startswith("SCHEDULE "):
+                schedule = self.__parse_schedule_directive(raw_stripped)
+                pending_schedule = schedule
+                continue
+            if raw_stripped.upper().startswith("UPDATE "):
+                update = self.__parse_update_directive(raw_stripped)
+                if pending_when is not None and "when" not in update:
+                    update["when"] = pending_when
+                if pending_schedule is not None and "schedule" not in update:
+                    update["schedule"] = pending_schedule
+                updates.append(update)
+                pending_when = None
+                pending_schedule = None
                 continue
             line = self.__sanitize_string(raw_line).strip()
             if not line:
@@ -313,6 +346,7 @@ class ExperimentParser(object):
             "initial_status": initial_status,
             "declarations": declarations,
             "observables": observables,
+            "updates": updates,
         }
 
         class_code = generate_custom_model_class(payload)
@@ -535,6 +569,50 @@ class ExperimentParser(object):
         if len(desc) != 1:
             raise ValueError("Unsupported description")
         return "# %s\n" % desc[0]
+
+    def __update_statement(self, desc):
+        if len(desc) != 1:
+            raise ValueError("Unsupported description")
+        return "# %s\n" % desc[0]
+
+    def __when_statement(self, desc):
+        if len(desc) != 1:
+            raise ValueError("Unsupported description")
+        return "# %s\n" % desc[0]
+
+    def __schedule_statement(self, desc):
+        if len(desc) != 1:
+            raise ValueError("Unsupported description")
+        return "# %s\n" % desc[0]
+
+    @staticmethod
+    def __parse_update_directive(line):
+        match = re.match(r"^UPDATE\s+([A-Za-z_][\w\.]*)\s*=\s*(.+)$", line.strip(), flags=re.I)
+        if not match:
+            raise ValueError("Experiment description malformed (wrong update statement): check your syntax")
+        return {
+            "target": match.group(1),
+            "expression": match.group(2).strip(),
+        }
+
+    @staticmethod
+    def __parse_schedule_directive(line):
+        match = re.match(
+            r"^SCHEDULE\s+(\d+)\s+(\d+)(?:\s+PERIOD\s+(\d+))?(?:\s+PHASE\s+(\d+))?$",
+            line.strip(),
+            flags=re.I,
+        )
+        if not match:
+            raise ValueError("Experiment description malformed (wrong schedule statement): check your syntax")
+        schedule = {
+            "start": int(match.group(1)),
+            "end": int(match.group(2)),
+        }
+        if match.group(3) is not None:
+            schedule["period"] = int(match.group(3))
+        if match.group(4) is not None:
+            schedule["phase"] = int(match.group(4))
+        return schedule
 
     def __model_creation(self, desc):
 

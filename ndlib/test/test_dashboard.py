@@ -623,6 +623,70 @@ class DashboardTest(unittest.TestCase):
         ValidationHint(name="opinion_range", minimum=0.0, maximum=1.0, target="opinion").execute("a", graph, status, status, params)
         self.assertTrue(graph.nodes["a"]["validation_hint_valid"])
 
+    def test_phase6_ndql_updates_execute(self):
+        from ndlib.dashboard.server import generate_custom_model_class, generate_ndql_script
+        import networkx as nx
+        import ndlib.models.ModelConfig as mc
+
+        payload = {
+            "name": "Phase6UpdateModel",
+            "use_case": "continuous_opinions",
+            "template_id": "algorithmic_bias",
+            "initial_opinion_distribution": "uniform",
+            "epsilon": 0.0,
+            "gamma": 0.0,
+            "mu": 0.0,
+            "statuses": [
+                {"name": "LowOpinion", "code": 0},
+                {"name": "HighOpinion", "code": 1},
+            ],
+            "compartments": [
+                {
+                    "name": "opinion_normalization",
+                    "type": "OpinionNormalization",
+                    "params": {"min": 0.0, "max": 1.0},
+                }
+            ],
+            "updates": [
+                {
+                    "target": "opinion",
+                    "expression": "1.0",
+                    "when": "iteration >= 0",
+                    "schedule": {"start": 0, "end": 10},
+                }
+            ],
+            "rules": [],
+            "initial_status": [
+                {"status": "LowOpinion", "ratio": 0.5},
+                {"status": "HighOpinion", "ratio": 0.5},
+            ],
+        }
+
+        class_code = generate_custom_model_class(payload)
+        self.assertIn("self.update_rules", class_code)
+        self.assertIn("_safe_eval", class_code)
+
+        ndql_script = generate_ndql_script(payload)
+        self.assertIn("WHEN iteration >= 0", ndql_script)
+        self.assertIn("SCHEDULE 0 10", ndql_script)
+        self.assertIn("UPDATE opinion = 1.0", ndql_script)
+
+        local_scope = {}
+        global_scope = {}
+        exec(class_code, global_scope, local_scope)
+        model_cls = local_scope["Phase6UpdateModel"]
+
+        model = model_cls(nx.path_graph(6))
+        cfg = mc.Configuration()
+        cfg.add_model_parameter("initial_opinion_distribution", "uniform")
+        cfg.add_model_parameter("epsilon", 0.0)
+        cfg.add_model_parameter("gamma", 0.0)
+        cfg.add_model_parameter("mu", 0.0)
+        model.set_initial_status(cfg)
+        model.iteration()
+        result = model.iteration()
+        self.assertTrue(all(float(v) == 1.0 for v in result["status"].values()))
+
     def test_custom_model_ndql_serializes_declarations_and_observables(self):
         from ndlib.dashboard.server import generate_custom_model_class, generate_ndql_script
 
