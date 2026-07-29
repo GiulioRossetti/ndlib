@@ -486,6 +486,79 @@ class DashboardTest(unittest.TestCase):
         policy.execute(0, graph, status, status, params)
         self.assertEqual(graph.nodes[0]["policy_flag"], 1)
 
+    def test_epidemic_blocks_execute(self):
+        from ndlib.models.compartments.NDQLBlocks import (
+            CommunityMixingBlock,
+            DoseResponseBlock,
+            EdgeActivationBlock,
+            ExposureRate,
+            HospitalizationBlock,
+            ImportationBlock,
+            IncubationState,
+            InfectionAffectsOpinion,
+            LatencyPeriod,
+            MortalityBlock,
+            QuarantineBlock,
+            RecoveryKernel,
+            ReinfectionBlock,
+            RewiringBlock,
+            SeasonalityBlock,
+            StrainBlock,
+            SuperSpreaderBlock,
+            TestingBlock,
+            TransmissionKernel,
+            TreatmentBlock,
+            VaccinationBlock,
+            WaningImmunity,
+        )
+        import networkx as nx
+
+        graph = nx.path_graph(4)
+        for node in graph.nodes():
+            graph.nodes[node]["com"] = 0 if node < 2 else 1
+            graph.nodes[node]["opinion"] = 0.25 * (node + 1)
+
+        status = {0: 0, 1: 1, 2: 1, 3: 0}
+        params = {"model": {"iteration": 2, "available_statuses": {"Susceptible": 0, "Infected": 1, "Removed": 2}}}
+
+        ExposureRate(beta=0.5, contact_weight=1.0, mixing=1.0).execute(1, graph, status, status, params)
+        self.assertIn("exposure", graph.nodes[1])
+
+        TransmissionKernel(saturation=1.0).execute(1, graph, status, status, params)
+        self.assertIn("transmission_probability", graph.nodes[1])
+
+        DoseResponseBlock(shape="logistic", scale=2.0, offset=0.1).execute(1, graph, status, status, params)
+        self.assertIn("infection_probability", graph.nodes[1])
+
+        LatencyPeriod(duration=2).execute(1, graph, status, status, params)
+        IncubationState(infectiousness=0.3, duration=2).execute(1, graph, status, status, params)
+        RecoveryKernel(gamma=0.2).execute(1, graph, status, status, params)
+        WaningImmunity(rate=0.1).execute(1, graph, status, status, params)
+        VaccinationBlock(coverage=1.0, efficacy=0.8).execute(0, graph, status, status, params)
+        QuarantineBlock(duration=2, coverage=1.0).execute(0, graph, status, status, params)
+        TestingBlock(sensitivity=1.0, specificity=1.0).execute(1, graph, status, status, params)
+        TreatmentBlock(efficacy=0.7).execute(1, graph, status, status, params)
+        HospitalizationBlock(rate=1.0, mortality=0.2).execute(1, graph, status, status, params)
+        MortalityBlock(fatality=1.0, target_status="Removed").execute(1, graph, status, status, params)
+        ReinfectionBlock(susceptibility=0.6).execute(2, graph, status, status, params)
+        StrainBlock(strain_id="A").execute(2, graph, status, status, params)
+        SuperSpreaderBlock(activity=3.0, burst_rate=1.0).execute(2, graph, status, status, params)
+        SeasonalityBlock(period=4, amplitude=0.5).execute(2, graph, status, status, params)
+        ImportationBlock(arrival_rate=1.0, infectious_status="Infected").execute(3, graph, status, status, params)
+        RewiringBlock(rewire_rate=1.0).execute(0, graph, status, status, params)
+        CommunityMixingBlock(intra_rate=1.0, inter_rate=0.0).execute(0, graph, status, status, params)
+        EdgeActivationBlock(threshold=1.0, duration=1).execute(0, graph, status, status, params)
+
+        self.assertIn("vaccinated", graph.nodes[0])
+        self.assertIn("quarantined", graph.nodes[0])
+        self.assertIn("tested_positive", graph.nodes[1])
+        self.assertIn("hospitalized", graph.nodes[1])
+        self.assertIn("dead", graph.nodes[1])
+        self.assertIn("strain_id", graph.nodes[2])
+        self.assertIn("rewired", graph.nodes[0])
+        self.assertIn("mixing_rate", graph.nodes[0])
+        self.assertIn("active", graph.nodes[0])
+
     def test_custom_model_ndql_serializes_declarations_and_observables(self):
         from ndlib.dashboard.server import generate_custom_model_class, generate_ndql_script
 

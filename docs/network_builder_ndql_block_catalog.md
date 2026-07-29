@@ -45,6 +45,8 @@ The following items from this catalog are implemented in the current dashboard a
 - zealot selection in the dashboard for `VoterZealotModel`
 - media opinion count and per-media opinion values for `AlgorithmicBiasMediaModel`
 - zealot block round-trip and runtime validation for continuous-opinion custom models
+- epidemic execution blocks for `ExposureRate`, `TransmissionKernel`, `DoseResponseBlock`, `LatencyPeriod`, `IncubationState`, `RecoveryKernel`, `WaningImmunity`, `VaccinationBlock`, `QuarantineBlock`, `TestingBlock`, `TreatmentBlock`, `HospitalizationBlock`, `MortalityBlock`, `ReinfectionBlock`, `StrainBlock`, `SuperSpreaderBlock`, `SeasonalityBlock`, `ImportationBlock`, `RewiringBlock`, `CommunityMixingBlock`, and `EdgeActivationBlock`
+- epidemic builder palette, inspector options, and NDQL/parser support for the implemented epidemic block family
 - hybrid coupling blocks for `AttributeCoupling`, `OpinionAffectsInfection`, `OpinionAffectsRecovery`, `OpinionAffectsContactRate`, `InfectionAffectsOpinion`, `StatusDependentOpinionUpdate`, `EpidemicDependentBias`, `PolicyIntervention`, and `CommunityCoupling`
 - builder and parser support for the hybrid coupling block family
 - runtime validation for coupled opinion/epidemic state updates and policy scheduling

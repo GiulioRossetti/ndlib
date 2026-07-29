@@ -170,6 +170,33 @@ def _status_matches(node_status, filter_values, labels=None):
     return False
 
 
+def _graph_iteration(params=None):
+    if isinstance(params, dict):
+        return int(params.get("model", {}).get("iteration", params.get("iteration", 0)) or 0)
+    return 0
+
+
+def _iter_neighbors(graph, node):
+    if hasattr(graph, "is_directed") and graph.is_directed():
+        return list(graph.predecessors(node))
+    return list(graph.neighbors(node))
+
+
+def _random_node(graph, exclude=None):
+    nodes = list(graph.nodes())
+    if exclude is not None:
+        exclude = set(exclude)
+        nodes = [n for n in nodes if n not in exclude]
+    if not nodes:
+        return None
+    return nodes[np.random.randint(0, len(nodes))]
+
+
+def _sample_bool(probability):
+    probability = _clamp(probability, 0.0, 1.0)
+    return bool(np.random.random_sample() <= probability)
+
+
 class NDQLBlockBase(Compartiment):
     def __init__(self, block_type=None, params=None, **kwargs):
         super(NDQLBlockBase, self).__init__(kwargs)
@@ -1030,6 +1057,382 @@ class CommunityCoupling(NDQLBlockBase):
         return self.compose(node, graph, status, status_map, params, kwargs)
 
 
+class ExposureRate(NDQLBlockBase):
+    def __init__(self, beta=0.1, contact_weight=1.0, mixing=1.0, infected_statuses=None, target="exposure", **kwargs):
+        super(ExposureRate, self).__init__(kwargs)
+        self.beta = _clamp(beta, 0.0, 1.0)
+        self.contact_weight = _clamp(contact_weight, 0.0, 1.0)
+        self.mixing = _clamp(mixing, 0.0, 1.0)
+        self.infected_statuses = _coerce_list(infected_statuses) if infected_statuses is not None else [1, "Infected", "I"]
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        labels = None
+        if isinstance(params, dict):
+            labels = params.get("model", {}).get("available_statuses")
+        neighbors = _iter_neighbors(graph, node)
+        if not neighbors:
+            exposure = 0.0
+        else:
+            infected = sum(1 for neigh in neighbors if _status_matches(status.get(neigh), self.infected_statuses, labels=labels))
+            exposure = self.beta * self.contact_weight * self.mixing * (infected / float(len(neighbors)))
+        graph.nodes[node][self.target] = _clamp(exposure, 0.0, 1.0)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class TransmissionKernel(NDQLBlockBase):
+    def __init__(self, function=None, saturation=1.0, dose_response=None, source="exposure", target="transmission_probability", **kwargs):
+        super(TransmissionKernel, self).__init__(kwargs)
+        self.function = function
+        self.saturation = _clamp(saturation, 0.0, 10.0)
+        self.dose_response = dose_response
+        self.source = source
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        context = _node_context(node, graph, status, params)
+        exposure = _coerce_number(context.get(self.source, graph.nodes[node].get(self.source, 0.0)), 0.0)
+        if self.function is not None:
+            probability = _safe_eval(self.function, context, default=exposure)
+        elif self.dose_response is not None:
+            probability = _safe_eval(self.dose_response, context, default=exposure)
+        else:
+            probability = 1.0 - math.exp(-self.saturation * max(0.0, exposure))
+        graph.nodes[node][self.target] = _clamp(probability, 0.0, 1.0)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class DoseResponseBlock(NDQLBlockBase):
+    def __init__(self, shape="logistic", scale=1.0, offset=0.0, source="exposure", target="infection_probability", **kwargs):
+        super(DoseResponseBlock, self).__init__(kwargs)
+        self.shape = str(shape or "logistic").lower()
+        self.scale = _coerce_number(scale, 1.0)
+        self.offset = _coerce_number(offset, 0.0)
+        self.source = source
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        context = _node_context(node, graph, status, params)
+        exposure = _coerce_number(context.get(self.source, graph.nodes[node].get(self.source, 0.0)), 0.0)
+        x = self.scale * (exposure - self.offset)
+        if self.shape in {"linear", "line"}:
+            value = x
+        elif self.shape in {"step", "threshold"}:
+            value = 1.0 if x >= 0 else 0.0
+        else:
+            value = 1.0 / (1.0 + math.exp(-x))
+        graph.nodes[node][self.target] = _clamp(value, 0.0, 1.0)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class LatencyPeriod(NDQLBlockBase):
+    def __init__(self, duration=1, distribution="fixed", target="latent", **kwargs):
+        super(LatencyPeriod, self).__init__(kwargs)
+        self.duration = max(1, int(duration or 1))
+        self.distribution = str(distribution or "fixed").lower()
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        graph.nodes[node][self.target] = True
+        graph.nodes[node]["latent_duration"] = self.duration
+        graph.nodes[node]["latent_distribution"] = self.distribution
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class IncubationState(NDQLBlockBase):
+    def __init__(self, infectiousness=0.5, duration=1, target="incubating", **kwargs):
+        super(IncubationState, self).__init__(kwargs)
+        self.infectiousness = _clamp(infectiousness, 0.0, 1.0)
+        self.duration = max(1, int(duration or 1))
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        graph.nodes[node][self.target] = True
+        graph.nodes[node]["incubation_duration"] = self.duration
+        graph.nodes[node]["infectiousness"] = self.infectiousness
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class RecoveryKernel(NDQLBlockBase):
+    def __init__(self, gamma=0.1, hazard=None, distribution=None, source="recovery_rate", **kwargs):
+        super(RecoveryKernel, self).__init__(kwargs)
+        self.gamma = _clamp(gamma, 0.0, 1.0)
+        self.hazard = hazard
+        self.distribution = distribution
+        self.source = source
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        context = _node_context(node, graph, status, params)
+        value = self.gamma
+        if self.hazard is not None:
+            value = _safe_eval(self.hazard, context, default=value)
+        elif self.distribution is not None:
+            value = _safe_eval(self.distribution, context, default=value)
+        graph.nodes[node][self.source] = _clamp(value, 0.0, 1.0)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class WaningImmunity(NDQLBlockBase):
+    def __init__(self, rate=0.1, delay=0, target="susceptibility", **kwargs):
+        super(WaningImmunity, self).__init__(kwargs)
+        self.rate = _clamp(rate, 0.0, 1.0)
+        self.delay = max(0, int(delay or 0))
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        graph.nodes[node][self.target] = _clamp(self.rate, 0.0, 1.0)
+        graph.nodes[node]["waning_delay"] = self.delay
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class VaccinationBlock(NDQLBlockBase):
+    def __init__(self, coverage=0.0, efficacy=1.0, priority=None, target="vaccinated", **kwargs):
+        super(VaccinationBlock, self).__init__(kwargs)
+        self.coverage = _clamp(coverage, 0.0, 1.0)
+        self.efficacy = _clamp(efficacy, 0.0, 1.0)
+        self.priority = priority
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        selected = _sample_bool(self.coverage)
+        if self.priority is not None:
+            selected = selected or bool(_safe_eval(str(self.priority), _node_context(node, graph, status, params), default=False))
+        graph.nodes[node][self.target] = selected
+        graph.nodes[node]["vaccine_efficacy"] = self.efficacy if selected else 0.0
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class QuarantineBlock(NDQLBlockBase):
+    def __init__(self, duration=1, trigger=None, coverage=1.0, target="quarantined", **kwargs):
+        super(QuarantineBlock, self).__init__(kwargs)
+        self.duration = max(1, int(duration or 1))
+        self.trigger = trigger
+        self.coverage = _clamp(coverage, 0.0, 1.0)
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        context = _node_context(node, graph, status, params)
+        trigger = True if self.trigger is None else bool(_safe_eval(self.trigger, context, default=False))
+        selected = trigger and _sample_bool(self.coverage)
+        graph.nodes[node][self.target] = selected
+        graph.nodes[node]["quarantine_duration"] = self.duration if selected else 0
+        if selected:
+            graph.nodes[node]["contact_rate"] = 0.0
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class TestingBlock(NDQLBlockBase):
+    def __init__(self, sensitivity=1.0, specificity=1.0, frequency=1, target="tested_positive", **kwargs):
+        super(TestingBlock, self).__init__(kwargs)
+        self.sensitivity = _clamp(sensitivity, 0.0, 1.0)
+        self.specificity = _clamp(specificity, 0.0, 1.0)
+        self.frequency = max(1, int(frequency or 1))
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        labels = None
+        if isinstance(params, dict):
+            labels = params.get("model", {}).get("available_statuses")
+        infected = _status_matches(status.get(node), [1, "Infected", "I"], labels=labels)
+        positive = _sample_bool(self.sensitivity if infected else (1.0 - self.specificity))
+        graph.nodes[node][self.target] = positive
+        graph.nodes[node]["testing_frequency"] = self.frequency
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class TreatmentBlock(NDQLBlockBase):
+    def __init__(self, efficacy=0.5, delay=0, capacity=None, target="treatment_effect", **kwargs):
+        super(TreatmentBlock, self).__init__(kwargs)
+        self.efficacy = _clamp(efficacy, 0.0, 1.0)
+        self.delay = max(0, int(delay or 0))
+        self.capacity = capacity
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        graph.nodes[node][self.target] = self.efficacy
+        graph.nodes[node]["treatment_delay"] = self.delay
+        graph.nodes[node]["treatment_capacity"] = self.capacity
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class HospitalizationBlock(NDQLBlockBase):
+    def __init__(self, capacity=None, rate=0.1, mortality=0.0, target="hospitalized", **kwargs):
+        super(HospitalizationBlock, self).__init__(kwargs)
+        self.capacity = capacity
+        self.rate = _clamp(rate, 0.0, 1.0)
+        self.mortality = _clamp(mortality, 0.0, 1.0)
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        graph.nodes[node][self.target] = _sample_bool(self.rate)
+        graph.nodes[node]["hospital_mortality"] = self.mortality
+        graph.nodes[node]["hospital_capacity"] = self.capacity
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class MortalityBlock(NDQLBlockBase):
+    def __init__(self, fatality=0.0, delay=0, cause=None, target_status="Removed", target="dead", **kwargs):
+        super(MortalityBlock, self).__init__(kwargs)
+        self.fatality = _clamp(fatality, 0.0, 1.0)
+        self.delay = max(0, int(delay or 0))
+        self.cause = cause
+        self.target_status = target_status
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        dead = _sample_bool(self.fatality)
+        graph.nodes[node][self.target] = dead
+        graph.nodes[node]["mortality_delay"] = self.delay
+        graph.nodes[node]["mortality_cause"] = self.cause
+        if dead and self.target_status is not None:
+            status[node] = self.target_status
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class ReinfectionBlock(NDQLBlockBase):
+    def __init__(self, susceptibility=1.0, cooldown=0, target="susceptibility", **kwargs):
+        super(ReinfectionBlock, self).__init__(kwargs)
+        self.susceptibility = _clamp(susceptibility, 0.0, 1.0)
+        self.cooldown = max(0, int(cooldown or 0))
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        graph.nodes[node][self.target] = self.susceptibility
+        graph.nodes[node]["reinfection_cooldown"] = self.cooldown
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class StrainBlock(NDQLBlockBase):
+    def __init__(self, strain_id=0, cross_immunity=0.0, fitness=1.0, target="strain_id", **kwargs):
+        super(StrainBlock, self).__init__(kwargs)
+        self.strain_id = strain_id
+        self.cross_immunity = _clamp(cross_immunity, 0.0, 1.0)
+        self.fitness = _clamp(fitness, 0.0, 10.0)
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        graph.nodes[node][self.target] = self.strain_id
+        graph.nodes[node]["cross_immunity"] = self.cross_immunity
+        graph.nodes[node]["strain_fitness"] = self.fitness
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class SuperSpreaderBlock(NDQLBlockBase):
+    def __init__(self, activity=1.0, burst_rate=0.0, target="activity", **kwargs):
+        super(SuperSpreaderBlock, self).__init__(kwargs)
+        self.activity = _coerce_number(activity, 1.0)
+        self.burst_rate = _clamp(burst_rate, 0.0, 1.0)
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        graph.nodes[node][self.target] = self.activity
+        graph.nodes[node]["burst_rate"] = self.burst_rate
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class SeasonalityBlock(NDQLBlockBase):
+    def __init__(self, period=1, amplitude=0.0, phase=0, target="seasonality_factor", **kwargs):
+        super(SeasonalityBlock, self).__init__(kwargs)
+        self.period = max(1, int(period or 1))
+        self.amplitude = _clamp(amplitude, 0.0, 1.0)
+        self.phase = int(phase or 0)
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        iteration = _graph_iteration(params)
+        angle = 2.0 * math.pi * ((iteration + self.phase) % self.period) / float(self.period)
+        factor = 1.0 + self.amplitude * math.sin(angle)
+        graph.nodes[node][self.target] = factor
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class ImportationBlock(NDQLBlockBase):
+    def __init__(self, arrival_rate=0.0, source=None, target="imported", infectious_status="Infected", **kwargs):
+        super(ImportationBlock, self).__init__(kwargs)
+        self.arrival_rate = _clamp(arrival_rate, 0.0, 1.0)
+        self.source = source
+        self.target = target
+        self.infectious_status = infectious_status
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        imported = _sample_bool(self.arrival_rate)
+        graph.nodes[node][self.target] = imported
+        if imported and self.infectious_status is not None:
+            graph.nodes[node]["import_source"] = self.source
+            status[node] = self.infectious_status
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class RewiringBlock(NDQLBlockBase):
+    def __init__(self, rewire_rate=0.0, preference=None, target="rewired", **kwargs):
+        super(RewiringBlock, self).__init__(kwargs)
+        self.rewire_rate = _clamp(rewire_rate, 0.0, 1.0)
+        self.preference = preference
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        rewired = False
+        if _sample_bool(self.rewire_rate):
+            neighbors = _iter_neighbors(graph, node)
+            if neighbors:
+                old_neighbor = neighbors[np.random.randint(0, len(neighbors))]
+                candidates = [n for n in graph.nodes() if n != node and not graph.has_edge(node, n)]
+                if self.preference is not None:
+                    try:
+                        pref = str(self.preference)
+                        candidates.sort(key=lambda n: abs(_coerce_number(graph.nodes[n].get(pref, 0.0), 0.0) - _coerce_number(graph.nodes[node].get(pref, 0.0), 0.0)))
+                    except Exception:
+                        pass
+                if candidates:
+                    new_neighbor = candidates[np.random.randint(0, len(candidates))]
+                    if graph.has_edge(node, old_neighbor):
+                        graph.remove_edge(node, old_neighbor)
+                    graph.add_edge(node, new_neighbor)
+                    rewired = True
+        graph.nodes[node][self.target] = rewired
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class CommunityMixingBlock(NDQLBlockBase):
+    def __init__(self, intra_rate=1.0, inter_rate=0.5, community_field="com", target="mixing_rate", **kwargs):
+        super(CommunityMixingBlock, self).__init__(kwargs)
+        self.intra_rate = _clamp(intra_rate, 0.0, 1.0)
+        self.inter_rate = _clamp(inter_rate, 0.0, 1.0)
+        self.community_field = community_field
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        community = graph.nodes[node].get(self.community_field, graph.graph.get(self.community_field))
+        same = 0
+        diff = 0
+        for neigh in _iter_neighbors(graph, node):
+            if graph.nodes[neigh].get(self.community_field, graph.graph.get(self.community_field)) == community:
+                same += 1
+            else:
+                diff += 1
+        total = same + diff
+        mixing = self.intra_rate if total == 0 else ((same / float(total)) * self.intra_rate + (diff / float(total)) * self.inter_rate)
+        graph.nodes[node][self.target] = _clamp(mixing, 0.0, 1.0)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class EdgeActivationBlock(NDQLBlockBase):
+    def __init__(self, threshold=0.5, duration=1, target="active", **kwargs):
+        super(EdgeActivationBlock, self).__init__(kwargs)
+        self.threshold = _clamp(threshold, 0.0, 1.0)
+        self.duration = max(1, int(duration or 1))
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        active = _sample_bool(self.threshold)
+        graph.nodes[node][self.target] = active
+        graph.nodes[node]["activation_duration"] = self.duration
+        for neigh in _iter_neighbors(graph, node):
+            if graph.has_edge(node, neigh):
+                graph.edges[node, neigh]["active"] = active
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
 __all__ = [
     "NDQLBlockBase",
     "Parameter",
@@ -1067,4 +1470,25 @@ __all__ = [
     "EpidemicDependentBias",
     "PolicyIntervention",
     "CommunityCoupling",
+    "ExposureRate",
+    "TransmissionKernel",
+    "DoseResponseBlock",
+    "LatencyPeriod",
+    "IncubationState",
+    "RecoveryKernel",
+    "WaningImmunity",
+    "VaccinationBlock",
+    "QuarantineBlock",
+    "TestingBlock",
+    "TreatmentBlock",
+    "HospitalizationBlock",
+    "MortalityBlock",
+    "ReinfectionBlock",
+    "StrainBlock",
+    "SuperSpreaderBlock",
+    "SeasonalityBlock",
+    "ImportationBlock",
+    "RewiringBlock",
+    "CommunityMixingBlock",
+    "EdgeActivationBlock",
 ]

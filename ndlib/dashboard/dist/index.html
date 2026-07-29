@@ -428,7 +428,7 @@
                     label: "Epidemics",
                     description: "Status-based epidemic workflows with stochastic, threshold, and attribute-driven compartments.",
                     templates: ["sir"],
-                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "ConditionalComposition"]
+                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "ExposureRate", "TransmissionKernel", "DoseResponseBlock", "LatencyPeriod", "IncubationState", "RecoveryKernel", "WaningImmunity", "VaccinationBlock", "QuarantineBlock", "TestingBlock", "TreatmentBlock", "HospitalizationBlock", "MortalityBlock", "ReinfectionBlock", "StrainBlock", "SuperSpreaderBlock", "SeasonalityBlock", "ImportationBlock", "RewiringBlock", "CommunityMixingBlock", "EdgeActivationBlock", "ConditionalComposition"]
                 },
                 continuous_opinions: {
                     label: "Continuous Opinions",
@@ -446,7 +446,7 @@
                     label: "Coupled / Advanced",
                     description: "All available blocks for mixed epidemic-opinion experiments and custom couplings.",
                     templates: ["coupled", "sir", "algorithmic_bias", "majority_rule"],
-                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "NodeNumericalVariable", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "OpinionZealot", "ConditionalComposition"]
+                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "NodeNumericalVariable", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "ExposureRate", "TransmissionKernel", "DoseResponseBlock", "LatencyPeriod", "IncubationState", "RecoveryKernel", "WaningImmunity", "VaccinationBlock", "QuarantineBlock", "TestingBlock", "TreatmentBlock", "HospitalizationBlock", "MortalityBlock", "ReinfectionBlock", "StrainBlock", "SuperSpreaderBlock", "SeasonalityBlock", "ImportationBlock", "RewiringBlock", "CommunityMixingBlock", "EdgeActivationBlock", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "OpinionZealot", "ConditionalComposition"]
                 }
             };
 
@@ -926,6 +926,195 @@
                         icon: "fa-compress",
                         accent: "cyan",
                         onClick: () => addCompartmentNode("ClampNormalize")
+                    },
+                    {
+                        id: "ExposureRate",
+                        type: "compartment",
+                        label: "Exposure Rate",
+                        description: "Computes contact-driven exposure",
+                        icon: "fa-virus",
+                        accent: "pink",
+                        onClick: () => addCompartmentNode("ExposureRate")
+                    },
+                    {
+                        id: "TransmissionKernel",
+                        type: "compartment",
+                        label: "Transmission Kernel",
+                        description: "Converts exposure into infection probability",
+                        icon: "fa-arrow-right-arrow-left",
+                        accent: "pink",
+                        onClick: () => addCompartmentNode("TransmissionKernel")
+                    },
+                    {
+                        id: "DoseResponseBlock",
+                        type: "compartment",
+                        label: "Dose Response",
+                        description: "Maps exposure to nonlinear risk",
+                        icon: "fa-wave-square",
+                        accent: "pink",
+                        onClick: () => addCompartmentNode("DoseResponseBlock")
+                    },
+                    {
+                        id: "LatencyPeriod",
+                        type: "compartment",
+                        label: "Latency Period",
+                        description: "Marks latent or exposed nodes",
+                        icon: "fa-hourglass",
+                        accent: "orange",
+                        onClick: () => addCompartmentNode("LatencyPeriod")
+                    },
+                    {
+                        id: "IncubationState",
+                        type: "compartment",
+                        label: "Incubation State",
+                        description: "Models pre-symptomatic infectiousness",
+                        icon: "fa-temperature-three-quarters",
+                        accent: "orange",
+                        onClick: () => addCompartmentNode("IncubationState")
+                    },
+                    {
+                        id: "RecoveryKernel",
+                        type: "compartment",
+                        label: "Recovery Kernel",
+                        description: "Computes recovery probability",
+                        icon: "fa-heart-pulse",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("RecoveryKernel")
+                    },
+                    {
+                        id: "WaningImmunity",
+                        type: "compartment",
+                        label: "Waning Immunity",
+                        description: "Lowers immunity over time",
+                        icon: "fa-rotate-left",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("WaningImmunity")
+                    },
+                    {
+                        id: "VaccinationBlock",
+                        type: "compartment",
+                        label: "Vaccination",
+                        description: "Applies protection to selected nodes",
+                        icon: "fa-syringe",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("VaccinationBlock")
+                    },
+                    {
+                        id: "QuarantineBlock",
+                        type: "compartment",
+                        label: "Quarantine",
+                        description: "Isolates nodes and reduces contacts",
+                        icon: "fa-house-chimney-crack",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("QuarantineBlock")
+                    },
+                    {
+                        id: "TestingBlock",
+                        type: "compartment",
+                        label: "Testing",
+                        description: "Marks tested nodes and outcomes",
+                        icon: "fa-vial",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("TestingBlock")
+                    },
+                    {
+                        id: "TreatmentBlock",
+                        type: "compartment",
+                        label: "Treatment",
+                        description: "Boosts recovery via treatment",
+                        icon: "fa-kit-medical",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("TreatmentBlock")
+                    },
+                    {
+                        id: "HospitalizationBlock",
+                        type: "compartment",
+                        label: "Hospitalization",
+                        description: "Moves nodes into managed care",
+                        icon: "fa-bed-pulse",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("HospitalizationBlock")
+                    },
+                    {
+                        id: "MortalityBlock",
+                        type: "compartment",
+                        label: "Mortality",
+                        description: "Marks deaths or removals",
+                        icon: "fa-skull",
+                        accent: "slate",
+                        onClick: () => addCompartmentNode("MortalityBlock")
+                    },
+                    {
+                        id: "ReinfectionBlock",
+                        type: "compartment",
+                        label: "Reinfection",
+                        description: "Reopens susceptibility after recovery",
+                        icon: "fa-arrows-rotate",
+                        accent: "emerald",
+                        onClick: () => addCompartmentNode("ReinfectionBlock")
+                    },
+                    {
+                        id: "StrainBlock",
+                        type: "compartment",
+                        label: "Strain",
+                        description: "Tracks pathogen strain metadata",
+                        icon: "fa-dna",
+                        accent: "pink",
+                        onClick: () => addCompartmentNode("StrainBlock")
+                    },
+                    {
+                        id: "SuperSpreaderBlock",
+                        type: "compartment",
+                        label: "Super Spreader",
+                        description: "Assigns bursty transmission activity",
+                        icon: "fa-burst",
+                        accent: "pink",
+                        onClick: () => addCompartmentNode("SuperSpreaderBlock")
+                    },
+                    {
+                        id: "SeasonalityBlock",
+                        type: "compartment",
+                        label: "Seasonality",
+                        description: "Modulates transmission over time",
+                        icon: "fa-sun",
+                        accent: "amber",
+                        onClick: () => addCompartmentNode("SeasonalityBlock")
+                    },
+                    {
+                        id: "ImportationBlock",
+                        type: "compartment",
+                        label: "Importation",
+                        description: "Injects external infection events",
+                        icon: "fa-plane-arrival",
+                        accent: "amber",
+                        onClick: () => addCompartmentNode("ImportationBlock")
+                    },
+                    {
+                        id: "RewiringBlock",
+                        type: "compartment",
+                        label: "Rewiring",
+                        description: "Rewires contacts dynamically",
+                        icon: "fa-share-nodes",
+                        accent: "amber",
+                        onClick: () => addCompartmentNode("RewiringBlock")
+                    },
+                    {
+                        id: "CommunityMixingBlock",
+                        type: "compartment",
+                        label: "Community Mixing",
+                        description: "Balances intra- and inter-community contacts",
+                        icon: "fa-people-arrows",
+                        accent: "amber",
+                        onClick: () => addCompartmentNode("CommunityMixingBlock")
+                    },
+                    {
+                        id: "EdgeActivationBlock",
+                        type: "compartment",
+                        label: "Edge Activation",
+                        description: "Activates or deactivates edges",
+                        icon: "fa-toggle-on",
+                        accent: "amber",
+                        onClick: () => addCompartmentNode("EdgeActivationBlock")
                     },
                     {
                         id: "OpinionDistanceThreshold",
@@ -3138,6 +3327,27 @@
                 else if (type === "Schedule") params = { start: 0, end: 100, period: 1, phase: 0 };
                 else if (type === "Observe") params = { variable: "opinion", mode: "bins", bins: 20, range: [0, 1] };
                 else if (type === "ClampNormalize") params = { min: 0.0, max: 1.0, target: "opinion" };
+                else if (type === "ExposureRate") params = { beta: 0.1, contact_weight: 1.0, mixing: 1.0 };
+                else if (type === "TransmissionKernel") params = { function: "", saturation: 1.0, source: "exposure", target: "transmission_probability" };
+                else if (type === "DoseResponseBlock") params = { shape: "logistic", scale: 1.0, offset: 0.0, source: "exposure", target: "infection_probability" };
+                else if (type === "LatencyPeriod") params = { duration: 1, distribution: "fixed", target: "latent" };
+                else if (type === "IncubationState") params = { infectiousness: 0.5, duration: 1, target: "incubating" };
+                else if (type === "RecoveryKernel") params = { gamma: 0.1, source: "recovery_rate" };
+                else if (type === "WaningImmunity") params = { rate: 0.1, delay: 0, target: "susceptibility" };
+                else if (type === "VaccinationBlock") params = { coverage: 0.0, efficacy: 1.0, priority: null };
+                else if (type === "QuarantineBlock") params = { duration: 1, trigger: null, coverage: 1.0, target: "quarantined" };
+                else if (type === "TestingBlock") params = { sensitivity: 1.0, specificity: 1.0, frequency: 1, target: "tested_positive" };
+                else if (type === "TreatmentBlock") params = { efficacy: 0.5, delay: 0, capacity: null, target: "treatment_effect" };
+                else if (type === "HospitalizationBlock") params = { capacity: null, rate: 0.1, mortality: 0.0, target: "hospitalized" };
+                else if (type === "MortalityBlock") params = { fatality: 0.0, delay: 0, cause: null, target_status: "Removed", target: "dead" };
+                else if (type === "ReinfectionBlock") params = { susceptibility: 1.0, cooldown: 0, target: "susceptibility" };
+                else if (type === "StrainBlock") params = { strain_id: 0, cross_immunity: 0.0, fitness: 1.0, target: "strain_id" };
+                else if (type === "SuperSpreaderBlock") params = { activity: 1.0, burst_rate: 0.0, target: "activity" };
+                else if (type === "SeasonalityBlock") params = { period: 1, amplitude: 0.0, phase: 0, target: "seasonality_factor" };
+                else if (type === "ImportationBlock") params = { arrival_rate: 0.0, source: null, target: "imported", infectious_status: "Infected" };
+                else if (type === "RewiringBlock") params = { rewire_rate: 0.0, preference: null, target: "rewired" };
+                else if (type === "CommunityMixingBlock") params = { intra_rate: 1.0, inter_rate: 0.5, community_field: "com", target: "mixing_rate" };
+                else if (type === "EdgeActivationBlock") params = { threshold: 0.5, duration: 1, target: "active" };
                 else if (type === "OpinionDistanceThreshold") params = { epsilon: 0.1 };
                 else if (type === "OpinionSelectionBias") params = { gamma: 1.5 };
                 else if (type === "OpinionCompromise") params = { mu: 0.5 };
@@ -3765,6 +3975,27 @@
                                                             <option value="NodeCategoricalAttribute">Node Categorical Attribute</option>
                                                             <option value="NodeNumericalAttribute">Node Numerical Attribute</option>
                                                             <option value="NodeNumericalVariable">Node Numerical Variable</option>
+                                                            <option value="ExposureRate">Exposure Rate</option>
+                                                            <option value="TransmissionKernel">Transmission Kernel</option>
+                                                            <option value="DoseResponseBlock">Dose Response</option>
+                                                            <option value="LatencyPeriod">Latency Period</option>
+                                                            <option value="IncubationState">Incubation State</option>
+                                                            <option value="RecoveryKernel">Recovery Kernel</option>
+                                                            <option value="WaningImmunity">Waning Immunity</option>
+                                                            <option value="VaccinationBlock">Vaccination</option>
+                                                            <option value="QuarantineBlock">Quarantine</option>
+                                                            <option value="TestingBlock">Testing</option>
+                                                            <option value="TreatmentBlock">Treatment</option>
+                                                            <option value="HospitalizationBlock">Hospitalization</option>
+                                                            <option value="MortalityBlock">Mortality</option>
+                                                            <option value="ReinfectionBlock">Reinfection</option>
+                                                            <option value="StrainBlock">Strain</option>
+                                                            <option value="SuperSpreaderBlock">Super Spreader</option>
+                                                            <option value="SeasonalityBlock">Seasonality</option>
+                                                            <option value="ImportationBlock">Importation</option>
+                                                            <option value="RewiringBlock">Rewiring</option>
+                                                            <option value="CommunityMixingBlock">Community Mixing</option>
+                                                            <option value="EdgeActivationBlock">Edge Activation</option>
                                                             <option value="OpinionDistanceThreshold">Opinion Threshold</option>
                                                             <option value="OpinionSelectionBias">Selection Bias</option>
                                                             <option value="OpinionCompromise">Opinion Compromise</option>

@@ -414,6 +414,90 @@ class NdlibParserTest(unittest.TestCase):
         self.assertGreaterEqual(len(iterations), 1)
         self.assertIn("trends", iterations[0])
 
+    def test_epidemic_blocks_ndql_roundtrip(self):
+        query = (
+            "CREATE_NETWORK g1\n"
+            "TYPE erdos_renyi_graph\n"
+            "PARAM n 20\n"
+            "PARAM p 0.2\n"
+            "\n"
+            "MODEL EpidemicBlocksModel\n"
+            "\n"
+            "STATUS Susceptible\n"
+            "STATUS Infected\n"
+            "STATUS Removed\n"
+            "\n"
+            "COMPARTMENT exposure\n"
+            "TYPE ExposureRate\n"
+            "PARAM beta 0.5\n"
+            "PARAM contact_weight 1.0\n"
+            "PARAM mixing 1.0\n"
+            "\n"
+            "COMPARTMENT transmission\n"
+            "TYPE TransmissionKernel\n"
+            "PARAM saturation 1.0\n"
+            "PARAM source exposure\n"
+            "\n"
+            "COMPARTMENT dose\n"
+            "TYPE DoseResponseBlock\n"
+            "PARAM shape logistic\n"
+            "PARAM scale 2.0\n"
+            "PARAM offset 0.1\n"
+            "\n"
+            "COMPARTMENT recovery\n"
+            "TYPE RecoveryKernel\n"
+            "PARAM gamma 0.2\n"
+            "\n"
+            "COMPARTMENT quarantine\n"
+            "TYPE QuarantineBlock\n"
+            "PARAM duration 2\n"
+            "PARAM coverage 1.0\n"
+            "\n"
+            "COMPARTMENT vaccination\n"
+            "TYPE VaccinationBlock\n"
+            "PARAM coverage 1.0\n"
+            "PARAM efficacy 0.8\n"
+            "\n"
+            "COMPARTMENT mortality\n"
+            "TYPE MortalityBlock\n"
+            "PARAM fatality 1.0\n"
+            "PARAM target_status Removed\n"
+            "\n"
+            "RULE\n"
+            "FROM Susceptible\n"
+            "TO Infected\n"
+            "USING exposure\n"
+            "\n"
+            "RULE\n"
+            "FROM Infected\n"
+            "TO Removed\n"
+            "USING recovery\n"
+            "\n"
+            "INITIALIZE\n"
+            "SET Susceptible 0.9\n"
+            "SET Infected 0.1\n"
+            "SET Removed 0.0\n"
+            "\n"
+            "EXECUTE EpidemicBlocksModel ON g1 FOR 3"
+        )
+
+        parser = ep.ExperimentParser()
+        parser.set_query(query)
+        parser.parse()
+
+        self.assertIn("ExposureRate", parser.script)
+        self.assertIn("RecoveryKernel", parser.script)
+        self.assertIn("MortalityBlock", parser.script)
+
+        local_scope = {}
+        global_scope = {}
+        exec(parser.script, global_scope, local_scope)
+
+        iterations = parser.execute_query()
+        self.assertIsInstance(iterations, list)
+        self.assertGreaterEqual(len(iterations), 1)
+        self.assertIn("trends", iterations[0])
+
     def test_continuous_opinion_builder_ndql_with_zealots(self):
         query = (
             "MODEL OpinionZealotModel\n"
