@@ -192,6 +192,15 @@ def is_known_compartment_type(comp_type):
         "OpinionMultiTopic",
         "OpinionLabelSwitch",
         "OpinionBoundedDrift",
+        "AttributeCoupling",
+        "OpinionAffectsInfection",
+        "OpinionAffectsRecovery",
+        "OpinionAffectsContactRate",
+        "InfectionAffectsOpinion",
+        "StatusDependentOpinionUpdate",
+        "EpidemicDependentBias",
+        "PolicyIntervention",
+        "CommunityCoupling",
     }
 
 
@@ -868,7 +877,7 @@ def generate_custom_model_class(model_data):
         "from ndlib.models.compartments.EdgeNumericalAttribute import EdgeNumericalAttribute",
         "from ndlib.models.compartments.ConditionalComposition import ConditionalComposition",
         "from ndlib.models.compartments.CountDown import CountDown",
-        "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift",
+        "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, AttributeCoupling, OpinionAffectsInfection, OpinionAffectsRecovery, OpinionAffectsContactRate, InfectionAffectsOpinion, StatusDependentOpinionUpdate, EpidemicDependentBias, PolicyIntervention, CommunityCoupling, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift",
         "from ndlib.models.compartments.enums.NumericalType import NumericalType",
         "from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions",
         "",
@@ -1227,7 +1236,7 @@ def generate_continuous_opinion_custom_model_class(
         "import numpy as np",
         "from ndlib.models.DiffusionModel import DiffusionModel",
         "from ndlib.models.compartments.Compartment import Compartiment",
-        "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift",
+        "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, AttributeCoupling, OpinionAffectsInfection, OpinionAffectsRecovery, OpinionAffectsContactRate, InfectionAffectsOpinion, StatusDependentOpinionUpdate, EpidemicDependentBias, PolicyIntervention, CommunityCoupling, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift",
         "from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions",
         "",
         "class %s(DiffusionModel):" % class_name,

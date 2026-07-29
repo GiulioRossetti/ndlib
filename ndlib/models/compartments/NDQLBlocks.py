@@ -105,14 +105,19 @@ def _node_context(node, graph, status, params=None):
 
 
 def _get_opinion_value(graph, status, node, fallback=0.0):
+    try:
+        graph_value = graph.nodes[node].get("opinion")
+        if graph_value is not None:
+            return float(graph_value)
+    except (TypeError, ValueError):
+        pass
+    except Exception:
+        pass
     value = status.get(node, fallback)
     try:
         return float(value)
     except (TypeError, ValueError):
-        try:
-            return float(graph.nodes[node].get("opinion", fallback))
-        except Exception:
-            return float(fallback)
+        return float(fallback)
 
 
 def _set_opinion_value(graph, status, node, value, topic=None):
@@ -122,12 +127,47 @@ def _set_opinion_value(graph, status, node, value, topic=None):
         except Exception:
             pass
         if node in status:
-            status[node] = float(value)
+            current_status = status.get(node)
+            if isinstance(current_status, (float, np.floating)):
+                status[node] = float(value)
         return
     try:
         graph.nodes[node][topic] = float(value)
     except Exception:
         pass
+
+
+def _coerce_list(value):
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple, set)):
+        return list(value)
+    return [value]
+
+
+def _status_matches(node_status, filter_values, labels=None):
+    if filter_values is None:
+        return True
+    candidates = _coerce_list(filter_values)
+    if not candidates:
+        return True
+    label = None
+    if isinstance(labels, dict):
+        for key, value in labels.items():
+            if value == node_status:
+                label = key
+                break
+    for candidate in candidates:
+        if candidate == node_status:
+            return True
+        try:
+            if float(candidate) == float(node_status):
+                return True
+        except (TypeError, ValueError):
+            pass
+        if label is not None and str(candidate) == str(label):
+            return True
+    return False
 
 
 class NDQLBlockBase(Compartiment):
@@ -782,6 +822,214 @@ class OpinionBoundedDrift(NDQLBlockBase):
         return self.compose(node, graph, status, status_map, params, kwargs)
 
 
+class AttributeCoupling(NDQLBlockBase):
+    def __init__(self, attribute=None, source=None, target=None, strength=0.5, bounds=None, **kwargs):
+        super(AttributeCoupling, self).__init__(kwargs)
+        self.attribute = attribute
+        self.source = source if source is not None else attribute
+        self.target = target if target is not None else attribute
+        self.strength = _clamp(strength, 0.0, 1.0)
+        self.bounds = bounds if bounds is not None else [0.0, 1.0]
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        context = _node_context(node, graph, status, params)
+        source_value = context.get(self.source)
+        if source_value is None and self.source in graph.nodes[node]:
+            source_value = graph.nodes[node].get(self.source)
+        if source_value is None:
+            source_value = _get_opinion_value(graph, status, node)
+        current = graph.nodes[node].get(self.target, source_value)
+        current = _coerce_number(current, 0.0)
+        source_value = _coerce_number(source_value, current)
+        updated = current + self.strength * (source_value - current)
+        if isinstance(self.bounds, (list, tuple)) and len(self.bounds) >= 2:
+            updated = _clamp(updated, self.bounds[0], self.bounds[1])
+        graph.nodes[node][self.target] = updated
+        if self.target in {"status", "state"}:
+            status[node] = updated
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class OpinionAffectsInfection(NDQLBlockBase):
+    def __init__(self, threshold=0.5, strength=0.5, target="infection_risk", invert=False, **kwargs):
+        super(OpinionAffectsInfection, self).__init__(kwargs)
+        self.threshold = _clamp(threshold, 0.0, 1.0)
+        self.strength = _clamp(strength, 0.0, 1.0)
+        self.target = target
+        self.invert = bool(invert)
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        opinion = _get_opinion_value(graph, status, node)
+        if self.invert:
+            opinion = 1.0 - opinion
+        risk = self.strength * opinion + (1.0 - self.strength) * self.threshold
+        graph.nodes[node][self.target] = _clamp(risk, 0.0, 1.0)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class OpinionAffectsRecovery(NDQLBlockBase):
+    def __init__(self, threshold=0.5, strength=0.5, target="recovery_rate", invert=False, **kwargs):
+        super(OpinionAffectsRecovery, self).__init__(kwargs)
+        self.threshold = _clamp(threshold, 0.0, 1.0)
+        self.strength = _clamp(strength, 0.0, 1.0)
+        self.target = target
+        self.invert = bool(invert)
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        opinion = _get_opinion_value(graph, status, node)
+        if self.invert:
+            opinion = 1.0 - opinion
+        recovery = self.threshold + self.strength * (opinion - self.threshold)
+        graph.nodes[node][self.target] = _clamp(recovery, 0.0, 1.0)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class OpinionAffectsContactRate(NDQLBlockBase):
+    def __init__(self, threshold=0.5, strength=0.5, target="contact_rate", invert=False, **kwargs):
+        super(OpinionAffectsContactRate, self).__init__(kwargs)
+        self.threshold = _clamp(threshold, 0.0, 1.0)
+        self.strength = _clamp(strength, 0.0, 1.0)
+        self.target = target
+        self.invert = bool(invert)
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        opinion = _get_opinion_value(graph, status, node)
+        if self.invert:
+            opinion = 1.0 - opinion
+        contact_rate = self.threshold + self.strength * (opinion - self.threshold)
+        graph.nodes[node][self.target] = _clamp(contact_rate, 0.0, 1.0)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class InfectionAffectsOpinion(NDQLBlockBase):
+    def __init__(self, source_statuses=None, target=0.5, strength=0.5, lag=0, direction="towards", **kwargs):
+        super(InfectionAffectsOpinion, self).__init__(kwargs)
+        self.source_statuses = _coerce_list(source_statuses) if source_statuses is not None else [1, "Infected", "I"]
+        self.target = _clamp(target, 0.0, 1.0)
+        self.strength = _clamp(strength, 0.0, 1.0)
+        self.lag = max(0, int(lag or 0))
+        self.direction = str(direction or "towards").lower()
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        current_status = status.get(node)
+        labels = None
+        if isinstance(params, dict):
+            labels = params.get("model", {}).get("status_names") or params.get("model", {}).get("available_statuses")
+        if not _status_matches(current_status, self.source_statuses, labels=labels):
+            return self.compose(node, graph, status, status_map, params, kwargs)
+        current = _get_opinion_value(graph, status, node)
+        target = self.target
+        if self.direction in {"away", "decrease", "down"}:
+            target = 0.0 if target >= current else 1.0
+        updated = current + self.strength * (target - current)
+        _set_opinion_value(graph, status, node, _clamp(updated, 0.0, 1.0))
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class StatusDependentOpinionUpdate(NDQLBlockBase):
+    def __init__(self, status_filter=None, kernel=None, target="opinion", strength=0.5, fallback=0.5, **kwargs):
+        super(StatusDependentOpinionUpdate, self).__init__(kwargs)
+        self.status_filter = _coerce_list(status_filter) if status_filter is not None else None
+        self.kernel = kernel
+        self.target = target
+        self.strength = _clamp(strength, 0.0, 1.0)
+        self.fallback = _clamp(fallback, 0.0, 1.0)
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        labels = None
+        if isinstance(params, dict):
+            labels = params.get("model", {}).get("status_names") or params.get("model", {}).get("available_statuses")
+        if not _status_matches(status.get(node), self.status_filter, labels=labels):
+            return self.compose(node, graph, status, status_map, params, kwargs)
+        context = _node_context(node, graph, status, params)
+        current = _get_opinion_value(graph, status, node, self.fallback)
+        if self.kernel is not None:
+            next_value = _safe_eval(self.kernel, context, default=current)
+        else:
+            next_value = context["neighbor_mean"]
+        updated = current + self.strength * (_coerce_number(next_value, current) - current)
+        _set_opinion_value(graph, status, node, _clamp(updated, 0.0, 1.0))
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class EpidemicDependentBias(NDQLBlockBase):
+    def __init__(self, status_filter=None, status_weight=0.5, cross_status_factor=0.5, target="selection_bias", **kwargs):
+        super(EpidemicDependentBias, self).__init__(kwargs)
+        self.status_filter = _coerce_list(status_filter) if status_filter is not None else [1, "Infected", "I"]
+        self.status_weight = _clamp(status_weight, 0.0, 1.0)
+        self.cross_status_factor = _clamp(cross_status_factor, 0.0, 1.0)
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        current_status = status.get(node)
+        labels = None
+        if isinstance(params, dict):
+            labels = params.get("model", {}).get("status_names") or params.get("model", {}).get("available_statuses")
+        infected = 1.0 if _status_matches(current_status, self.status_filter, labels=labels) else 0.0
+        bias = self.status_weight * infected + self.cross_status_factor * (1.0 - infected)
+        graph.nodes[node][self.target] = _clamp(bias, 0.0, 1.0)
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class PolicyIntervention(NDQLBlockBase):
+    def __init__(self, start=0, end=None, target=None, action="scale", value=0.5, **kwargs):
+        super(PolicyIntervention, self).__init__(kwargs)
+        self.start = int(start or 0)
+        self.end = None if end is None or end == "" else int(end)
+        self.target = target
+        self.action = str(action or "scale").lower()
+        self.value = value
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        iteration = 0
+        if isinstance(params, dict):
+            iteration = int(params.get("model", {}).get("iteration", params.get("iteration", 0)) or 0)
+        active = iteration >= self.start
+        if active and self.end is not None:
+            active = iteration <= self.end
+        graph.graph["policy_active"] = active
+        if not active or self.target is None:
+            return self.compose(node, graph, status, status_map, params, kwargs)
+        value = _coerce_number(self.value, 0.0)
+        if self.action == "set":
+            graph.nodes[node][self.target] = value
+        elif self.action == "add":
+            graph.nodes[node][self.target] = _coerce_number(graph.nodes[node].get(self.target, 0.0), 0.0) + value
+        else:
+            graph.nodes[node][self.target] = _coerce_number(graph.nodes[node].get(self.target, 0.0), 0.0) * value
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
+class CommunityCoupling(NDQLBlockBase):
+    def __init__(self, community_field="com", intra=1.0, inter=0.5, target="opinion", **kwargs):
+        super(CommunityCoupling, self).__init__(kwargs)
+        self.community_field = community_field
+        self.intra = _clamp(intra, 0.0, 1.0)
+        self.inter = _clamp(inter, 0.0, 1.0)
+        self.target = target
+
+    def execute(self, node, graph, status, status_map, params=None, *args, **kwargs):
+        community = graph.nodes[node].get(self.community_field, graph.graph.get(self.community_field))
+        same_values = []
+        other_values = []
+        for neigh in graph.neighbors(node):
+            neigh_value = _get_opinion_value(graph, status, neigh)
+            if graph.nodes[neigh].get(self.community_field, graph.graph.get(self.community_field)) == community:
+                same_values.append(neigh_value)
+            else:
+                other_values.append(neigh_value)
+        current = _get_opinion_value(graph, status, node)
+        same_mean = float(np.mean(same_values)) if same_values else current
+        other_mean = float(np.mean(other_values)) if other_values else current
+        updated = current
+        if same_values:
+            updated = updated + self.intra * (same_mean - updated)
+        if other_values:
+            updated = updated + self.inter * (other_mean - updated)
+        _set_opinion_value(graph, status, node, _clamp(updated, 0.0, 1.0))
+        return self.compose(node, graph, status, status_map, params, kwargs)
+
+
 __all__ = [
     "NDQLBlockBase",
     "Parameter",
@@ -810,4 +1058,13 @@ __all__ = [
     "OpinionMultiTopic",
     "OpinionLabelSwitch",
     "OpinionBoundedDrift",
+    "AttributeCoupling",
+    "OpinionAffectsInfection",
+    "OpinionAffectsRecovery",
+    "OpinionAffectsContactRate",
+    "InfectionAffectsOpinion",
+    "StatusDependentOpinionUpdate",
+    "EpidemicDependentBias",
+    "PolicyIntervention",
+    "CommunityCoupling",
 ]

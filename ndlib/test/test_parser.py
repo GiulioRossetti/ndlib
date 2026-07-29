@@ -339,6 +339,81 @@ class NdlibParserTest(unittest.TestCase):
         self.assertIn("status", iterations[0])
         self.assertTrue(all(0.0 <= float(v) <= 1.0 for v in iterations[0]["status"].values()))
 
+    def test_hybrid_coupling_ndql_roundtrip(self):
+        query = (
+            "CREATE_NETWORK g1\n"
+            "TYPE erdos_renyi_graph\n"
+            "PARAM n 20\n"
+            "PARAM p 0.2\n"
+            "\n"
+            "MODEL CoupledModel\n"
+            "\n"
+            "STATUS Susceptible\n"
+            "STATUS Infected\n"
+            "STATUS Recovered\n"
+            "\n"
+            "COMPARTMENT attr_couple\n"
+            "TYPE AttributeCoupling\n"
+            "PARAM source opinion\n"
+            "PARAM target infection_risk\n"
+            "PARAM strength 1.0\n"
+            "\n"
+            "COMPARTMENT infect_shift\n"
+            "TYPE InfectionAffectsOpinion\n"
+            "PARAM source_statuses [1]\n"
+            "PARAM target 1.0\n"
+            "PARAM strength 1.0\n"
+            "\n"
+            "COMPARTMENT policy\n"
+            "TYPE PolicyIntervention\n"
+            "PARAM start 0\n"
+            "PARAM end 2\n"
+            "PARAM target policy_flag\n"
+            "PARAM action set\n"
+            "PARAM value 1\n"
+            "\n"
+            "COMPARTMENT community\n"
+            "TYPE CommunityCoupling\n"
+            "PARAM community_field com\n"
+            "PARAM intra 1.0\n"
+            "PARAM inter 0.0\n"
+            "PARAM target opinion\n"
+            "\n"
+            "RULE\n"
+            "FROM Susceptible\n"
+            "TO Infected\n"
+            "USING attr_couple\n"
+            "\n"
+            "RULE\n"
+            "FROM Infected\n"
+            "TO Recovered\n"
+            "USING infect_shift\n"
+            "\n"
+            "INITIALIZE\n"
+            "SET Susceptible 0.5\n"
+            "SET Infected 0.5\n"
+            "SET Recovered 0.0\n"
+            "\n"
+            "EXECUTE CoupledModel ON g1 FOR 3"
+        )
+
+        parser = ep.ExperimentParser()
+        parser.set_query(query)
+        parser.parse()
+
+        self.assertIn("AttributeCoupling", parser.script)
+        self.assertIn("InfectionAffectsOpinion", parser.script)
+        self.assertIn("PolicyIntervention", parser.script)
+        self.assertIn("CommunityCoupling", parser.script)
+
+        local_scope = {}
+        global_scope = {}
+        exec(parser.script, global_scope, local_scope)
+        iterations = parser.execute_query()
+        self.assertIsInstance(iterations, list)
+        self.assertGreaterEqual(len(iterations), 1)
+        self.assertIn("trends", iterations[0])
+
     def test_continuous_opinion_builder_ndql_with_zealots(self):
         query = (
             "MODEL OpinionZealotModel\n"

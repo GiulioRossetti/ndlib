@@ -424,6 +424,68 @@ class DashboardTest(unittest.TestCase):
         self.assertTrue(all(0.0 <= float(v) <= 1.0 for v in result["status"].values()))
         self.assertTrue(all("opinion" in model.graph.nodes[node] for node in model.graph.nodes()))
 
+    def test_hybrid_coupling_blocks_execute(self):
+        from ndlib.models.compartments.NDQLBlocks import (
+            AttributeCoupling,
+            CommunityCoupling,
+            EpidemicDependentBias,
+            InfectionAffectsOpinion,
+            OpinionAffectsContactRate,
+            OpinionAffectsRecovery,
+            OpinionAffectsInfection,
+            PolicyIntervention,
+            StatusDependentOpinionUpdate,
+        )
+        import networkx as nx
+
+        graph = nx.path_graph(4)
+        for node, com in enumerate([0, 0, 1, 1]):
+            graph.nodes[node]["com"] = com
+            graph.nodes[node]["opinion"] = 0.1 * (node + 1)
+
+        status = {0: 0, 1: 1, 2: 1, 3: 0}
+        params = {"model": {"iteration": 1, "available_statuses": {"Susceptible": 0, "Infected": 1}}}
+
+        infection_risk = OpinionAffectsInfection(target="infection_risk", strength=1.0)
+        infection_risk.execute(1, graph, status, status, params)
+        self.assertAlmostEqual(graph.nodes[1]["infection_risk"], 0.2, places=6)
+
+        recovery_rate = OpinionAffectsRecovery(target="recovery_rate", strength=0.5)
+        recovery_rate.execute(1, graph, status, status, params)
+        self.assertIn("recovery_rate", graph.nodes[1])
+
+        contact_rate = OpinionAffectsContactRate(target="contact_rate", strength=0.5)
+        contact_rate.execute(1, graph, status, status, params)
+        self.assertIn("contact_rate", graph.nodes[1])
+
+        opinion_shift = InfectionAffectsOpinion(source_statuses=[1], target=1.0, strength=1.0)
+        opinion_shift.execute(1, graph, status, status, params)
+        self.assertAlmostEqual(graph.nodes[1]["opinion"], 1.0, places=6)
+
+        status_update = StatusDependentOpinionUpdate(status_filter=[1], kernel="neighbor_mean", strength=1.0)
+        graph.nodes[1]["opinion"] = 0.0
+        status_update.execute(1, graph, status, status, params)
+        self.assertTrue(0.0 <= graph.nodes[1]["opinion"] <= 1.0)
+
+        epidemic_bias = EpidemicDependentBias(status_filter=[1], status_weight=0.9, cross_status_factor=0.1, target="selection_bias")
+        epidemic_bias.execute(1, graph, status, status, params)
+        self.assertAlmostEqual(graph.nodes[1]["selection_bias"], 0.9, places=6)
+
+        attribute_coupling = AttributeCoupling(attribute="opinion", source="opinion", target="contact_rate", strength=1.0)
+        graph.nodes[0]["opinion"] = 0.7
+        attribute_coupling.execute(0, graph, status, status, params)
+        self.assertAlmostEqual(graph.nodes[0]["contact_rate"], 0.7, places=6)
+
+        community_coupling = CommunityCoupling(community_field="com", intra=1.0, inter=0.0, target="opinion")
+        graph.nodes[0]["opinion"] = 0.0
+        graph.nodes[1]["opinion"] = 1.0
+        community_coupling.execute(0, graph, status, status, params)
+        self.assertAlmostEqual(graph.nodes[0]["opinion"], 1.0, places=6)
+
+        policy = PolicyIntervention(start=0, end=2, target="policy_flag", action="set", value=1)
+        policy.execute(0, graph, status, status, params)
+        self.assertEqual(graph.nodes[0]["policy_flag"], 1)
+
     def test_custom_model_ndql_serializes_declarations_and_observables(self):
         from ndlib.dashboard.server import generate_custom_model_class, generate_ndql_script
 

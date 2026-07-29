@@ -33,7 +33,7 @@ class ExperimentParser(object):
             "from ndlib.models.compartments.EdgeNumericalAttribute import EdgeNumericalAttribute\n"
             "from ndlib.models.compartments.ConditionalComposition import ConditionalComposition\n"
             "from ndlib.models.compartments.CountDown import CountDown\n"
-            "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift\n"
+            "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, AttributeCoupling, OpinionAffectsInfection, OpinionAffectsRecovery, OpinionAffectsContactRate, InfectionAffectsOpinion, StatusDependentOpinionUpdate, EpidemicDependentBias, PolicyIntervention, CommunityCoupling, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift\n"
         )
 
         self.script = ""
@@ -647,6 +647,15 @@ class ExperimentParser(object):
             "OpinionDistribution",
             "OpinionMultiTopic",
             "OpinionLabelSwitch",
+            "AttributeCoupling",
+            "OpinionAffectsInfection",
+            "OpinionAffectsRecovery",
+            "OpinionAffectsContactRate",
+            "InfectionAffectsOpinion",
+            "StatusDependentOpinionUpdate",
+            "EpidemicDependentBias",
+            "PolicyIntervention",
+            "CommunityCoupling",
         }
         for part in desc:
             part = part.split(" ")
@@ -724,6 +733,15 @@ class ExperimentParser(object):
             "OpinionDistribution",
             "OpinionMultiTopic",
             "OpinionLabelSwitch",
+            "AttributeCoupling",
+            "OpinionAffectsInfection",
+            "OpinionAffectsRecovery",
+            "OpinionAffectsContactRate",
+            "InfectionAffectsOpinion",
+            "StatusDependentOpinionUpdate",
+            "EpidemicDependentBias",
+            "PolicyIntervention",
+            "CommunityCoupling",
         }
         if components["TYPE"] not in known_types:
             raise ValueError("Unsupported compartment type '%s'" % components["TYPE"])
