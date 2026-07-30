@@ -1781,6 +1781,7 @@
             const currentGraphNodeCount = getCurrentGraphNodeCount();
             const isNetworkTabAllowed = currentGraphNodeCount > 0 && currentGraphNodeCount < 1500;
             const showNetworkGraph = isNetworkTabAllowed;
+            const showPreviewNetworkGraph = currentGraphNodeCount > 0 && (selectedCategory === "Epidemics" || currentGraphNodeCount < 1500);
 
             const renderNetworkPreview = (data) => {
                 if (!data || !Array.isArray(data.nodes) || !Array.isArray(data.edges)) return;
@@ -1988,7 +1989,7 @@
                     setResults(null);
                     setCurrentPlaybackStep(0);
                     setActiveTab("network");
-                    if (data.node_count < 1500) {
+                    if (data.node_count < 1500 || selectedCategory === "Epidemics") {
                         setTimeout(() => {
                             renderNetworkPreview(data);
                         }, 50);
@@ -3337,10 +3338,10 @@
             }, [selectedSeedNodes, results]);
 
             useEffect(() => {
-                if (!results && !loading && networkPreview && isNetworkTabAllowed) {
+                if (!results && !loading && networkPreview && showPreviewNetworkGraph) {
                     renderNetworkPreview(networkPreview);
                 }
-            }, [networkPreview, results, loading, networkLayout]);
+            }, [networkPreview, results, loading, networkLayout, showPreviewNetworkGraph]);
 
             const handleLayoutChange = (newLayout) => {
                 setNetworkLayout(newLayout);
@@ -6899,12 +6900,23 @@
                                             </div>
                                         </div>
 
-                                        {showNetworkGraph ? (
-                                            <div class="flex-grow relative border border-slate-900 rounded-2xl min-h-[400px] h-full overflow-hidden">
-                                                <div 
-                                                    ref={cyContainerRef} 
-                                                    class="absolute inset-0 bg-slate-950/60"
-                                                ></div>
+                                        {showPreviewNetworkGraph ? (
+                                            <div class="flex-grow flex flex-col gap-3 min-h-[400px] h-full">
+                                                {selectedCategory === "Epidemics" && (
+                                                    <div class="flex items-center justify-between gap-3 rounded-xl border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-xs text-sky-100">
+                                                        <div class="flex items-center gap-2">
+                                                            <i class="fa-solid fa-hand-pointer text-sky-300"></i>
+                                                            <span>Click nodes in the preview to mark the initial infected seeds.</span>
+                                                        </div>
+                                                        <span class="text-[10px] uppercase tracking-wider text-sky-300/80">Interactive preview</span>
+                                                    </div>
+                                                )}
+                                                <div class="flex-grow relative border border-slate-900 rounded-2xl min-h-[360px] h-full overflow-hidden">
+                                                    <div 
+                                                        ref={cyContainerRef} 
+                                                        class="absolute inset-0 bg-slate-950/60"
+                                                    ></div>
+                                                </div>
                                             </div>
                                         ) : (
                                             <div class="flex-grow flex items-center justify-center">
