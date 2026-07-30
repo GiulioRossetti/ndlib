@@ -874,3 +874,194 @@ class DashboardTest(unittest.TestCase):
         susceptible_count = sum(1 for status in assignment.values() if status == "Susceptible")
         self.assertEqual(infected_count + susceptible_count, 10)
         self.assertGreater(infected_count, susceptible_count)
+
+    def test_block_schema_registry_exposes_supported_families(self):
+        from ndlib.dashboard.block_schema import BLOCK_FAMILIES, BLOCK_SCHEMA_REGISTRY
+
+        self.assertIn("core", BLOCK_FAMILIES)
+        self.assertIn("epidemic", BLOCK_FAMILIES)
+        self.assertIn("opinion", BLOCK_FAMILIES)
+        self.assertIn("hybrid", BLOCK_FAMILIES)
+        self.assertIn("utility", BLOCK_FAMILIES)
+
+        self.assertIn("Parameter", BLOCK_SCHEMA_REGISTRY)
+        self.assertIn("ExposureRate", BLOCK_SCHEMA_REGISTRY)
+        self.assertIn("OpinionDistribution", BLOCK_SCHEMA_REGISTRY)
+        self.assertIn("SeedSelection", BLOCK_SCHEMA_REGISTRY)
+        self.assertEqual(BLOCK_SCHEMA_REGISTRY["OpinionDistribution"]["family"], "opinion")
+        self.assertIn("family", BLOCK_SCHEMA_REGISTRY["OpinionDistribution"]["parameters"])
+        self.assertIn("choices", BLOCK_SCHEMA_REGISTRY["OpinionDistribution"]["parameters"]["family"])
+
+    def test_validate_model_payload_rejects_invalid_media_configuration(self):
+        from ndlib.dashboard.block_schema import validate_model_payload
+
+        payload = {
+            "name": "InvalidOpinionMediaModel",
+            "use_case": "continuous_opinions",
+            "template_id": "algorithmic_bias",
+            "initial_opinion_distribution": "uniform",
+            "statuses": [
+                {"name": "LowOpinion", "code": 0},
+                {"name": "HighOpinion", "code": 1},
+            ],
+            "compartments": [
+                {
+                    "name": "media_influence",
+                    "type": "OpinionMediaInfluence",
+                    "params": {
+                        "k": 2,
+                        "media_opinions": [0.2],
+                        "weight": 0.5,
+                    },
+                }
+            ],
+            "rules": [],
+            "initial_status": [
+                {"status": "LowOpinion", "ratio": 0.5},
+                {"status": "HighOpinion", "ratio": 0.5},
+            ],
+        }
+
+        issues = validate_model_payload(payload)
+        errors = [issue for issue in issues if issue["severity"] == "error"]
+        self.assertTrue(any("media_opinions" in issue["path"] for issue in errors))
+
+    def test_validate_model_payload_accepts_valid_continuous_opinion_payload(self):
+        from ndlib.dashboard.block_schema import validate_model_payload
+
+        payload = {
+            "name": "ValidOpinionModel",
+            "use_case": "continuous_opinions",
+            "template_id": "algorithmic_bias",
+            "initial_opinion_distribution": {
+                "family": "bimodal",
+                "params": {"low": 0.2, "high": 0.8, "mix": 0.5, "sigma": 0.05},
+                "bounds": [0.0, 1.0],
+            },
+            "statuses": [
+                {"name": "LowOpinion", "code": 0},
+                {"name": "HighOpinion", "code": 1},
+            ],
+            "compartments": [
+                {
+                    "name": "media_influence",
+                    "type": "OpinionMediaInfluence",
+                    "params": {
+                        "k": 2,
+                        "media_opinions": [0.2, 0.8],
+                        "weight": 0.5,
+                    },
+                },
+                {
+                    "name": "zealot",
+                    "type": "OpinionZealot",
+                    "params": {
+                        "share": 0.1,
+                        "fixed_value": 1.0,
+                    },
+                },
+            ],
+            "rules": [],
+            "initial_status": [
+                {"status": "LowOpinion", "ratio": 0.5},
+                {"status": "HighOpinion", "ratio": 0.5},
+            ],
+        }
+
+        issues = validate_model_payload(payload)
+        self.assertFalse(any(issue["severity"] == "error" for issue in issues))
+
+    def test_late_stage_epidemic_builder_payload_roundtrip(self):
+        from ndlib.dashboard.server import generate_custom_model_class, generate_ndql_script
+        import networkx as nx
+        import ndlib.models.ModelConfig as mc
+
+        payload = {
+            "name": "LateStageEpidemicStarter",
+            "use_case": "epidemics",
+            "template_id": "late_stage_epidemic",
+            "statuses": [
+                {"name": "Susceptible", "code": 0},
+                {"name": "Exposed", "code": 1},
+                {"name": "Infected", "code": 2},
+                {"name": "Quarantined", "code": 3},
+                {"name": "Hospitalized", "code": 4},
+                {"name": "Recovered", "code": 5},
+                {"name": "Vaccinated", "code": 6},
+                {"name": "Removed", "code": 7},
+            ],
+            "compartments": [
+                {"name": "exposure", "type": "ExposureRate", "params": {"beta": 0.25, "contact_weight": 1.0, "mixing": 1.0}},
+                {"name": "transmission", "type": "TransmissionKernel", "params": {"saturation": 1.0}},
+                {"name": "dose_response", "type": "DoseResponseBlock", "params": {"shape": "logistic", "scale": 2.0, "offset": 0.1}},
+                {"name": "latency", "type": "LatencyPeriod", "params": {"duration": 2}},
+                {"name": "recovery", "type": "RecoveryKernel", "params": {"gamma": 0.15}},
+                {"name": "waning", "type": "WaningImmunity", "params": {"rate": 0.05}},
+                {"name": "vaccination", "type": "VaccinationBlock", "params": {"coverage": 0.2, "efficacy": 0.9}},
+                {"name": "quarantine", "type": "QuarantineBlock", "params": {"duration": 3, "coverage": 0.25}},
+                {"name": "testing", "type": "TestingBlock", "params": {"sensitivity": 0.9, "specificity": 0.95}},
+                {"name": "treatment", "type": "TreatmentBlock", "params": {"efficacy": 0.75}},
+                {"name": "hospitalization", "type": "HospitalizationBlock", "params": {"rate": 0.2, "mortality": 0.05}},
+                {"name": "mortality", "type": "MortalityBlock", "params": {"fatality": 0.05, "target_status": "Removed"}},
+                {"name": "reinfection", "type": "ReinfectionBlock", "params": {"susceptibility": 0.3}},
+                {"name": "strain", "type": "StrainBlock", "params": {"strain_id": "A"}},
+                {"name": "superspreader", "type": "SuperSpreaderBlock", "params": {"activity": 2.0, "burst_rate": 0.4}},
+                {"name": "seasonality", "type": "SeasonalityBlock", "params": {"period": 12, "amplitude": 0.3}},
+                {"name": "importation", "type": "ImportationBlock", "params": {"arrival_rate": 0.05, "infectious_status": "Infected"}},
+                {"name": "rewiring", "type": "RewiringBlock", "params": {"rewire_rate": 0.1}},
+                {"name": "community_mixing", "type": "CommunityMixingBlock", "params": {"intra_rate": 0.9, "inter_rate": 0.1}},
+                {"name": "edge_activation", "type": "EdgeActivationBlock", "params": {"threshold": 0.5, "duration": 2}},
+            ],
+            "rules": [
+                {"from": "Susceptible", "to": "Exposed", "using": "exposure"},
+                {"from": "Exposed", "to": "Infected", "using": "latency"},
+                {"from": "Infected", "to": "Quarantined", "using": "quarantine"},
+                {"from": "Quarantined", "to": "Hospitalized", "using": "testing"},
+                {"from": "Hospitalized", "to": "Recovered", "using": "treatment"},
+                {"from": "Infected", "to": "Recovered", "using": "recovery"},
+                {"from": "Recovered", "to": "Susceptible", "using": "waning"},
+                {"from": "Susceptible", "to": "Vaccinated", "using": "vaccination"},
+                {"from": "Infected", "to": "Removed", "using": "mortality"},
+                {"from": "Removed", "to": "Susceptible", "using": "reinfection"},
+                {"from": "Susceptible", "to": "Infected", "using": "importation"},
+            ],
+            "initial_status": [
+                {"status": "Susceptible", "ratio": 0.88},
+                {"status": "Exposed", "ratio": 0.04},
+                {"status": "Infected", "ratio": 0.05},
+                {"status": "Quarantined", "ratio": 0.01},
+                {"status": "Hospitalized", "ratio": 0.0},
+                {"status": "Recovered", "ratio": 0.01},
+                {"status": "Vaccinated", "ratio": 0.01},
+                {"status": "Removed", "ratio": 0.0},
+            ],
+        }
+
+        class_code = generate_custom_model_class(payload)
+        self.assertIn("class LateStageEpidemicStarter(CompositeModel):", class_code)
+        self.assertIn("ExposureRate", class_code)
+        self.assertIn("CommunityMixingBlock", class_code)
+
+        ndql_script = generate_ndql_script(payload)
+        self.assertIn("TYPE ExposureRate", ndql_script)
+        self.assertIn("TYPE MortalityBlock", ndql_script)
+        self.assertIn("TYPE CommunityMixingBlock", ndql_script)
+        self.assertIn("RULE", ndql_script)
+
+        module_scope = {}
+        exec(class_code, module_scope, module_scope)
+        model_cls = module_scope["LateStageEpidemicStarter"]
+
+        model = model_cls(nx.path_graph(12))
+        cfg = mc.Configuration()
+        cfg.add_model_parameter("percentage_Susceptible", 0.88)
+        cfg.add_model_parameter("percentage_Exposed", 0.04)
+        cfg.add_model_parameter("percentage_Infected", 0.05)
+        cfg.add_model_parameter("percentage_Quarantined", 0.01)
+        cfg.add_model_parameter("percentage_Hospitalized", 0.0)
+        cfg.add_model_parameter("percentage_Recovered", 0.01)
+        cfg.add_model_parameter("percentage_Vaccinated", 0.01)
+        cfg.add_model_parameter("percentage_Removed", 0.0)
+        model.set_initial_status(cfg)
+        result = model.iteration()
+        self.assertIn("status", result)

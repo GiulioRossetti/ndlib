@@ -6,8 +6,6 @@
     <title>NDlib Interactive Dashboard</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts (Outfit) -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
@@ -254,6 +252,7 @@
             const [apiBaseUrl, setApiBaseUrl] = useState(
                 window.location.protocol === "file:" ? "http://127.0.0.1:5000" : ""
             );
+            const [blockSchemaRegistry, setBlockSchemaRegistry] = useState({});
 
             // Playback controls for network visualization
             const [currentPlaybackStep, setCurrentPlaybackStep] = useState(0);
@@ -293,12 +292,22 @@
             const [selectedNodeIds, setSelectedNodeIds] = useState([]);
             const [linkingSource, setLinkingSource] = useState(null);
             const [tempEdgeEnd, setTempEdgeEnd] = useState(null);
+            const [builderShowMinimap, setBuilderShowMinimap] = useState(true);
+            const [builderCanvasViewport, setBuilderCanvasViewport] = useState({
+                scrollLeft: 0,
+                scrollTop: 0,
+                clientWidth: 0,
+                clientHeight: 0,
+                scrollWidth: 0,
+                scrollHeight: 0
+            });
             const [draggingNodes, setDraggingNodes] = useState([]);
             const [dragAnchor, setDragAnchor] = useState(null);
             const linkingSourceRef = useRef(null);
             const builderNodesRef = useRef(builderNodes);
             const builderEdgesRef = useRef(builderEdges);
             const builderInitialStatusRef = useRef(builderInitialStatus);
+            const builderCanvasRef = useRef(null);
             // Chart & Network refs
             const trendsChartRef = useRef(null);
             const prevalenceChartRef = useRef(null);
@@ -317,6 +326,48 @@
                 { value: "girvan_newman", label: "Girvan-Newman" },
                 { value: "asyn_fluidc", label: "Async Fluid Communities" },
             ];
+
+            const cloneBuilderValue = (value) => {
+                if (Array.isArray(value) || (value && typeof value === "object")) {
+                    return JSON.parse(JSON.stringify(value));
+                }
+                return value;
+            };
+
+            const getBlockSchemaEntry = (blockType) => (
+                blockSchemaRegistry && blockSchemaRegistry[blockType] ? blockSchemaRegistry[blockType] : null
+            );
+
+            const getBlockSchemaSummary = (blockType) => {
+                const schema = getBlockSchemaEntry(blockType);
+                if (!schema || !schema.parameters) return null;
+                const entries = Object.entries(schema.parameters);
+                if (!entries.length) return null;
+                return {
+                    family: schema.family,
+                    required: schema.required_parameters || [],
+                    parameters: entries.slice(0, 6).map(([name, info]) => ({
+                        name,
+                        default: info.default,
+                        kind: info.kind,
+                        required: !!info.required,
+                    })),
+                    count: entries.length,
+                };
+            };
+
+            const getSchemaBackedCompartmentParams = (type) => {
+                const schema = getBlockSchemaEntry(type);
+                const params = {};
+                if (schema && schema.parameters) {
+                    Object.entries(schema.parameters).forEach(([name, info]) => {
+                        if (info && Object.prototype.hasOwnProperty.call(info, "default") && info.default !== undefined && info.default !== null) {
+                            params[name] = cloneBuilderValue(info.default);
+                        }
+                    });
+                }
+                return params;
+            };
 
             const builderTemplates = {
                 sir: {
@@ -341,6 +392,102 @@
                         { status: "Susceptible", ratio: 0.95 },
                         { status: "Infected", ratio: 0.05 },
                         { status: "Recovered", ratio: 0.0 }
+                    ]
+                },
+                seir: {
+                    useCase: "epidemics",
+                    label: "SEIR",
+                    description: "Adds an exposed stage and a short latency period before infection becomes active.",
+                    modelName: "SEIRBuilderModel",
+                    nodes: [
+                        { id: "seir_s", type: "status", x: 70, y: 170, data: { name: "Susceptible", code: 0 } },
+                        { id: "seir_e", type: "status", x: 290, y: 170, data: { name: "Exposed", code: 1 } },
+                        { id: "seir_i", type: "status", x: 510, y: 170, data: { name: "Infected", code: 2 } },
+                        { id: "seir_r", type: "status", x: 730, y: 170, data: { name: "Recovered", code: 3 } },
+                        { id: "seir_exposure", type: "compartment", x: 180, y: 85, data: { name: "exposure", type: "ExposureRate", params: { beta: 0.18, contact_weight: 1.0, mixing: 1.0 } } },
+                        { id: "seir_latency", type: "compartment", x: 400, y: 85, data: { name: "latency", type: "LatencyPeriod", params: { duration: 2 } } },
+                        { id: "seir_recovery", type: "compartment", x: 620, y: 85, data: { name: "recovery", type: "RecoveryKernel", params: { gamma: 0.12 } } }
+                    ],
+                    edges: [
+                        { id: "seir_e1", source: "seir_s", target: "seir_exposure" },
+                        { id: "seir_e2", source: "seir_exposure", target: "seir_latency" },
+                        { id: "seir_e3", source: "seir_latency", target: "seir_e" },
+                        { id: "seir_e4", source: "seir_e", target: "seir_i" },
+                        { id: "seir_e5", source: "seir_i", target: "seir_recovery" },
+                        { id: "seir_e6", source: "seir_recovery", target: "seir_r" }
+                    ],
+                    initialStatus: [
+                        { status: "Susceptible", ratio: 0.93 },
+                        { status: "Exposed", ratio: 0.02 },
+                        { status: "Infected", ratio: 0.03 },
+                        { status: "Recovered", ratio: 0.02 }
+                    ]
+                },
+                late_stage_epidemic: {
+                    useCase: "epidemics",
+                    label: "Late-Stage Epidemic",
+                    description: "Full epidemic starter with exposure, intervention, recovery, waning immunity, and graph-level control blocks.",
+                    modelName: "LateStageEpidemicStarter",
+                    nodes: [
+                        { id: "lse_s", type: "status", x: 70, y: 170, data: { name: "Susceptible", code: 0 } },
+                        { id: "lse_e", type: "status", x: 240, y: 170, data: { name: "Exposed", code: 1 } },
+                        { id: "lse_i", type: "status", x: 410, y: 170, data: { name: "Infected", code: 2 } },
+                        { id: "lse_r", type: "status", x: 580, y: 170, data: { name: "Recovered", code: 3 } },
+                        { id: "lse_v", type: "status", x: 750, y: 170, data: { name: "Vaccinated", code: 4 } },
+                        { id: "lse_exposure", type: "compartment", x: 160, y: 85, data: { name: "exposure", type: "ExposureRate", params: { beta: 0.25, contact_weight: 1.0, mixing: 1.0 } } },
+                        { id: "lse_kernel", type: "compartment", x: 320, y: 85, data: { name: "transmission", type: "TransmissionKernel", params: { saturation: 1.0 } } },
+                        { id: "lse_dose", type: "compartment", x: 470, y: 85, data: { name: "dose_response", type: "DoseResponseBlock", params: { shape: "logistic", scale: 2.0, offset: 0.1 } } },
+                        { id: "lse_latency", type: "compartment", x: 620, y: 85, data: { name: "latency", type: "LatencyPeriod", params: { duration: 2 } } },
+                        { id: "lse_recovery", type: "compartment", x: 320, y: 280, data: { name: "recovery", type: "RecoveryKernel", params: { gamma: 0.15 } } },
+                        { id: "lse_waning", type: "compartment", x: 470, y: 280, data: { name: "waning", type: "WaningImmunity", params: { rate: 0.05 } } },
+                        { id: "lse_vaccination", type: "compartment", x: 620, y: 280, data: { name: "vaccination", type: "VaccinationBlock", params: { coverage: 0.2, efficacy: 0.9 } } },
+                        { id: "lse_quarantine", type: "compartment", x: 780, y: 85, data: { name: "quarantine", type: "QuarantineBlock", params: { duration: 3, coverage: 0.25 } } },
+                        { id: "lse_testing", type: "compartment", x: 920, y: 85, data: { name: "testing", type: "TestingBlock", params: { sensitivity: 0.9, specificity: 0.95 } } },
+                        { id: "lse_treatment", type: "compartment", x: 920, y: 280, data: { name: "treatment", type: "TreatmentBlock", params: { efficacy: 0.75 } } },
+                        { id: "lse_hospital", type: "compartment", x: 1080, y: 85, data: { name: "hospitalization", type: "HospitalizationBlock", params: { rate: 0.2, mortality: 0.05 } } },
+                        { id: "lse_mortality", type: "compartment", x: 1080, y: 280, data: { name: "mortality", type: "MortalityBlock", params: { fatality: 0.05, target_status: "Removed" } } },
+                        { id: "lse_reinfection", type: "compartment", x: 1240, y: 85, data: { name: "reinfection", type: "ReinfectionBlock", params: { susceptibility: 0.3 } } },
+                        { id: "lse_strain", type: "compartment", x: 1240, y: 280, data: { name: "strain", type: "StrainBlock", params: { strain_id: "A" } } },
+                        { id: "lse_spreader", type: "compartment", x: 1400, y: 85, data: { name: "superspreader", type: "SuperSpreaderBlock", params: { activity: 2.0, burst_rate: 0.4 } } },
+                        { id: "lse_seasonality", type: "compartment", x: 1400, y: 280, data: { name: "seasonality", type: "SeasonalityBlock", params: { period: 12, amplitude: 0.3 } } },
+                        { id: "lse_importation", type: "compartment", x: 1560, y: 85, data: { name: "importation", type: "ImportationBlock", params: { arrival_rate: 0.05, infectious_status: "Infected" } } },
+                        { id: "lse_rewire", type: "compartment", x: 1560, y: 280, data: { name: "rewiring", type: "RewiringBlock", params: { rewire_rate: 0.1 } } },
+                        { id: "lse_mixing", type: "compartment", x: 1720, y: 85, data: { name: "community_mixing", type: "CommunityMixingBlock", params: { intra_rate: 0.9, inter_rate: 0.1 } } },
+                        { id: "lse_activation", type: "compartment", x: 1720, y: 280, data: { name: "edge_activation", type: "EdgeActivationBlock", params: { threshold: 0.5, duration: 2 } } }
+                    ],
+                    edges: [
+                        { id: "lse_e1", source: "lse_s", target: "lse_exposure" },
+                        { id: "lse_e2", source: "lse_exposure", target: "lse_kernel" },
+                        { id: "lse_e3", source: "lse_kernel", target: "lse_dose" },
+                        { id: "lse_e4", source: "lse_dose", target: "lse_latency" },
+                        { id: "lse_e5", source: "lse_latency", target: "lse_e" },
+                        { id: "lse_e6", source: "lse_e", target: "lse_recovery" },
+                        { id: "lse_e7", source: "lse_recovery", target: "lse_r" },
+                        { id: "lse_e8", source: "lse_r", target: "lse_waning" },
+                        { id: "lse_e9", source: "lse_waning", target: "lse_s" },
+                        { id: "lse_e10", source: "lse_i", target: "lse_vaccination" },
+                        { id: "lse_e11", source: "lse_vaccination", target: "lse_v" },
+                        { id: "lse_e12", source: "lse_s", target: "lse_quarantine" },
+                        { id: "lse_e13", source: "lse_quarantine", target: "lse_testing" },
+                        { id: "lse_e14", source: "lse_testing", target: "lse_treatment" },
+                        { id: "lse_e15", source: "lse_treatment", target: "lse_hospital" },
+                        { id: "lse_e16", source: "lse_hospital", target: "lse_mortality" },
+                        { id: "lse_e17", source: "lse_mortality", target: "lse_reinfection" },
+                        { id: "lse_e18", source: "lse_reinfection", target: "lse_strain" },
+                        { id: "lse_e19", source: "lse_strain", target: "lse_spreader" },
+                        { id: "lse_e20", source: "lse_spreader", target: "lse_seasonality" },
+                        { id: "lse_e21", source: "lse_seasonality", target: "lse_importation" },
+                        { id: "lse_e22", source: "lse_importation", target: "lse_rewire" },
+                        { id: "lse_e23", source: "lse_rewire", target: "lse_mixing" },
+                        { id: "lse_e24", source: "lse_mixing", target: "lse_activation" },
+                        { id: "lse_e25", source: "lse_activation", target: "lse_i" }
+                    ],
+                    initialStatus: [
+                        { status: "Susceptible", ratio: 0.88 },
+                        { status: "Exposed", ratio: 0.04 },
+                        { status: "Infected", ratio: 0.05 },
+                        { status: "Recovered", ratio: 0.02 },
+                        { status: "Vaccinated", ratio: 0.01 }
                     ]
                 },
                 algorithmic_bias: {
@@ -371,6 +518,34 @@
                         { status: "HighOpinion", ratio: 0.5 }
                     ]
                 },
+                deffuant: {
+                    useCase: "continuous_opinions",
+                    label: "Deffuant",
+                    description: "Continuous opinions with bounded confidence, averaging, and range normalization.",
+                    modelName: "DeffuantStarterModel",
+                    initialOpinionDistribution: "gaussian",
+                    nodes: [
+                        { id: "df_low", type: "status", x: 90, y: 150, data: { name: "LowOpinion", code: 0 } },
+                        { id: "df_high", type: "status", x: 780, y: 150, data: { name: "HighOpinion", code: 1 } },
+                        { id: "df_dist", type: "compartment", x: 230, y: 90, data: { name: "opinion_distribution", type: "OpinionDistribution", params: { family: "gaussian", bounds: [0, 1] } } },
+                        { id: "df_threshold", type: "compartment", x: 390, y: 90, data: { name: "bounded_confidence", type: "OpinionDistanceThreshold", params: { epsilon: 0.12 } } },
+                        { id: "df_bias", type: "compartment", x: 560, y: 90, data: { name: "selection_bias", type: "OpinionSelectionBias", params: { gamma: 1.25 } } },
+                        { id: "df_compromise", type: "compartment", x: 390, y: 255, data: { name: "opinion_compromise", type: "OpinionCompromise", params: { mu: 0.35 } } },
+                        { id: "df_norm", type: "compartment", x: 560, y: 255, data: { name: "opinion_normalization", type: "OpinionNormalization", params: { min: 0.0, max: 1.0 } } }
+                    ],
+                    edges: [
+                        { id: "df_e1", source: "df_low", target: "df_dist" },
+                        { id: "df_e2", source: "df_dist", target: "df_threshold" },
+                        { id: "df_e3", source: "df_threshold", target: "df_bias" },
+                        { id: "df_e4", source: "df_bias", target: "df_compromise" },
+                        { id: "df_e5", source: "df_compromise", target: "df_norm" },
+                        { id: "df_e6", source: "df_norm", target: "df_high" }
+                    ],
+                    initialStatus: [
+                        { status: "LowOpinion", ratio: 0.5 },
+                        { status: "HighOpinion", ratio: 0.5 }
+                    ]
+                },
                 majority_rule: {
                     useCase: "discrete_opinions",
                     label: "Majority Rule",
@@ -391,6 +566,32 @@
                     initialStatus: [
                         { status: "Agree", ratio: 0.5 },
                         { status: "Disagree", ratio: 0.5 }
+                    ]
+                },
+                voter_zealot: {
+                    useCase: "discrete_opinions",
+                    label: "Voter + Zealots",
+                    description: "Discrete opinions with immutable zealot anchors and threshold-driven adoption.",
+                    modelName: "VoterZealotStarterModel",
+                    nodes: [
+                        { id: "vz_a", type: "status", x: 80, y: 150, data: { name: "Agree", code: 0 } },
+                        { id: "vz_d", type: "status", x: 500, y: 150, data: { name: "Disagree", code: 1 } },
+                        { id: "vz_zealot", type: "status", x: 290, y: 290, data: { name: "Zealot", code: 2 } },
+                        { id: "vz_threshold", type: "compartment", x: 290, y: 80, data: { name: "adopt_agree", type: "NodeThreshold", params: { threshold: 0.5, triggering_status: "Agree" } } },
+                        { id: "vz_flip", type: "compartment", x: 290, y: 200, data: { name: "adopt_disagree", type: "NodeThreshold", params: { threshold: 0.5, triggering_status: "Disagree" } } },
+                        { id: "vz_anchor", type: "compartment", x: 640, y: 200, data: { name: "zealot_anchor", type: "OpinionZealot", params: { share: 0.1, fixed_value: 1.0 } } }
+                    ],
+                    edges: [
+                        { id: "vz_e1", source: "vz_d", target: "vz_threshold" },
+                        { id: "vz_e2", source: "vz_threshold", target: "vz_a" },
+                        { id: "vz_e3", source: "vz_a", target: "vz_flip" },
+                        { id: "vz_e4", source: "vz_flip", target: "vz_d" },
+                        { id: "vz_e5", source: "vz_zealot", target: "vz_anchor" }
+                    ],
+                    initialStatus: [
+                        { status: "Agree", ratio: 0.45 },
+                        { status: "Disagree", ratio: 0.45 },
+                        { status: "Zealot", ratio: 0.1 }
                     ]
                 },
                 coupled: {
@@ -421,6 +622,35 @@
                         { status: "Infected", ratio: 0.1 },
                         { status: "Recovered", ratio: 0.0 }
                     ]
+                },
+                opinion_epidemic_feedback: {
+                    useCase: "coupled",
+                    label: "Opinion-Epidemic Feedback",
+                    description: "A compact coupling example where opinion gates infection and infection feeds back into opinion.",
+                    modelName: "OpinionEpidemicFeedbackModel",
+                    nodes: [
+                        { id: "fb_s", type: "status", x: 80, y: 150, data: { name: "Susceptible", code: 0 } },
+                        { id: "fb_i", type: "status", x: 420, y: 150, data: { name: "Infected", code: 1 } },
+                        { id: "fb_r", type: "status", x: 760, y: 150, data: { name: "Recovered", code: 2 } },
+                        { id: "fb_opinion_init", type: "compartment", x: 250, y: 70, data: { name: "opinion_init", type: "OpinionDistribution", params: { family: "uniform", bounds: [0, 1] } } },
+                        { id: "fb_contact", type: "compartment", x: 250, y: 200, data: { name: "contact_bias", type: "OpinionAffectsContactRate", params: { multiplier: 0.8 } } },
+                        { id: "fb_infection", type: "compartment", x: 560, y: 90, data: { name: "infection", type: "NodeStochastic", params: { rate: 0.05, triggering_status: "Infected" } } },
+                        { id: "fb_feedback", type: "compartment", x: 560, y: 220, data: { name: "feedback", type: "InfectionAffectsOpinion", params: { delta: 0.1 } } },
+                        { id: "fb_compose", type: "compartment", x: 380, y: 310, data: { name: "coupling", type: "ConditionalComposition", params: { condition: "contact_bias", first_branch: "infection", second_branch: "feedback" } } }
+                    ],
+                    edges: [
+                        { id: "fb_e1", source: "fb_s", target: "fb_contact" },
+                        { id: "fb_e2", source: "fb_contact", target: "fb_compose", targetPort: "condition" },
+                        { id: "fb_e3", source: "fb_infection", target: "fb_compose", targetPort: "if_true" },
+                        { id: "fb_e4", source: "fb_feedback", target: "fb_compose", targetPort: "if_false" },
+                        { id: "fb_e5", source: "fb_compose", target: "fb_i" },
+                        { id: "fb_e6", source: "fb_i", target: "fb_r" }
+                    ],
+                    initialStatus: [
+                        { status: "Susceptible", ratio: 0.9 },
+                        { status: "Infected", ratio: 0.1 },
+                        { status: "Recovered", ratio: 0.0 }
+                    ]
                 }
             };
 
@@ -428,26 +658,26 @@
                 epidemics: {
                     label: "Epidemics",
                     description: "Status-based epidemic workflows with stochastic, threshold, and attribute-driven compartments.",
-                    templates: ["sir"],
+                    templates: ["sir", "seir", "late_stage_epidemic"],
                     palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "ExposureRate", "TransmissionKernel", "DoseResponseBlock", "LatencyPeriod", "IncubationState", "RecoveryKernel", "WaningImmunity", "VaccinationBlock", "QuarantineBlock", "TestingBlock", "TreatmentBlock", "HospitalizationBlock", "MortalityBlock", "ReinfectionBlock", "StrainBlock", "SuperSpreaderBlock", "SeasonalityBlock", "ImportationBlock", "RewiringBlock", "CommunityMixingBlock", "EdgeActivationBlock", "SeedSelection", "NodeRoleAssignment", "AttributeInitializer", "GraphImport", "CommunityAssignment", "RuleAlias", "PreviewObservable", "ValidationHint", "ConditionalComposition"]
                 },
                 continuous_opinions: {
                     label: "Continuous Opinions",
                     description: "Opinion-specific blocks for bounded confidence, biased partner selection, and compromise updates.",
-                    templates: ["algorithmic_bias"],
-                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "OpinionZealot", "NodeNumericalAttribute", "NodeNumericalVariable", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "NodeThreshold", "CountDown", "SeedSelection", "NodeRoleAssignment", "AttributeInitializer", "GraphImport", "CommunityAssignment", "RuleAlias", "PreviewObservable", "ValidationHint", "ConditionalComposition"]
+                    templates: ["algorithmic_bias", "deffuant"],
+                    palette: ["status", "OpinionDistribution", "Parameter", "Constant", "Variable", "Distribution", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "OpinionZealot", "OpinionMultiTopic", "OpinionLabelSwitch", "OpinionBoundedDrift", "NodeNumericalAttribute", "NodeNumericalVariable", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "NodeThreshold", "CountDown", "SeedSelection", "NodeRoleAssignment", "AttributeInitializer", "GraphImport", "CommunityAssignment", "RuleAlias", "PreviewObservable", "ValidationHint", "ConditionalComposition"]
                 },
                 discrete_opinions: {
                     label: "Discrete Opinions",
                     description: "Label-based opinion flows with categorical and stochastic influence blocks.",
-                    templates: ["majority_rule"],
-                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "NodeStochastic", "NodeCategoricalAttribute", "NodeNumericalAttribute", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "CountDown", "SeedSelection", "NodeRoleAssignment", "AttributeInitializer", "GraphImport", "CommunityAssignment", "RuleAlias", "PreviewObservable", "ValidationHint", "ConditionalComposition"]
+                    templates: ["majority_rule", "voter_zealot"],
+                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "OpinionZealot", "NodeStochastic", "NodeThreshold", "NodeCategoricalAttribute", "NodeNumericalAttribute", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "CountDown", "SeedSelection", "NodeRoleAssignment", "AttributeInitializer", "GraphImport", "CommunityAssignment", "RuleAlias", "PreviewObservable", "ValidationHint", "ConditionalComposition"]
                 },
                 coupled: {
                     label: "Coupled / Advanced",
                     description: "All available blocks for mixed epidemic-opinion experiments and custom couplings.",
-                    templates: ["coupled", "sir", "algorithmic_bias", "majority_rule"],
-                    palette: ["status", "Parameter", "Constant", "Variable", "Distribution", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "NodeNumericalVariable", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "ExposureRate", "TransmissionKernel", "DoseResponseBlock", "LatencyPeriod", "IncubationState", "RecoveryKernel", "WaningImmunity", "VaccinationBlock", "QuarantineBlock", "TestingBlock", "TreatmentBlock", "HospitalizationBlock", "MortalityBlock", "ReinfectionBlock", "StrainBlock", "SuperSpreaderBlock", "SeasonalityBlock", "ImportationBlock", "RewiringBlock", "CommunityMixingBlock", "EdgeActivationBlock", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "OpinionZealot", "SeedSelection", "NodeRoleAssignment", "AttributeInitializer", "GraphImport", "CommunityAssignment", "RuleAlias", "PreviewObservable", "ValidationHint", "ConditionalComposition"]
+                    templates: ["coupled", "opinion_epidemic_feedback", "sir", "algorithmic_bias", "majority_rule"],
+                    palette: ["status", "OpinionDistribution", "Parameter", "Constant", "Variable", "Distribution", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "NodeNumericalVariable", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "ExposureRate", "TransmissionKernel", "DoseResponseBlock", "LatencyPeriod", "IncubationState", "RecoveryKernel", "WaningImmunity", "VaccinationBlock", "QuarantineBlock", "TestingBlock", "TreatmentBlock", "HospitalizationBlock", "MortalityBlock", "ReinfectionBlock", "StrainBlock", "SuperSpreaderBlock", "SeasonalityBlock", "ImportationBlock", "RewiringBlock", "CommunityMixingBlock", "EdgeActivationBlock", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "OpinionZealot", "OpinionMultiTopic", "OpinionLabelSwitch", "OpinionBoundedDrift", "SeedSelection", "NodeRoleAssignment", "AttributeInitializer", "GraphImport", "CommunityAssignment", "RuleAlias", "PreviewObservable", "ValidationHint", "ConditionalComposition"]
                 }
             };
 
@@ -460,11 +690,12 @@
             };
 
             const getBuilderCanvasPoint = (e) => {
-                const canvas = document.getElementById("builder-canvas")?.getBoundingClientRect();
-                if (!canvas) return null;
+                const canvasEl = builderCanvasRef.current;
+                const canvas = canvasEl?.getBoundingClientRect();
+                if (!canvas || !canvasEl) return null;
                 return {
-                    x: (e.clientX - canvas.left) / builderZoom,
-                    y: (e.clientY - canvas.top) / builderZoom
+                    x: (e.clientX - canvas.left + canvasEl.scrollLeft) / builderZoom,
+                    y: (e.clientY - canvas.top + canvasEl.scrollTop) / builderZoom
                 };
             };
 
@@ -522,6 +753,85 @@
                 setBuilderZoom(prev => clampBuilderZoom(prev + delta));
             };
 
+            const getBuilderCanvasBounds = (nodes = builderNodes) => {
+                const safeNodes = Array.isArray(nodes) ? nodes : [];
+                const padding = 320;
+                const minWidth = 1600;
+                const minHeight = 1100;
+
+                if (safeNodes.length === 0) {
+                    return {
+                        width: minWidth,
+                        height: minHeight,
+                        offsetX: padding,
+                        offsetY: padding
+                    };
+                }
+
+                const extents = safeNodes.reduce((acc, node) => {
+                    const width = node.type === "status" ? 140 : 180;
+                    const height = node.data?.type === "ConditionalComposition" ? 100 : 100;
+                    acc.minX = Math.min(acc.minX, node.x);
+                    acc.minY = Math.min(acc.minY, node.y);
+                    acc.maxX = Math.max(acc.maxX, node.x + width);
+                    acc.maxY = Math.max(acc.maxY, node.y + height);
+                    return acc;
+                }, { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
+
+                const width = Math.max(minWidth, Math.ceil(extents.maxX - extents.minX + padding * 2));
+                const height = Math.max(minHeight, Math.ceil(extents.maxY - extents.minY + padding * 2));
+                return {
+                    width,
+                    height,
+                    offsetX: padding - extents.minX,
+                    offsetY: padding - extents.minY
+                };
+            };
+
+            const fitBuilderCanvasToContent = () => {
+                const canvas = builderCanvasRef.current;
+                if (!canvas) return;
+                const nextLeft = Math.max(0, Math.floor((canvas.scrollWidth - canvas.clientWidth) / 2));
+                const nextTop = Math.max(0, Math.floor((canvas.scrollHeight - canvas.clientHeight) / 2));
+                canvas.scrollTo({ left: nextLeft, top: nextTop, behavior: "smooth" });
+            };
+
+            const centerBuilderCanvasAtRatio = (ratioX, ratioY) => {
+                const canvas = builderCanvasRef.current;
+                if (!canvas) return;
+                const maxLeft = Math.max(0, canvas.scrollWidth - canvas.clientWidth);
+                const maxTop = Math.max(0, canvas.scrollHeight - canvas.clientHeight);
+                const nextLeft = Math.max(0, Math.min(maxLeft, Math.round((Number(ratioX) || 0) * maxLeft)));
+                const nextTop = Math.max(0, Math.min(maxTop, Math.round((Number(ratioY) || 0) * maxTop)));
+                canvas.scrollTo({ left: nextLeft, top: nextTop, behavior: "smooth" });
+            };
+
+            const syncBuilderCanvasViewport = () => {
+                const canvas = builderCanvasRef.current;
+                if (!canvas) return;
+                setBuilderCanvasViewport({
+                    scrollLeft: canvas.scrollLeft,
+                    scrollTop: canvas.scrollTop,
+                    clientWidth: canvas.clientWidth,
+                    clientHeight: canvas.clientHeight,
+                    scrollWidth: canvas.scrollWidth,
+                    scrollHeight: canvas.scrollHeight
+                });
+            };
+
+            useEffect(() => {
+                syncBuilderCanvasViewport();
+            }, [builderNodes, builderEdges, builderZoom, showModelBuilder]);
+
+            useEffect(() => {
+                const canvas = builderCanvasRef.current;
+                if (!canvas || !showModelBuilder) return;
+                const handleScroll = () => syncBuilderCanvasViewport();
+                canvas.addEventListener("scroll", handleScroll, { passive: true });
+                syncBuilderCanvasViewport();
+                return () => canvas.removeEventListener("scroll", handleScroll);
+            }, [showModelBuilder]);
+
             const getBuilderTemplate = (templateId) => builderTemplates[templateId] || builderTemplates.sir;
 
             const getBuilderNodeSubtitle = (node) => {
@@ -539,6 +849,9 @@
                 }
                 if (node.data.type === "OpinionDistanceThreshold") {
                     return `epsilon <= ${params.epsilon ?? "?"}`;
+                }
+                if (node.data.type === "OpinionDistribution") {
+                    return `${params.family || "uniform"} ${Array.isArray(params.bounds) ? `[${params.bounds.join(", ")}]` : ""}`.trim();
                 }
                 if (node.data.type === "OpinionSelectionBias") {
                     return `gamma = ${params.gamma ?? "?"}`;
@@ -1227,6 +1540,42 @@
                         onClick: () => addCompartmentNode("OpinionMediaInfluence")
                     },
                     {
+                        id: "OpinionDistribution",
+                        type: "compartment",
+                        label: "Opinion Distribution",
+                        description: "Seeds a bounded opinion distribution",
+                        icon: "fa-chart-column",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("OpinionDistribution")
+                    },
+                    {
+                        id: "OpinionMultiTopic",
+                        type: "compartment",
+                        label: "Multi-Topic",
+                        description: "Tracks several coupled opinion topics",
+                        icon: "fa-layer-group",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("OpinionMultiTopic")
+                    },
+                    {
+                        id: "OpinionLabelSwitch",
+                        type: "compartment",
+                        label: "Label Switch",
+                        description: "Maps labels to opinion states",
+                        icon: "fa-right-left",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("OpinionLabelSwitch")
+                    },
+                    {
+                        id: "OpinionBoundedDrift",
+                        type: "compartment",
+                        label: "Bounded Drift",
+                        description: "Applies a bounded incremental drift",
+                        icon: "fa-water",
+                        accent: "cyan",
+                        onClick: () => addCompartmentNode("OpinionBoundedDrift")
+                    },
+                    {
                         id: "SeedSelection",
                         type: "compartment",
                         label: "Seed Selection",
@@ -1308,6 +1657,87 @@
                         onClick: () => addCompartmentNode("ConditionalComposition")
                     }
                 ].filter(block => allowed.has(block.id));
+            };
+
+            const getVisibleBuilderBlockSections = () => {
+                const blocks = getVisibleBuilderBlocks();
+                const sectionMeta = builderUseCase === "epidemics" ? {
+                    "State Initialization": { order: 0, blocks: ["status", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute"] },
+                    "Transmission & Progression": { order: 1, blocks: ["ExposureRate", "TransmissionKernel", "DoseResponseBlock", "LatencyPeriod", "IncubationState", "RecoveryKernel", "WaningImmunity", "ReinfectionBlock", "StrainBlock", "SuperSpreaderBlock"] },
+                    "Interventions & Network": { order: 2, blocks: ["VaccinationBlock", "QuarantineBlock", "TestingBlock", "TreatmentBlock", "HospitalizationBlock", "MortalityBlock", "SeasonalityBlock", "ImportationBlock", "RewiringBlock", "CommunityMixingBlock", "EdgeActivationBlock"] },
+                    "Builder Utilities": { order: 3, blocks: ["Parameter", "Constant", "Variable", "Distribution", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "SeedSelection", "NodeRoleAssignment", "AttributeInitializer", "GraphImport", "CommunityAssignment", "RuleAlias", "PreviewObservable", "ValidationHint", "ConditionalComposition"] }
+                } : builderUseCase === "continuous_opinions" ? {
+                    "Opinion Initialization": { order: 0, blocks: ["status", "OpinionDistribution", "Parameter", "Constant", "Variable", "Distribution"] },
+                    "Opinion Interaction": { order: 1, blocks: ["OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter"] },
+                    "Opinion Post-Processing": { order: 2, blocks: ["OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionBoundedDrift"] },
+                    "Opinion Extensions": { order: 3, blocks: ["OpinionMediaInfluence", "OpinionZealot", "OpinionMultiTopic", "OpinionLabelSwitch"] },
+                    "Shared Utilities": { order: 4, blocks: ["NodeNumericalAttribute", "NodeNumericalVariable", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "NodeThreshold", "CountDown", "SeedSelection", "NodeRoleAssignment", "AttributeInitializer", "GraphImport", "CommunityAssignment", "RuleAlias", "PreviewObservable", "ValidationHint", "ConditionalComposition"] }
+                } : builderUseCase === "discrete_opinions" ? {
+                    "Opinion State Setup": { order: 0, blocks: ["status", "OpinionZealot"] },
+                    "Discrete Transitions": { order: 1, blocks: ["NodeStochastic", "NodeThreshold", "NodeCategoricalAttribute", "NodeNumericalAttribute", "CountDown"] },
+                    "Shared Utilities": { order: 2, blocks: ["Parameter", "Constant", "Variable", "Distribution", "Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "SeedSelection", "NodeRoleAssignment", "AttributeInitializer", "GraphImport", "CommunityAssignment", "RuleAlias", "PreviewObservable", "ValidationHint", "ConditionalComposition"] }
+                } : {
+                    "Epidemic Blocks": { order: 0, blocks: ["status", "NodeStochastic", "NodeThreshold", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "NodeNumericalVariable"] },
+                    "Opinion Blocks": { order: 1, blocks: ["OpinionDistribution", "OpinionDistanceThreshold", "OpinionSelectionBias", "OpinionCompromise", "OpinionStubbornness", "OpinionNoise", "OpinionPolarization", "OpinionExternalField", "OpinionTrustFilter", "OpinionMemory", "OpinionNormalization", "OpinionQuantization", "OpinionMediaInfluence", "OpinionZealot", "OpinionMultiTopic", "OpinionLabelSwitch", "OpinionBoundedDrift"] },
+                    "Cross-Coupling": { order: 2, blocks: ["Selector", "Filter", "Aggregator", "Kernel", "Transform", "Compose", "Schedule", "Observe", "ClampNormalize", "Parameter", "Constant", "Variable", "Distribution", "SeedSelection", "NodeRoleAssignment", "AttributeInitializer", "GraphImport", "CommunityAssignment", "RuleAlias", "PreviewObservable", "ValidationHint", "ConditionalComposition", "ExposureRate", "TransmissionKernel", "DoseResponseBlock", "LatencyPeriod", "IncubationState", "RecoveryKernel", "WaningImmunity", "VaccinationBlock", "QuarantineBlock", "TestingBlock", "TreatmentBlock", "HospitalizationBlock", "MortalityBlock", "ReinfectionBlock", "StrainBlock", "SuperSpreaderBlock", "SeasonalityBlock", "ImportationBlock", "RewiringBlock", "CommunityMixingBlock", "EdgeActivationBlock"] },
+                    "Shared Utilities": { order: 3, blocks: [] }
+                };
+
+                const sectionOrder = Object.fromEntries(Object.entries(sectionMeta).map(([title, meta]) => [title, meta.order]));
+
+                const sectionForBlock = (block) => {
+                    const id = block.id;
+                    if (id === "status") {
+                        return builderUseCase === "continuous_opinions" ? "Opinion Initialization" : builderUseCase === "discrete_opinions" ? "Opinion State Setup" : builderUseCase === "coupled" ? "Epidemic Blocks" : "State Initialization";
+                    }
+
+                    if (builderUseCase === "epidemics") {
+                        if (sectionMeta["State Initialization"].blocks.includes(id)) return "State Initialization";
+                        if (sectionMeta["Transmission & Progression"].blocks.includes(id)) return "Transmission & Progression";
+                        if (sectionMeta["Interventions & Network"].blocks.includes(id)) return "Interventions & Network";
+                        return "Builder Utilities";
+                    }
+
+                    if (builderUseCase === "continuous_opinions") {
+                        if (["OpinionDistribution", "Parameter", "Constant", "Variable", "Distribution"].includes(id)) return "Opinion Initialization";
+                        if (sectionMeta["Opinion Interaction"].blocks.includes(id)) return "Opinion Interaction";
+                        if (sectionMeta["Opinion Post-Processing"].blocks.includes(id)) return "Opinion Post-Processing";
+                        if (["OpinionMediaInfluence", "OpinionZealot", "OpinionMultiTopic", "OpinionLabelSwitch", "OpinionBoundedDrift"].includes(id)) return "Opinion Extensions";
+                        return "Shared Utilities";
+                    }
+
+                    if (builderUseCase === "discrete_opinions") {
+                        if (sectionMeta["Opinion State Setup"].blocks.includes(id)) return "Opinion State Setup";
+                        if (sectionMeta["Discrete Transitions"].blocks.includes(id)) return "Discrete Transitions";
+                        return "Shared Utilities";
+                    }
+
+                    if (sectionMeta["Epidemic Blocks"].blocks.includes(id)) return "Epidemic Blocks";
+                    if (sectionMeta["Opinion Blocks"].blocks.includes(id)) return "Opinion Blocks";
+                    if (sectionMeta["Cross-Coupling"].blocks.includes(id)) return "Cross-Coupling";
+                    return "Shared Utilities";
+                };
+
+                const grouped = new Map();
+                blocks.forEach(block => {
+                    const section = sectionForBlock(block);
+                    if (!grouped.has(section)) grouped.set(section, []);
+                    grouped.get(section).push(block);
+                });
+
+                return Array.from(grouped.entries())
+                    .sort((a, b) => (sectionOrder[a[0]] ?? 99) - (sectionOrder[b[0]] ?? 99) || a[0].localeCompare(b[0]))
+                    .map(([title, items]) => {
+                        const order = sectionMeta[title]?.blocks || [];
+                        const indexFor = (blockId) => {
+                            const idx = order.indexOf(blockId);
+                            return idx === -1 ? 999 : idx;
+                        };
+                        return {
+                            title,
+                            items: items.slice().sort((left, right) => indexFor(left.id) - indexFor(right.id) || left.label.localeCompare(right.label))
+                        };
+                    });
             };
 
             const clearPlayState = () => {
@@ -1413,6 +1843,22 @@
             useEffect(() => {
                 loadModels();
             }, []);
+
+            useEffect(() => {
+                fetch(apiBaseUrl + "/api/block-schema")
+                    .then(res => {
+                        if (!res.ok) throw new Error("Server returned status " + res.status);
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (data && data.blocks) {
+                            setBlockSchemaRegistry(data.blocks);
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Failed to fetch block schema registry:", err);
+                    });
+            }, [apiBaseUrl]);
 
             const selectModel = (name, modelsList = models) => {
                 setSelectedModelName(name);
@@ -1951,6 +2397,270 @@
                 );
             };
 
+            const formatBuilderLabel = (name) => {
+                return String(name || "")
+                    .replace(/_/g, " ")
+                    .replace(/\b\w/g, c => c.toUpperCase());
+            };
+
+            const parseBuilderStructuredValue = (raw, fallback = "") => {
+                if (raw === undefined || raw === null || raw === "") return fallback;
+                if (typeof raw !== "string") return raw;
+                const trimmed = raw.trim();
+                if (!trimmed) return fallback;
+                if ((trimmed.startsWith("[") && trimmed.endsWith("]")) || (trimmed.startsWith("{") && trimmed.endsWith("}"))) {
+                    try {
+                        return JSON.parse(trimmed);
+                    } catch (err) {
+                        return fallback;
+                    }
+                }
+                return trimmed;
+            };
+
+            const isBuilderIntegerParam = (paramName, paramInfo = {}) => {
+                const name = String(paramName || "").toLowerCase();
+                const kind = String(paramInfo.kind || "").toLowerCase();
+                return (
+                    kind === "int" ||
+                    ["k", "bins", "iterations", "count", "size", "period", "phase", "age", "n", "m"].includes(name)
+                );
+            };
+
+            const isBuilderFloatParam = (paramName, paramInfo = {}) => {
+                const name = String(paramName || "").toLowerCase();
+                const kind = String(paramInfo.kind || "").toLowerCase();
+                return (
+                    kind === "float" ||
+                    name.includes("rate") ||
+                    name.includes("prob") ||
+                    name.includes("share") ||
+                    name.includes("weight") ||
+                    name.includes("epsilon") ||
+                    name.includes("gamma") ||
+                    name.includes("mu") ||
+                    name.includes("sigma") ||
+                    name.includes("theta") ||
+                    name.includes("strength") ||
+                    name.includes("threshold") ||
+                    name.includes("target") ||
+                    name.includes("alpha") ||
+                    name.includes("min") ||
+                    name.includes("max")
+                );
+            };
+
+            const getBuilderParamOptions = (paramName, paramInfo = {}, blockType = "") => {
+                const name = String(paramName || "").toLowerCase();
+                if (Array.isArray(paramInfo.choices) && paramInfo.choices.length > 0) {
+                    return paramInfo.choices;
+                }
+                if (name === "op") {
+                    return ["==", "!=", "<", ">", "<=", ">=", "IN"];
+                }
+                if (name === "var_type" || name === "value_type") {
+                    return ["ATTRIBUTE", "STATUS"];
+                }
+                if (name === "mode") {
+                    return ["bins", "hist", "line", "mean"];
+                }
+                if (name === "scope") {
+                    return ["node", "edge", "graph", "global"];
+                }
+                if (name === "family") {
+                    return OPINION_DISTRIBUTIONS;
+                }
+                if (name === "distribution") {
+                    return OPINION_DISTRIBUTIONS;
+                }
+                if (name === "algorithm" || name === "community_detection_algorithm") {
+                    return communityDetectionOptions.map(option => option.value);
+                }
+                if (name === "type" && blockType === "ValidationHint") {
+                    return ["float", "int", "bool", "string", "list", "dict"];
+                }
+                if (name === "kind" && blockType === "RuleAlias") {
+                    return ["PARAM", "GLOBAL", "EDGE_VARIABLE", "VARIABLE", "CONSTANT", "STATUS", "BIN"];
+                }
+                return null;
+            };
+
+            const renderBuilderParamControl = (selectedNode, paramName, paramInfo = {}, statusesList = []) => {
+                const value = selectedNode?.data?.params?.[paramName];
+                const name = String(paramName || "");
+                const typeName = String(selectedNode?.data?.type || "");
+                const options = getBuilderParamOptions(name, paramInfo, typeName);
+                const label = paramInfo.descr ? `${formatBuilderLabel(name)} - ${paramInfo.descr}` : formatBuilderLabel(name);
+                const commonClass = `w-full border rounded px-2 py-1.5 ${isDarkMode ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-200 text-slate-800"}`;
+                const updateParam = (nextValue) => updateNodeData(selectedNode.id, {
+                    params: {
+                        ...selectedNode.data.params,
+                        [paramName]: nextValue
+                    }
+                });
+
+                if (name === "triggering_status" && statusesList.length > 0) {
+                    return (
+                        <div key={name} class="space-y-1">
+                            <label class="text-[10px] text-slate-400 block">{label}</label>
+                            <select
+                                value={value || ""}
+                                onChange={(e) => updateParam(e.target.value)}
+                                class={commonClass}
+                            >
+                                <option value="">None</option>
+                                {statusesList.map(n => (
+                                    <option key={n.id} value={n.data.name}>{n.data.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    );
+                }
+
+                if (name === "op" && Array.isArray(options)) {
+                    return (
+                        <div key={name} class="space-y-1">
+                            <label class="text-[10px] text-slate-400 block">{label}</label>
+                            <select
+                                value={value || "=="}
+                                onChange={(e) => updateParam(e.target.value)}
+                                class={commonClass}
+                            >
+                                {options.map(option => (
+                                    <option key={option} value={option}>{option}</option>
+                                ))}
+                            </select>
+                        </div>
+                    );
+                }
+
+                if (Array.isArray(options) && options.length > 0 && !Array.isArray(value) && typeof value !== "object" && !isBuilderFloatParam(name, paramInfo) && !isBuilderIntegerParam(name, paramInfo) && typeof value !== "number") {
+                    return (
+                        <div key={name} class="space-y-1">
+                            <label class="text-[10px] text-slate-400 block">{label}</label>
+                            <select
+                                value={value !== undefined ? value : options[0]}
+                                onChange={(e) => updateParam(e.target.value)}
+                                class={commonClass}
+                            >
+                                {options.map(option => {
+                                    const optionValue = typeof option === "object" ? option.value : option;
+                                    const optionLabel = typeof option === "object" ? option.label || option.value : option;
+                                    return (
+                                        <option key={optionValue} value={optionValue}>{optionLabel}</option>
+                                    );
+                                })}
+                            </select>
+                        </div>
+                    );
+                }
+
+                if (typeof value === "boolean") {
+                    return (
+                        <div key={name} class="space-y-1">
+                            <label class="text-[10px] text-slate-400 block">{label}</label>
+                            <input
+                                type="checkbox"
+                                checked={!!value}
+                                onChange={(e) => updateParam(e.target.checked)}
+                                class="h-4 w-4 accent-indigo-500"
+                            />
+                        </div>
+                    );
+                }
+
+                if (Array.isArray(value)) {
+                    return (
+                        <div key={name} class="space-y-1">
+                            <label class="text-[10px] text-slate-400 block">{label}</label>
+                            <textarea
+                                value={JSON.stringify(value)}
+                                onChange={(e) => {
+                                    const parsed = parseBuilderStructuredValue(e.target.value, value);
+                                    if (Array.isArray(parsed)) updateParam(parsed);
+                                }}
+                                rows="2"
+                                class={commonClass}
+                            />
+                        </div>
+                    );
+                }
+
+                if (value && typeof value === "object") {
+                    return (
+                        <div key={name} class="space-y-1">
+                            <label class="text-[10px] text-slate-400 block">{label}</label>
+                            <textarea
+                                value={JSON.stringify(value, null, 2)}
+                                onChange={(e) => {
+                                    const parsed = parseBuilderStructuredValue(e.target.value, value);
+                                    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) updateParam(parsed);
+                                }}
+                                rows="3"
+                                class={commonClass}
+                            />
+                        </div>
+                    );
+                }
+
+                if (isBuilderIntegerParam(name, paramInfo) || Number.isInteger(value)) {
+                    return (
+                        <div key={name} class="space-y-1">
+                            <label class="text-[10px] text-slate-400 block">{label}</label>
+                            <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={value !== undefined && value !== null ? value : 0}
+                                onChange={(e) => updateParam(Math.max(0, parseInt(e.target.value) || 0))}
+                                class={commonClass}
+                            />
+                        </div>
+                    );
+                }
+
+                if (isBuilderFloatParam(name, paramInfo) || typeof value === "number") {
+                    const min = name.includes("min") || name.includes("max") || name.includes("threshold") || name.includes("epsilon") || name.includes("share") || name.includes("prob") || name.includes("weight") || name.includes("alpha") || name.includes("mu") || name.includes("sigma") ? 0 : undefined;
+                    const max = name.includes("min") || name.includes("max") || name.includes("threshold") || name.includes("epsilon") || name.includes("share") || name.includes("prob") || name.includes("weight") || name.includes("alpha") || name.includes("mu") || name.includes("sigma") ? 1 : undefined;
+                    return (
+                        <div key={name} class="space-y-1">
+                            <label class="text-[10px] text-slate-400 block">{label}</label>
+                            <input
+                                type="number"
+                                min={min}
+                                max={max}
+                                step="0.01"
+                                value={value !== undefined && value !== null ? value : 0}
+                                onChange={(e) => updateParam(parseFloat(e.target.value) || 0)}
+                                class={commonClass}
+                            />
+                        </div>
+                    );
+                }
+
+                return (
+                    <div key={name} class="space-y-1">
+                        <label class="text-[10px] text-slate-400 block">{label}</label>
+                        <input
+                            type="text"
+                            value={value !== undefined && value !== null ? value : ""}
+                            onChange={(e) => updateParam(e.target.value)}
+                            class={commonClass}
+                        />
+                    </div>
+                );
+            };
+
+            const getBuilderParamEntries = (selectedNode) => {
+                if (!selectedNode || selectedNode.type !== "compartment") return [];
+                const schema = getBlockSchemaEntry(selectedNode.data.type);
+                const paramNames = [
+                    ...(schema ? Object.keys(schema.parameters || {}) : []),
+                    ...Object.keys(selectedNode.data.params || {})
+                ];
+                return Array.from(new Set(paramNames)).sort((a, b) => a.localeCompare(b));
+            };
+
             const clampUnitFloat = (value, fallback = 0.1) => {
                 const parsed = parseFloat(value);
                 if (!Number.isFinite(parsed)) return fallback;
@@ -2021,6 +2731,17 @@
                 return positions;
             };
 
+            const safelyFitCytoscape = (cy) => {
+                if (!cy) return;
+                try {
+                    cy.fit();
+                    cy.center();
+                } catch (err) {
+                    // Cytoscape can briefly report a headless renderer while the container is mounting.
+                    // In that case the graph is already positioned, so skipping fit/center is harmless.
+                }
+            };
+
             const applyNetworkLayout = (cy, layoutName, data) => {
                 if (!cy) return;
 
@@ -2034,8 +2755,7 @@
                             }
                         });
                     });
-                    cy.fit();
-                    cy.center();
+                    safelyFitCytoscape(cy);
                     return;
                 }
 
@@ -2046,8 +2766,7 @@
                 }
 
                 setTimeout(() => {
-                    cy.fit();
-                    cy.center();
+                    safelyFitCytoscape(cy);
                 }, 550);
             };
 
@@ -2595,8 +3314,7 @@
                     setTimeout(() => {
                         if (cytoscapeRef.current) {
                             cytoscapeRef.current.resize();
-                            cytoscapeRef.current.fit();
-                            cytoscapeRef.current.center();
+                            safelyFitCytoscape(cytoscapeRef.current);
                             updateNetworkColors(currentPlaybackStep, results);
                         }
                     }, 100);
@@ -3322,10 +4040,11 @@
                 e.stopPropagation();
                 e.preventDefault();
                 const rect = e.currentTarget.getBoundingClientRect();
-                const canvas = document.getElementById("builder-canvas")?.getBoundingClientRect();
-                if (!canvas) return;
-                const startX = (rect.left + rect.width / 2 - canvas.left) / builderZoom;
-                const startY = (rect.top + rect.height / 2 - canvas.top) / builderZoom;
+                const canvasEl = builderCanvasRef.current;
+                const canvas = canvasEl?.getBoundingClientRect();
+                if (!canvas || !canvasEl) return;
+                const startX = (rect.left + rect.width / 2 - canvas.left + canvasEl.scrollLeft) / builderZoom;
+                const startY = (rect.top + rect.height / 2 - canvas.top + canvasEl.scrollTop) / builderZoom;
                 
                 const source = { nodeId, handleType, startX, startY };
                 linkingSourceRef.current = source;
@@ -3392,7 +4111,7 @@
                 const id = `comp_${Date.now()}`;
                 const name = `comp_${builderNodes.filter(n => n.type === "compartment").length + 1}`;
                 
-                let params = {};
+                let params = getSchemaBackedCompartmentParams(type);
                 if (type === "NodeStochastic") params = { rate: 0.1, triggering_status: "" };
                 else if (type === "NodeThreshold") params = { threshold: 0.1, triggering_status: "" };
                 else if (type === "EdgeStochastic") params = { threshold: 0.1, triggering_status: "" };
@@ -3404,6 +4123,7 @@
                 else if (type === "Constant") params = { name: "tau", type: "float", value: 0.5 };
                 else if (type === "Variable") params = { name: "opinion", scope: "node", type: "continuous", range: [0, 1], default: 0.5 };
                 else if (type === "Distribution") params = { family: "uniform", bounds: [0, 1] };
+                else if (type === "OpinionDistribution") params = { family: "uniform", bounds: [0, 1] };
                 else if (type === "Selector") params = { policy: "random", share: 1.0 };
                 else if (type === "Filter") params = { predicate: "True" };
                 else if (type === "Aggregator") params = { mode: "mean", target: "opinion" };
@@ -3622,7 +4342,23 @@
                 const statusesList = builderNodes.filter(n => n.type === "status");
                 const compartmentsList = builderNodes.filter(n => n.type === "compartment");
                 const activeUseCaseConfig = builderUseCaseCatalog[builderUseCase] || builderUseCaseCatalog.epidemics;
-                const visibleBlocks = getVisibleBuilderBlocks();
+                const visibleBlockSections = getVisibleBuilderBlockSections();
+                const builderCanvasBounds = getBuilderCanvasBounds();
+                const minimapPanelWidth = 196;
+                const minimapPanelHeight = 140;
+                const minimapInnerPadding = 10;
+                const minimapScale = Math.max(0.02, Math.min(
+                    (minimapPanelWidth - minimapInnerPadding * 2) / Math.max(1, builderCanvasBounds.width),
+                    (minimapPanelHeight - minimapInnerPadding * 2) / Math.max(1, builderCanvasBounds.height)
+                ));
+                const minimapViewport = builderCanvasViewport.clientWidth > 0 && builderCanvasViewport.clientHeight > 0
+                    ? {
+                        x: (builderCanvasViewport.scrollLeft / Math.max(1, builderCanvasViewport.scrollWidth)) * (minimapPanelWidth - minimapInnerPadding * 2),
+                        y: (builderCanvasViewport.scrollTop / Math.max(1, builderCanvasViewport.scrollHeight)) * (minimapPanelHeight - minimapInnerPadding * 2),
+                        width: (builderCanvasViewport.clientWidth / Math.max(1, builderCanvasViewport.scrollWidth)) * (minimapPanelWidth - minimapInnerPadding * 2),
+                        height: (builderCanvasViewport.clientHeight / Math.max(1, builderCanvasViewport.scrollHeight)) * (minimapPanelHeight - minimapInnerPadding * 2)
+                    }
+                    : null;
                 const visibleTemplates = activeUseCaseConfig.templates.map(templateId => ({
                     id: templateId,
                     ...getBuilderTemplate(templateId)
@@ -3730,29 +4466,39 @@
 
                                         <div>
                                             <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Model Components</h4>
-                                            <div class="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                                                {visibleBlocks.map(block => {
-                                                    const accent = builderAccentColors[block.accent] || builderAccentColors.purple;
-                                                    return (
-                                                        <div 
-                                                            key={block.id}
-                                                            onClick={block.onClick}
-                                                            class="p-2 bg-slate-900 border border-slate-800 rounded-xl transition cursor-pointer flex items-center space-x-3 group hover:opacity-95"
-                                                            style={{ borderColor: accent.softBorder }}
-                                                        >
-                                                            <div 
-                                                                class={`w-6 h-6 ${block.id === "status" ? "rounded-full" : "rounded-lg"} flex items-center justify-center group-hover:scale-105 transition shrink-0`}
-                                                                style={{ backgroundColor: accent.softBg, border: `1px solid ${accent.softBorder}`, color: accent.color }}
-                                                            >
-                                                                <i class={`fa-solid ${block.icon} text-[10px]`}></i>
-                                                            </div>
-                                                            <div>
-                                                                <p class="text-xs font-bold">{block.label}</p>
-                                                                <p class="text-[9px] text-slate-400">{block.description}</p>
-                                                            </div>
+                                            <div class="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+                                                {visibleBlockSections.map(section => (
+                                                    <div key={section.title} class="space-y-2">
+                                                        <div class="flex items-center justify-between gap-3">
+                                                            <h5 class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{section.title}</h5>
+                                                            <span class="text-[10px] text-slate-500">{section.items.length}</span>
                                                         </div>
-                                                    );
-                                                })}
+                                                        <div class="space-y-2">
+                                                            {section.items.map(block => {
+                                                                const accent = builderAccentColors[block.accent] || builderAccentColors.purple;
+                                                                return (
+                                                                    <div 
+                                                                        key={block.id}
+                                                                        onClick={block.onClick}
+                                                                        class="p-2 bg-slate-900 border border-slate-800 rounded-xl transition cursor-pointer flex items-center space-x-3 group hover:opacity-95"
+                                                                        style={{ borderColor: accent.softBorder }}
+                                                                    >
+                                                                        <div 
+                                                                            class={`w-6 h-6 ${block.id === "status" ? "rounded-full" : "rounded-lg"} flex items-center justify-center group-hover:scale-105 transition shrink-0`}
+                                                                            style={{ backgroundColor: accent.softBg, border: `1px solid ${accent.softBorder}`, color: accent.color }}
+                                                                        >
+                                                                            <i class={`fa-solid ${block.icon} text-[10px]`}></i>
+                                                                        </div>
+                                                                        <div>
+                                                                            <p class="text-xs font-bold">{block.label}</p>
+                                                                            <p class="text-[9px] text-slate-400">{block.description}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
                                             <p class="text-[10px] text-slate-500 mt-3 italic"><i class="fa-solid fa-circle-info mr-1"></i>Click cards to append them directly onto the canvas, then drag handles to connect.</p>
                                         </div>
@@ -3796,162 +4542,168 @@
                             </div>
 
                             {/* Node Graph Editor Canvas */}
-                            <div 
-                                id="builder-canvas"
-                                onMouseDown={(e) => {
-                                    if (e.target === e.currentTarget) {
-                                        clearBuilderSelection();
-                                    }
-                                }}
-                                onMouseMove={handleCanvasMouseMove}
-                                onMouseUp={handleCanvasMouseUp}
-                                class={`flex-grow relative overflow-auto select-none ${isDarkMode ? "bg-slate-950" : "bg-slate-100"}`}
-                                style={{ backgroundImage: `radial-gradient(circle, ${isDarkMode ? '#334155' : '#cbd5e1'} 1px, transparent 1px)`, backgroundSize: '24px 24px' }}
-                            >
+                            <div id="builder-canvas" class={`flex-grow relative overflow-hidden select-none ${isDarkMode ? "bg-slate-950" : "bg-slate-100"}`} style={{ backgroundImage: `radial-gradient(circle, ${isDarkMode ? '#334155' : '#cbd5e1'} 1px, transparent 1px)`, backgroundSize: '24px 24px' }}>
                                 <div
-                                    class="relative w-full h-full origin-top-left"
-                                    style={{ transform: `scale(${builderZoom})` }}
+                                    ref={builderCanvasRef}
+                                    class="absolute inset-0 overflow-auto"
+                                    onMouseDown={(e) => {
+                                        if (e.target === e.currentTarget) {
+                                            clearBuilderSelection();
+                                        }
+                                    }}
+                                    onMouseMove={handleCanvasMouseMove}
+                                    onMouseUp={handleCanvasMouseUp}
                                 >
-                                    <svg class="absolute inset-0 w-full h-full pointer-events-none z-0">
-                                        <defs>
-                                            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#4f46e5" />
-                                            </marker>
-                                        </defs>
-                                        
-                                        {builderEdges.map(edge => {
-                                            const fromNode = builderNodes.find(n => n.id === edge.source);
-                                            const toNode = builderNodes.find(n => n.id === edge.target);
-                                            if (!fromNode || !toNode) return null;
-                                            
-                                            const x1 = fromNode.x + (fromNode.type === "status" ? 140 : 180);
-                                            const y1 = fromNode.y + 39;
-                                            const x2 = toNode.x;
-                                            let y2 = toNode.y + 39;
-                                            if (toNode.type === "compartment" && toNode.data.type === "ConditionalComposition") {
-                                                if (edge.targetPort === "condition") y2 = toNode.y + 43;
-                                                else if (edge.targetPort === "if_true") y2 = toNode.y + 63;
-                                                else if (edge.targetPort === "if_false") y2 = toNode.y + 83;
-                                            }
-                                            
-                                            const isSelected = selectedElement && selectedElement.source === edge.source && selectedElement.target === edge.target;
-                                            const dx = Math.abs(x2 - x1) * 0.5;
-                                            const d = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
-                                            
-                                            return (
-                                                <g key={edge.id} class="pointer-events-auto cursor-pointer" onClick={(e) => { e.stopPropagation(); setSelectedElement(edge); }}>
-                                                    <path d={d} fill="none" stroke="transparent" strokeWidth="12" />
-                                                    <path 
-                                                        d={d} 
-                                                        fill="none" 
-                                                        stroke={isSelected ? "#ef4444" : "#4f46e5"} 
-                                                        strokeWidth={isSelected ? 3 : 2} 
-                                                        markerEnd="url(#arrow)"
-                                                        class="transition"
+                                    <div
+                                        class="relative"
+                                        style={{ width: `${builderCanvasBounds.width * builderZoom}px`, height: `${builderCanvasBounds.height * builderZoom}px` }}
+                                    >
+                                        <div
+                                            class="absolute inset-0 origin-top-left"
+                                            style={{ transform: `scale(${builderZoom})`, width: `${builderCanvasBounds.width}px`, height: `${builderCanvasBounds.height}px` }}
+                                        >
+                                            <svg class="absolute inset-0 w-full h-full pointer-events-none z-0">
+                                                <defs>
+                                                    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#4f46e5" />
+                                                    </marker>
+                                                </defs>
+                                                
+                                                {builderEdges.map(edge => {
+                                                    const fromNode = builderNodes.find(n => n.id === edge.source);
+                                                    const toNode = builderNodes.find(n => n.id === edge.target);
+                                                    if (!fromNode || !toNode) return null;
+                                                    
+                                                    const x1 = fromNode.x + builderCanvasBounds.offsetX + (fromNode.type === "status" ? 140 : 180);
+                                                    const y1 = fromNode.y + builderCanvasBounds.offsetY + 39;
+                                                    const x2 = toNode.x + builderCanvasBounds.offsetX;
+                                                    let y2 = toNode.y + builderCanvasBounds.offsetY + 39;
+                                                    if (toNode.type === "compartment" && toNode.data.type === "ConditionalComposition") {
+                                                        if (edge.targetPort === "condition") y2 = toNode.y + builderCanvasBounds.offsetY + 43;
+                                                        else if (edge.targetPort === "if_true") y2 = toNode.y + builderCanvasBounds.offsetY + 63;
+                                                        else if (edge.targetPort === "if_false") y2 = toNode.y + builderCanvasBounds.offsetY + 83;
+                                                    }
+                                                    
+                                                    const isSelected = selectedElement && selectedElement.source === edge.source && selectedElement.target === edge.target;
+                                                    const dx = Math.abs(x2 - x1) * 0.5;
+                                                    const d = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+                                                    
+                                                    return (
+                                                        <g key={edge.id} class="pointer-events-auto cursor-pointer" onClick={(e) => { e.stopPropagation(); setSelectedElement(edge); }}>
+                                                            <path d={d} fill="none" stroke="transparent" strokeWidth="12" />
+                                                            <path 
+                                                                d={d} 
+                                                                fill="none" 
+                                                                stroke={isSelected ? "#ef4444" : "#4f46e5"} 
+                                                                strokeWidth={isSelected ? 3 : 2} 
+                                                                markerEnd="url(#arrow)"
+                                                                class="transition"
+                                                            />
+                                                        </g>
+                                                    );
+                                                })}
+                                                
+                                                {linkingSource && tempEdgeEnd && (
+                                                    <line 
+                                                        x1={linkingSource.startX} 
+                                                        y1={linkingSource.startY} 
+                                                        x2={tempEdgeEnd.x} 
+                                                        y2={tempEdgeEnd.y} 
+                                                        stroke="#ef4444" 
+                                                        strokeWidth="2" 
+                                                        strokeDasharray="4 4" 
+                                                        class="pointer-events-none"
                                                     />
-                                                </g>
-                                            );
-                                        })}
-                                        
-                                        {linkingSource && tempEdgeEnd && (
-                                            <line 
-                                                x1={linkingSource.startX} 
-                                                y1={linkingSource.startY} 
-                                                x2={tempEdgeEnd.x} 
-                                                y2={tempEdgeEnd.y} 
-                                                stroke="#ef4444" 
-                                                strokeWidth="2" 
-                                                strokeDasharray="4 4" 
-                                                class="pointer-events-none"
-                                            />
-                                        )}
-                                    </svg>
+                                                )}
+                                            </svg>
 
-                                    <div class="absolute inset-0 z-10 pointer-events-none">
-                                        {builderNodes.map(node => {
-                                            const isNodeSelected = selectedNodeIds.includes(node.id);
-                                            
-                                            return (
-                                                <div 
-                                                    key={node.id}
-                                                    onMouseDown={(e) => startNodeDrag(e, node.id)}
-                                                    onMouseUp={(e) => handleCardMouseUp(e, node.id)}
-                                                    data-builder-node-id={node.id}
-                                                    class={`absolute pointer-events-auto border rounded-xl shadow-xl flex flex-col transition-shadow duration-150 ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"} ${isNodeSelected ? "border-indigo-500 shadow-indigo-950/20" : ""}`}
-                                                    style={{ left: node.x, top: node.y, width: node.type === "status" ? 140 : 180, height: node.data.type === "ConditionalComposition" ? 100 : "auto" }}
-                                                >
-                                                    <div class={`px-3 py-1.5 rounded-t-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-between cursor-move select-none ${node.type === "status" ? (isDarkMode ? "bg-sky-950/50 text-sky-400" : "bg-sky-50 text-sky-600") : node.data.type === "ConditionalComposition" ? (isDarkMode ? "bg-emerald-950/50 text-emerald-400" : "bg-emerald-50 text-emerald-600") : (isDarkMode ? "bg-purple-950/50 text-purple-400" : "bg-purple-50 text-purple-600")}`}>
-                                                        <span>{node.type === "status" ? "Status Node" : node.data.type === "ConditionalComposition" ? "Conditional" : "Compartment"}</span>
-                                                        <span class="opacity-50">#{node.id.split("_")[1]?.substring(0, 4)}</span>
-                                                    </div>
-
-                                                    <div class="p-3 flex flex-col text-xs font-semibold">
-                                                        {node.type === "status" ? (
-                                                            <div class="flex items-center justify-between">
-                                                                <span class={`truncate max-w-[100px] ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>{node.data.name}</span>
-                                                                <span class={`px-1.5 py-0.5 rounded text-[10px] ${isDarkMode ? "bg-sky-500/10 text-sky-400" : "bg-sky-100 text-sky-700"}`}>Code {node.data.code}</span>
-                                                            </div>
-                                                        ) : (
-                                                            <div class="space-y-1">
-                                                                <p class={`truncate font-bold ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>{node.data.name}</p>
-                                                                <p class={`text-[10px] truncate ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>{getBuilderNodeSubtitle(node)}</p>
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {node.type === "compartment" && node.data.type === "ConditionalComposition" ? (
-                                                        <>
-                                                            <div 
-                                                                onMouseDown={(e) => handleHandleMouseDown(e, node.id, "condition")}
-                                                                onMouseUp={(e) => handleHandleMouseUp(e, node.id, "condition")}
-                                                                data-builder-node-id={node.id}
-                                                                data-builder-handle-type="condition"
-                                                                class="handle absolute left-0 top-[36px] -translate-x-[7px] w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500 hover:bg-red-400 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
-                                                                title="Connect condition compartment"
-                                                            />
-                                                            <span class="absolute left-3 top-[34px] text-[8px] font-bold text-slate-400 pointer-events-none">cond</span>
-                                                            
-                                                            <div 
-                                                                onMouseDown={(e) => handleHandleMouseDown(e, node.id, "if_true")}
-                                                                onMouseUp={(e) => handleHandleMouseUp(e, node.id, "if_true")}
-                                                                data-builder-node-id={node.id}
-                                                                data-builder-handle-type="if_true"
-                                                                class="handle absolute left-0 top-[56px] -translate-x-[7px] w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500 hover:bg-red-400 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
-                                                                title="Connect IF_TRUE branch"
-                                                            />
-                                                            <span class="absolute left-3 top-[54px] text-[8px] font-bold text-slate-400 pointer-events-none">true</span>
-
-                                                            <div 
-                                                                onMouseDown={(e) => handleHandleMouseDown(e, node.id, "if_false")}
-                                                                onMouseUp={(e) => handleHandleMouseUp(e, node.id, "if_false")}
-                                                                data-builder-node-id={node.id}
-                                                                data-builder-handle-type="if_false"
-                                                                class="handle absolute left-0 top-[76px] -translate-x-[7px] w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500 hover:bg-red-400 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
-                                                                title="Connect IF_FALSE branch"
-                                                            />
-                                                            <span class="absolute left-3 top-[74px] text-[8px] font-bold text-red-400 pointer-events-none">false</span>
-                                                        </>
-                                                    ) : (
+                                            <div class="absolute inset-0 z-10 pointer-events-none">
+                                                {builderNodes.map(node => {
+                                                    const isNodeSelected = selectedNodeIds.includes(node.id);
+                                                    
+                                                    return (
                                                         <div 
-                                                            onMouseDown={(e) => handleHandleMouseDown(e, node.id, "in")}
-                                                            onMouseUp={(e) => handleHandleMouseUp(e, node.id, "in")}
+                                                            key={node.id}
+                                                            onMouseDown={(e) => startNodeDrag(e, node.id)}
+                                                            onMouseUp={(e) => handleCardMouseUp(e, node.id)}
                                                             data-builder-node-id={node.id}
-                                                            data-builder-handle-type="in"
-                                                            class="handle absolute left-0 top-[32px] -translate-x-[7px] w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500 hover:bg-red-400 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
-                                                            title="Connect input"
-                                                        />
-                                                    )}
-                                                    <div 
-                                                        onMouseDown={(e) => handleHandleMouseDown(e, node.id, "out")}
-                                                        onMouseUp={(e) => handleHandleMouseUp(e, node.id, "out")}
-                                                        data-builder-node-id={node.id}
-                                                        data-builder-handle-type="out"
-                                                        class="handle absolute right-0 top-[32px] translate-x-[7px] w-3.5 h-3.5 rounded-full bg-slate-800 border-2 border-blue-500 hover:bg-blue-500 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
-                                                        title="Connect output to compartment/status"
-                                                    />
-                                                </div>
-                                            );
-                                        })}
+                                                            class={`absolute pointer-events-auto border rounded-xl shadow-xl flex flex-col transition-shadow duration-150 ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"} ${isNodeSelected ? "border-indigo-500 shadow-indigo-950/20" : ""}`}
+                                                            style={{ left: node.x + builderCanvasBounds.offsetX, top: node.y + builderCanvasBounds.offsetY, width: node.type === "status" ? 140 : 180, height: node.data.type === "ConditionalComposition" ? 100 : "auto" }}
+                                                        >
+                                                            <div class={`px-3 py-1.5 rounded-t-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-between cursor-move select-none ${node.type === "status" ? (isDarkMode ? "bg-sky-950/50 text-sky-400" : "bg-sky-50 text-sky-600") : node.data.type === "ConditionalComposition" ? (isDarkMode ? "bg-emerald-950/50 text-emerald-400" : "bg-emerald-50 text-emerald-600") : (isDarkMode ? "bg-purple-950/50 text-purple-400" : "bg-purple-50 text-purple-600")}`}>
+                                                                <span>{node.type === "status" ? "Status Node" : node.data.type === "ConditionalComposition" ? "Conditional" : "Compartment"}</span>
+                                                                <span class="opacity-50">#{node.id.split("_")[1]?.substring(0, 4)}</span>
+                                                            </div>
+
+                                                            <div class="p-3 flex flex-col text-xs font-semibold">
+                                                                {node.type === "status" ? (
+                                                                    <div class="flex items-center justify-between">
+                                                                        <span class={`truncate max-w-[100px] ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>{node.data.name}</span>
+                                                                        <span class={`px-1.5 py-0.5 rounded text-[10px] ${isDarkMode ? "bg-sky-500/10 text-sky-400" : "bg-sky-100 text-sky-700"}`}>Code {node.data.code}</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div class="space-y-1">
+                                                                        <p class={`truncate font-bold ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>{node.data.name}</p>
+                                                                        <p class={`text-[10px] truncate ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>{getBuilderNodeSubtitle(node)}</p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {node.type === "compartment" && node.data.type === "ConditionalComposition" ? (
+                                                                <>
+                                                                    <div 
+                                                                        onMouseDown={(e) => handleHandleMouseDown(e, node.id, "condition")}
+                                                                        onMouseUp={(e) => handleHandleMouseUp(e, node.id, "condition")}
+                                                                        data-builder-node-id={node.id}
+                                                                        data-builder-handle-type="condition"
+                                                                        class="handle absolute left-0 top-[36px] -translate-x-[7px] w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500 hover:bg-red-400 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
+                                                                        title="Connect condition compartment"
+                                                                    />
+                                                                    <span class="absolute left-3 top-[34px] text-[8px] font-bold text-slate-400 pointer-events-none">cond</span>
+                                                                    
+                                                                    <div 
+                                                                        onMouseDown={(e) => handleHandleMouseDown(e, node.id, "if_true")}
+                                                                        onMouseUp={(e) => handleHandleMouseUp(e, node.id, "if_true")}
+                                                                        data-builder-node-id={node.id}
+                                                                        data-builder-handle-type="if_true"
+                                                                        class="handle absolute left-0 top-[56px] -translate-x-[7px] w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500 hover:bg-red-400 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
+                                                                        title="Connect IF_TRUE branch"
+                                                                    />
+                                                                    <span class="absolute left-3 top-[54px] text-[8px] font-bold text-slate-400 pointer-events-none">true</span>
+
+                                                                    <div 
+                                                                        onMouseDown={(e) => handleHandleMouseDown(e, node.id, "if_false")}
+                                                                        onMouseUp={(e) => handleHandleMouseUp(e, node.id, "if_false")}
+                                                                        data-builder-node-id={node.id}
+                                                                        data-builder-handle-type="if_false"
+                                                                        class="handle absolute left-0 top-[76px] -translate-x-[7px] w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500 hover:bg-red-400 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
+                                                                        title="Connect IF_FALSE branch"
+                                                                    />
+                                                                    <span class="absolute left-3 top-[74px] text-[8px] font-bold text-red-400 pointer-events-none">false</span>
+                                                                </>
+                                                            ) : (
+                                                                <div 
+                                                                    onMouseDown={(e) => handleHandleMouseDown(e, node.id, "in")}
+                                                                    onMouseUp={(e) => handleHandleMouseUp(e, node.id, "in")}
+                                                                    data-builder-node-id={node.id}
+                                                                    data-builder-handle-type="in"
+                                                                    class="handle absolute left-0 top-[32px] -translate-x-[7px] w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500 hover:bg-red-400 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
+                                                                    title="Connect input"
+                                                                />
+                                                            )}
+                                                            <div 
+                                                                onMouseDown={(e) => handleHandleMouseDown(e, node.id, "out")}
+                                                                onMouseUp={(e) => handleHandleMouseUp(e, node.id, "out")}
+                                                                data-builder-node-id={node.id}
+                                                                data-builder-handle-type="out"
+                                                                class="handle absolute right-0 top-[32px] translate-x-[7px] w-3.5 h-3.5 rounded-full bg-slate-800 border-2 border-blue-500 hover:bg-blue-500 hover:scale-150 transition cursor-crosshair z-20 pointer-events-auto"
+                                                                title="Connect output to compartment/status"
+                                                            />
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -3992,6 +4744,13 @@
                                             >
                                                 <i class="fa-solid fa-rotate-left"></i>
                                             </button>
+                                            <button
+                                                onClick={fitBuilderCanvasToContent}
+                                                class={`px-2.5 py-1.5 text-sm transition cursor-pointer border-l ${isDarkMode ? "text-slate-300 hover:bg-slate-800 border-slate-700" : "text-slate-700 hover:bg-slate-200 border-slate-200"}`}
+                                                title="Center workspace"
+                                            >
+                                                <i class="fa-solid fa-crosshairs"></i>
+                                            </button>
                                         </div>
                                         <button 
                                             onClick={() => {
@@ -4023,6 +4782,117 @@
                                             <i class="fa-solid fa-image mr-2"></i>Export PNG
                                         </button>
                                     </div>
+                                </div>
+
+                                <div class="absolute bottom-4 right-4 z-30 pointer-events-none">
+                                    {builderShowMinimap ? (
+                                        <div class={`w-[196px] rounded-2xl border shadow-2xl backdrop-blur-md overflow-hidden pointer-events-auto ${isDarkMode ? "border-slate-700 bg-slate-950/90" : "border-slate-200 bg-white/90"}`}>
+                                            <div class={`flex items-center justify-between px-3 py-2 border-b ${isDarkMode ? "border-slate-800" : "border-slate-200"}`}>
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fa-solid fa-map text-[11px] text-cyan-400"></i>
+                                                    <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Minimap</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setBuilderShowMinimap(false)}
+                                                    class={`text-[10px] px-2 py-1 rounded-md border transition cursor-pointer ${isDarkMode ? "border-slate-700 text-slate-300 hover:bg-slate-800" : "border-slate-200 text-slate-600 hover:bg-slate-100"}`}
+                                                    title="Hide minimap"
+                                                >
+                                                    Hide
+                                                </button>
+                                            </div>
+                                            <div
+                                                class={`relative cursor-crosshair ${isDarkMode ? "bg-slate-950" : "bg-slate-50"}`}
+                                                style={{ width: `${minimapPanelWidth}px`, height: `${minimapPanelHeight}px` }}
+                                                onClick={(e) => {
+                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                    const innerWidth = Math.max(1, rect.width - minimapInnerPadding * 2);
+                                                    const innerHeight = Math.max(1, rect.height - minimapInnerPadding * 2);
+                                                    centerBuilderCanvasAtRatio(
+                                                        (e.clientX - rect.left - minimapInnerPadding) / innerWidth,
+                                                        (e.clientY - rect.top - minimapInnerPadding) / innerHeight
+                                                    );
+                                                }}
+                                            >
+                                                <svg width={minimapPanelWidth} height={minimapPanelHeight} class="absolute inset-0">
+                                                    <defs>
+                                                        <marker id="minimap-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+                                                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1" />
+                                                        </marker>
+                                                    </defs>
+                                                    <g transform={`translate(${minimapInnerPadding}, ${minimapInnerPadding})`}>
+                                                        {builderEdges.map(edge => {
+                                                            const fromNode = builderNodes.find(n => n.id === edge.source);
+                                                            const toNode = builderNodes.find(n => n.id === edge.target);
+                                                            if (!fromNode || !toNode) return null;
+                                                            const x1 = (fromNode.x + builderCanvasBounds.offsetX) * minimapScale + (fromNode.type === "status" ? 140 : 180) * minimapScale;
+                                                            const y1 = (fromNode.y + builderCanvasBounds.offsetY + 39) * minimapScale;
+                                                            const x2 = (toNode.x + builderCanvasBounds.offsetX) * minimapScale;
+                                                            const y2 = (toNode.y + builderCanvasBounds.offsetY + 39) * minimapScale;
+                                                            return (
+                                                                <line
+                                                                    key={`mini-${edge.id}`}
+                                                                    x1={x1}
+                                                                    y1={y1}
+                                                                    x2={x2}
+                                                                    y2={y2}
+                                                                    stroke="#6366f1"
+                                                                    strokeOpacity="0.35"
+                                                                    strokeWidth="1"
+                                                                    markerEnd="url(#minimap-arrow)"
+                                                                />
+                                                            );
+                                                        })}
+                                                        {builderNodes.map(node => {
+                                                            const width = node.type === "status" ? 140 : 180;
+                                                            const height = node.data.type === "ConditionalComposition" ? 100 : 100;
+                                                            const x = (node.x + builderCanvasBounds.offsetX) * minimapScale;
+                                                            const y = (node.y + builderCanvasBounds.offsetY) * minimapScale;
+                                                            return (
+                                                                <rect
+                                                                    key={`mini-node-${node.id}`}
+                                                                    x={x}
+                                                                    y={y}
+                                                                    width={Math.max(4, width * minimapScale)}
+                                                                    height={Math.max(4, height * minimapScale)}
+                                                                    rx="3"
+                                                                    ry="3"
+                                                                    fill={node.type === "status" ? "#0ea5e9" : "#a855f7"}
+                                                                    fillOpacity="0.55"
+                                                                    stroke={node.type === "status" ? "#38bdf8" : "#c084fc"}
+                                                                    strokeOpacity="0.7"
+                                                                    strokeWidth="1"
+                                                                />
+                                                            );
+                                                        })}
+                                                        {minimapViewport && (
+                                                            <rect
+                                                                x={minimapViewport.x}
+                                                                y={minimapViewport.y}
+                                                                width={Math.max(20, minimapViewport.width)}
+                                                                height={Math.max(20, minimapViewport.height)}
+                                                                rx="4"
+                                                                ry="4"
+                                                                fill="rgba(255,255,255,0.06)"
+                                                                stroke="#22d3ee"
+                                                                strokeWidth="1.5"
+                                                                strokeDasharray="4 3"
+                                                            />
+                                                        )}
+                                                    </g>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => setBuilderShowMinimap(true)}
+                                            class={`pointer-events-auto h-10 w-10 rounded-full border shadow-xl backdrop-blur-md flex items-center justify-center transition cursor-pointer ${isDarkMode ? "border-slate-700 bg-slate-950/90 text-slate-300 hover:text-white hover:border-slate-500" : "border-slate-200 bg-white/90 text-slate-700 hover:text-slate-900 hover:border-slate-300"}`}
+                                            title="Show minimap"
+                                        >
+                                            <i class="fa-solid fa-map text-sm"></i>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -4089,7 +4959,7 @@
                                                             value={selectedElement.data.type}
                                                             onChange={(e) => {
                                                                 const type = e.target.value;
-                                                                let params = {};
+                                                                let params = getSchemaBackedCompartmentParams(type);
                                                                 if (type === "NodeStochastic") params = { rate: 0.1, triggering_status: "" };
                                                                 else if (type === "NodeThreshold") params = { threshold: 0.1, triggering_status: "" };
                                                                 else if (type === "EdgeStochastic") params = { threshold: 0.1, triggering_status: "" };
@@ -4163,6 +5033,10 @@
                                                             <option value="OpinionNormalization">Normalization</option>
                                                             <option value="OpinionQuantization">Quantization</option>
                                                             <option value="OpinionMediaInfluence">Media Influence</option>
+                                                            <option value="OpinionDistribution">Opinion Distribution</option>
+                                                            <option value="OpinionMultiTopic">Multi-Topic</option>
+                                                            <option value="OpinionLabelSwitch">Label Switch</option>
+                                                            <option value="OpinionBoundedDrift">Bounded Drift</option>
                                                             <option value="OpinionZealot">Zealot</option>
                                                             <option value="SeedSelection">Seed Selection</option>
                                                             <option value="NodeRoleAssignment">Role Assignment</option>
@@ -4175,8 +5049,50 @@
                                                             <option value="ConditionalComposition">Conditional Composition</option>
                                                         </select>
                                                     </div>
+                                                    {selectedElement.type === "compartment" && getBlockSchemaSummary(selectedElement.data.type) && (
+                                                        <div class={`rounded-lg border px-3 py-2 text-[10px] leading-relaxed ${isDarkMode ? "border-slate-800 bg-slate-950/60 text-slate-300" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
+                                                            {(() => {
+                                                                const schemaSummary = getBlockSchemaSummary(selectedElement.data.type);
+                                                                return (
+                                                                    <>
+                                                                        <div class="flex items-center justify-between gap-3 mb-1">
+                                                                            <span class="font-semibold uppercase tracking-wider text-indigo-300">Backend schema</span>
+                                                                            <span class="text-slate-500">{schemaSummary.family}</span>
+                                                                        </div>
+                                                                        <p class="text-slate-500 mb-1">
+                                                                            {schemaSummary.count} parameter{schemaSummary.count === 1 ? "" : "s"} exposed by the registry.
+                                                                        </p>
+                                                                        <p class="text-slate-500">
+                                                                            Required: {schemaSummary.required.length ? schemaSummary.required.join(", ") : "none"}
+                                                                        </p>
+                                                                        <div class="mt-2 grid grid-cols-1 gap-1">
+                                                                            {schemaSummary.parameters.map(spec => (
+                                                                                <div key={spec.name} class="flex items-center justify-between gap-3">
+                                                                                    <span class="font-medium text-slate-400">{spec.name}</span>
+                                                                                    <span class="text-slate-500">
+                                                                                        {spec.required ? "required" : `default ${Array.isArray(spec.default) ? JSON.stringify(spec.default) : String(spec.default)}`}
+                                                                                    </span>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                    )}
+
+                                                    {selectedElement.type === "compartment" && (
+                                                        <div class="space-y-3">
+                                                            {getBuilderParamEntries(selectedElement).map(paramName => {
+                                                                if (paramName === "name") return null;
+                                                                const schema = getBlockSchemaEntry(selectedElement.data.type);
+                                                                const paramInfo = schema && schema.parameters ? schema.parameters[paramName] : {};
+                                                                return renderBuilderParamControl(selectedElement, paramName, paramInfo, statusesList);
+                                                            })}
+                                                        </div>
+                                                    )}
  
-                                                    {selectedElement.data.params.rate !== undefined && (
+                                                    {false && selectedElement.data.params.rate !== undefined && (
                                                         <div class="space-y-1">
                                                             <label class="text-[10px] text-slate-400 block">Transmission Rate (rate)</label>
                                                             <input 

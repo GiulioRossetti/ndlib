@@ -20,6 +20,17 @@ if REPO_ROOT not in sys.path:
 import ndlib.models.epidemics as epd
 import ndlib.models.opinions as opn
 import ndlib.models.ModelConfig as mc
+from ndlib.dashboard.block_schema import (
+    BLOCK_FAMILIES,
+    BLOCK_SCHEMA_REGISTRY,
+    CORE_BLOCK_TYPES,
+    EPIDEMIC_BLOCK_TYPES,
+    HYBRID_BLOCK_TYPES,
+    OPINION_BLOCK_TYPES,
+    UTILITY_BLOCK_TYPES,
+    get_block_schema,
+    validate_model_payload,
+)
 
 __author__ = "Antigravity"
 __license__ = "BSD-2-Clause"
@@ -37,36 +48,7 @@ COMMUNITY_DETECTION_ALGORITHMS = [
     {"value": "girvan_newman", "label": "Girvan-Newman"},
     {"value": "asyn_fluidc", "label": "Async Fluid Communities"},
 ]
-CONTINUOUS_OPINION_BLOCK_TYPES = {
-    "OpinionDistribution",
-    "OpinionDistanceThreshold",
-    "OpinionSelectionBias",
-    "OpinionCompromise",
-    "OpinionStubbornness",
-    "OpinionNoise",
-    "OpinionPolarization",
-    "OpinionExternalField",
-    "OpinionTrustFilter",
-        "OpinionConsensusBlock",
-        "OpinionRepulsion",
-        "OpinionAssimilation",
-        "OpinionMemory",
-        "OpinionNormalization",
-        "OpinionQuantization",
-        "OpinionMediaInfluence",
-        "OpinionZealot",
-        "OpinionMultiTopic",
-        "OpinionLabelSwitch",
-        "OpinionBoundedDrift",
-        "SeedSelection",
-        "NodeRoleAssignment",
-        "AttributeInitializer",
-        "GraphImport",
-        "CommunityAssignment",
-        "RuleAlias",
-        "PreviewObservable",
-        "ValidationHint",
-    }
+CONTINUOUS_OPINION_BLOCK_TYPES = set(OPINION_BLOCK_TYPES) | set(UTILITY_BLOCK_TYPES)
 
 
 def sanitize_for_json(obj):
@@ -186,78 +168,7 @@ def is_known_compartment_type(comp_type):
         "EdgeCategoricalAttribute",
         "EdgeNumericalAttribute",
         "ConditionalComposition",
-        "Parameter",
-        "Constant",
-        "Variable",
-        "Distribution",
-        "Compose",
-        "Filter",
-        "Selector",
-        "Aggregator",
-        "Kernel",
-        "Transform",
-        "ClampNormalize",
-        "Schedule",
-        "Observe",
-        "OpinionDistribution",
-        "OpinionDistanceThreshold",
-        "OpinionSelectionBias",
-        "OpinionCompromise",
-        "OpinionStubbornness",
-        "OpinionNoise",
-        "OpinionPolarization",
-        "OpinionExternalField",
-        "OpinionTrustFilter",
-        "OpinionConsensusBlock",
-        "OpinionRepulsion",
-        "OpinionAssimilation",
-        "OpinionMemory",
-        "OpinionNormalization",
-        "OpinionQuantization",
-        "OpinionMediaInfluence",
-        "OpinionZealot",
-        "OpinionMultiTopic",
-        "OpinionLabelSwitch",
-        "OpinionBoundedDrift",
-        "ExposureRate",
-        "TransmissionKernel",
-        "DoseResponseBlock",
-        "LatencyPeriod",
-        "IncubationState",
-        "RecoveryKernel",
-        "WaningImmunity",
-        "VaccinationBlock",
-        "QuarantineBlock",
-        "TestingBlock",
-        "TreatmentBlock",
-        "HospitalizationBlock",
-        "MortalityBlock",
-        "ReinfectionBlock",
-        "StrainBlock",
-        "SuperSpreaderBlock",
-        "SeasonalityBlock",
-        "ImportationBlock",
-        "RewiringBlock",
-        "CommunityMixingBlock",
-        "EdgeActivationBlock",
-        "SeedSelection",
-        "NodeRoleAssignment",
-        "AttributeInitializer",
-        "GraphImport",
-        "CommunityAssignment",
-        "RuleAlias",
-        "PreviewObservable",
-        "ValidationHint",
-        "AttributeCoupling",
-        "OpinionAffectsInfection",
-        "OpinionAffectsRecovery",
-        "OpinionAffectsContactRate",
-        "InfectionAffectsOpinion",
-        "StatusDependentOpinionUpdate",
-        "EpidemicDependentBias",
-        "PolicyIntervention",
-        "CommunityCoupling",
-    }
+    } or get_block_schema(comp_type) is not None
 
 
 def coerce_model_parameter_value(param, val, p_info):
@@ -2192,6 +2103,27 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                     self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
                 return
 
+            if self.path == "/api/block-schema":
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                try:
+                    payload = {
+                        "families": [
+                            {
+                                "key": key,
+                                "label": family["label"],
+                                "types": list(family["types"]),
+                            }
+                            for key, family in BLOCK_FAMILIES.items()
+                        ],
+                        "blocks": BLOCK_SCHEMA_REGISTRY,
+                    }
+                    self.wfile.write(json.dumps(payload).encode("utf-8"))
+                except Exception as e:
+                    self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+                return
+
             if self.path.startswith("/api/custom-models/download"):
                 parsed = urlparse(self.path)
                 query = parse_qs(parsed.query)
@@ -2271,48 +2203,59 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
             content_length = int(self.headers["Content-Length"])
             post_data = self.rfile.read(content_length)
             payload = json.loads(post_data.decode("utf-8"))
-            
+
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            
+
             try:
                 model_name = payload.get("name")
                 if not model_name:
                     raise ValueError("Model name is required")
-                
+
                 safe_name = sanitize_model_name(model_name)
                 if not safe_name:
                     raise ValueError("Invalid model name")
-                
+
+                validation_results = validate_model_payload(payload)
+                validation_errors = [issue for issue in validation_results if issue.get("severity") == "error"]
+                validation_warnings = [issue for issue in validation_results if issue.get("severity") == "warning"]
+                if validation_errors:
+                    self.wfile.write(json.dumps({
+                        "error": "Validation failed",
+                        "validation_errors": validation_errors,
+                        "validation_warnings": validation_warnings,
+                    }).encode("utf-8"))
+                    return
+
                 custom_dir = os.path.join(os.path.dirname(__file__), "custom_models")
                 if not os.path.exists(custom_dir):
                     os.makedirs(custom_dir)
-                
+
                 # Save visual layout JSON
                 json_path = os.path.join(custom_dir, safe_name + ".json")
                 with open(json_path, "w") as f:
                     json.dump(payload, f, indent=4)
-                
+
                 # Generate NDQL query
                 ndql_query = generate_ndql_script(payload)
                 ndql_path = os.path.join(custom_dir, safe_name + ".ndql")
                 with open(ndql_path, "w") as f:
                     f.write(ndql_query)
-                
+
                 # Generate Python class code
                 class_code = generate_custom_model_class(payload)
                 py_path = os.path.join(custom_dir, safe_name + ".py")
                 with open(py_path, "w") as f:
                     f.write(class_code)
-                
+
                 # Force dynamic import / reload
                 full_module_name = "ndlib.dashboard.custom_models.%s" % safe_name
                 if full_module_name in sys.modules:
                     importlib.reload(sys.modules[full_module_name])
                 else:
                     importlib.import_module(full_module_name)
-                
+
                 self.wfile.write(json.dumps({
                     "success": True,
                     "model_name": model_name,

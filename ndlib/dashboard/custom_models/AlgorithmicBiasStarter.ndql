@@ -1,0 +1,25 @@
+MODEL AlgorithmicBiasStarter
+TYPE CONTINUOUS_OPINION
+INITIAL_OPINION_DISTRIBUTION uniform
+
+BLOCK bounded_confidence
+TYPE OpinionDistanceThreshold
+PARAM epsilon 0.1
+
+BLOCK selection_bias
+TYPE OpinionSelectionBias
+PARAM gamma 1.5
+
+BLOCK opinion_compromise
+TYPE OpinionCompromise
+PARAM mu 0.5
+
+BLOCK opinion_normalization
+TYPE OpinionNormalization
+PARAM min 0
+PARAM max 1
+
+BLOCK opinion_zealot
+TYPE OpinionZealot
+PARAM share 0.1
+PARAM fixed_value 0

@@ -11,6 +11,12 @@ import ndlib.models.compartments as cpm
 from ndlib.models.compartments.enums.NumericalType import NumericalType
 from ndlib.models.compartments.enums.SAType import SAType
 
+try:
+    import SALib  # noqa: F401
+    HAS_SALIB = True
+except ImportError:
+    HAS_SALIB = False
+
 __author__ = "Mathijs Maijer"
 __license__ = "BSD-2-Clause"
 __email__ = "m.f.maijer@gmail.com"
@@ -312,6 +318,9 @@ class NdlibContinuousModelTest(unittest.TestCase):
         self.assertEqual(len(results), 2)
 
     def test_runner_sa(self):
+        if not HAS_SALIB:
+            self.skipTest("SALib is not installed")
+
         g = nx.erdos_renyi_graph(n=10, p=0.5)
 
         constants = {"constant_1": 0.5, "constant_2": 0.8}
