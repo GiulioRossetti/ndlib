@@ -1,6 +1,6 @@
-********************
+*********************
 Interactive Dashboard
-********************
+*********************
 
 NDlib ships with a browser-based dashboard service that lets you build a graph, configure a model, and run a simulation from a single interface.
 
@@ -73,7 +73,7 @@ Visual Model Builder
 
 The dashboard includes an interactive visual programming canvas to build custom compartmental models. It now separates the builder into use cases so that the palette only exposes blocks that are meaningful for the selected family.
 
-The full block guide is documented in :doc:`network_builder_blocks`, which lists the current builder vocabulary and the NDQL emitted by the builder.
+The full block guide is documented in :doc:`ndql/index`, which lists the current builder vocabulary, the NDQL emitted by the builder, and the syntax that underlies it.
 
 The supported use cases are:
 
@@ -181,4 +181,4 @@ Notes
 The dashboard is a lightweight local service and is meant to complement, not replace, the Python API and the documented visualization modules.
 
 For the full implementation-oriented builder guide, see ``docs/visual_model_builder_opinion_epidemic_guide.md``.
-For the full NDQL user manual, see ``docs/ndql_user_manual.md``.
+For the full NDQL user manual, see :doc:`ndql/index`.

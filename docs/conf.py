@@ -14,7 +14,9 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 import sys, os
-import sphinx_rtd_theme
+
+from pygments.lexers import TextLexer
+from sphinx.highlighting import lexers
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 try:
@@ -22,18 +24,12 @@ try:
 except ImportError:
     __version__ = u'6.0.0'
 
-html_theme = "sphinx_rtd_theme"
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-
 version = __version__
 # The full version, including alpha/beta/rc tags.
 release = version
 
-html_theme_options = {
-    "collapse_navigation": False,
-    "display_version": False,
-    "navigation_depth": 3,
-}
+lexers["ndql"] = TextLexer()
+html_theme = "alabaster"
 
 # -- Project information -----------------------------------------------------
 
@@ -43,7 +39,7 @@ author = "Giulio Rossetti"
 
 autodoc_mock_imports = [
     'ipython', 'pygtk', 'gtk', 'gobject', 'sklearn.metrics', 'argparse', 'matplotlib', 'matplotlib.pyplot', 'numpy', 'pandas', 'dynetx', 'networkx',
-                'scipy', 'salib', 'pillow', 'pyintergraph', 'igraph'
+                'scipy', 'salib', 'pillow', 'pyintergraph', 'igraph', 'past', 'bokeh', 'future'
 ]
 
 # -- General configuration ---------------------------------------------------
@@ -85,5 +81,3 @@ html_logo = 'ndlib_2024.png'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
-
-

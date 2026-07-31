@@ -2,11 +2,11 @@
 Describe a visualization
 ************************
 
-All the ``matplotlib`` visualizations implemented so far in ``NDlib`` extends the abstract class ``nndlib.viz.mpl.DiffusionViz.DiffusionPlot``.
+All the ``matplotlib`` visualizations implemented so far in ``NDlib`` extend the abstract class ``ndlib.viz.mpl.DiffusionViz.DiffusionPlot``.
 
 .. autoclass:: ndlib.viz.mpl.DiffusionViz.DiffusionPlot
 
-Conversely, visualizations that use the ``bokeh`` library, should extend the abstract class ``nndlib.viz.bokeh.DiffusionViz.DiffusionPlot``.
+For backward compatibility, the legacy ``ndlib.viz.bokeh`` namespace re-exports the same base class:
 
 .. autoclass:: ndlib.viz.bokeh.DiffusionViz.DiffusionPlot
 
@@ -25,7 +25,7 @@ As convention a new visualization should be described in a python file named aft
 .. automethod:: ndlib.viz.bokeh.DiffusionViz.DiffusionPlot.__init__(self, model, iteration)
 
 
-In oder to effectively describe the visualization the ``__init__`` function of ``ndlib.viz.bokeh.DiffusionViz.DiffusionPlot`` must be specified as follows:
+To effectively describe the visualization the ``__init__`` function of ``ndlib.viz.mpl.DiffusionViz.DiffusionPlot`` must be specified as follows:
 
 .. code-block:: python
 
@@ -50,4 +50,3 @@ To do so, the ``iteration_series(percentile)`` method of the base class has to b
 .. automethod:: ndlib.viz.bokeh.DiffusionViz.DiffusionPlot.iteration_series(self, percentile)
 
 Such method can access the trend data, as returned by ``ndlib.models.DiffusionModel.DiffusionModel.build_trends(self, iterations)`` in ``self.iterations``.
-

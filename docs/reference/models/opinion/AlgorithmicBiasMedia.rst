@@ -33,7 +33,7 @@ epsilon              Model  float in [0, 1]            True       Bounded confid
 gamma                Model  int in [0, 100]            True       Algorithmic bias
 gamma_media          Model  int in [0, 100]            True       Algorithmic bias for media
 p                    Model  float in [0, 1]            True       Probability of media interaction
-k                    Model  int in [0, |V|]            True       Number of media
+k                    Model  int in [0, n]              True       Number of media, where ``n`` is the number of nodes in the network
 ===================  =====  ================  =======  =========  =============================================
 
 -------
@@ -65,5 +65,4 @@ In the code below is shown an example of instantiation and execution of a Algori
 
     # Simulation execution
     iterations = model.iteration_bunch(200)
-
 

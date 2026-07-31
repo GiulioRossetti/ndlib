@@ -45,15 +45,12 @@ NDlib Dev Team
 
    overview.rst
    dashboard.rst
-   network_builder_blocks.rst
    download.rst
    installing.rst
    tutorial.rst
    reference/reference.rst
    custom/custom.rst
-   query_language/query.rst
-   rest/ndlib-rest.rst
-   viz/ndlib-viz.rst
+   ndql/index.rst
    developer/developer.rst
    bibliography.rst
 
