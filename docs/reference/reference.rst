@@ -1,6 +1,6 @@
-***********************************
-Network Diffusion Library Reference
-***********************************
+***************
+NDlib Reference
+***************
 
 In this section are introduced the components that constitute ``NDlib``, namely
 

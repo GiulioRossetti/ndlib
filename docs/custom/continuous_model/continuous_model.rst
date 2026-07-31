@@ -9,11 +9,16 @@ Continuous Model
 The composite model only supports discrete states, but more advanced custom models might require continuous states and more options.
 The general manner of creating a model remains the same as the ``CompositeModel``, but it allows for configuration by adding (optional) extra steps.
 
+In the current dashboard builder, continuous-opinion custom models are seeded
+through a distribution selector over ``[0, 1]`` rather than through manual
+lower and upper bound fields. The builder samples initial opinions from the
+selected family and forwards them to the generated model code.
+
 The general modeling flow is as follows:
 
 	1. Define a graph
 	2. Add (continuous) internal states
-	3. Define constants and intial values
+	3. Define constants and initial values
 	4. Create update conditions
 	5. Add iteration schemes (optional)
 	6. Simulate
@@ -26,11 +31,13 @@ Graph, internal states and constants
 The graphs should still be ``Networkx`` graphs, either defined by yourself or generated using one of their built-in functions.
 Attributes in the graph can still be accessed and used to update functions.
 
-After a graph is defined, the model can be initialized and internal states can be added to the model. When the model is initalized,
+After a graph is defined, the model can be initialized and internal states can be added to the model. When the model is initialized,
 states can be added using ``add_status(status)`` function, where the `status` argument is a string.
 
-If the model requires certain constant values, these can be added using the ``constants`` parameter when initializing the model.
-It should be a dictionary where the key corresponds to the constant name and the value to the constant value.
+If the model requires certain constant values, these can be added using the
+``constants`` parameter when initializing the model. It should be a dictionary
+where the key corresponds to the constant name and the value to the constant
+value.
 Adding constants is completely optional.
 
 Example:
@@ -51,15 +58,17 @@ Example:
 	model.add_status('status1')
 	model.add_status('status2')
 
--------------
-Intial values
+--------------
+Initial values
 -------------
 
-After the graph has been created, the model has been initalized, and the internal states have been added,
-the next step is to define the intial values of the states.
+After the graph has been created, the model has been initialized, and the
+internal states have been added, the next step is to define the initial values
+of the states.
 
-This is done by creating a dictionary, that maps a state name to an initial value.
-This value has to be a continous value, that can be statically set, or it can be a function that will be executed for every node.
+This is done by creating a dictionary that maps a state name to an initial
+value. This value has to be a continuous value, that can be statically set, or
+it can be a function that will be executed for every node.
 If the value is a function, it should take the following arguments:
 
 	- node: the current node for which the initial state is being set

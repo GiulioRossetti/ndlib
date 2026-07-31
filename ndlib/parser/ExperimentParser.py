@@ -22,15 +22,18 @@ class ExperimentParser(object):
             "import json\n"
             "from ndlib.models.ModelConfig import Configuration\n"
             "from ndlib.models.CompositeModel import CompositeModel\n"
+            "from ndlib.models.compartments.Compartment import Compartiment\n"
             "from ndlib.models.compartments.NodeStochastic import NodeStochastic\n"
             "from ndlib.models.compartments.NodeThreshold import NodeThreshold\n"
             "from ndlib.models.compartments.NodeCategoricalAttribute import NodeCategoricalAttribute\n"
             "from ndlib.models.compartments.NodeNumericalAttribute import NodeNumericalAttribute\n"
+            "from ndlib.models.compartments.NodeNumericalVariable import NodeNumericalVariable\n"
             "from ndlib.models.compartments.EdgeStochastic import EdgeStochastic\n"
             "from ndlib.models.compartments.EdgeCategoricalAttribute import EdgeCategoricalAttribute\n"
             "from ndlib.models.compartments.EdgeNumericalAttribute import EdgeNumericalAttribute\n"
             "from ndlib.models.compartments.ConditionalComposition import ConditionalComposition\n"
             "from ndlib.models.compartments.CountDown import CountDown\n"
+            "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, ExposureRate, TransmissionKernel, DoseResponseBlock, LatencyPeriod, IncubationState, RecoveryKernel, WaningImmunity, VaccinationBlock, QuarantineBlock, TestingBlock, TreatmentBlock, HospitalizationBlock, MortalityBlock, ReinfectionBlock, StrainBlock, SuperSpreaderBlock, SeasonalityBlock, ImportationBlock, RewiringBlock, CommunityMixingBlock, EdgeActivationBlock, SeedSelection, NodeRoleAssignment, AttributeInitializer, GraphImport, CommunityAssignment, RuleAlias, PreviewObservable, ValidationHint, AttributeCoupling, OpinionAffectsInfection, OpinionAffectsRecovery, OpinionAffectsContactRate, InfectionAffectsOpinion, StatusDependentOpinionUpdate, EpidemicDependentBias, PolicyIntervention, CommunityCoupling, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift\n"
         )
 
         self.script = ""
@@ -40,6 +43,11 @@ class ExperimentParser(object):
             "COMPARTMENT",
             "RULE",
             "IF",
+            "DECLARE",
+            "OBSERVE",
+            "UPDATE",
+            "WHEN",
+            "SCHEDULE",
             "INITIALIZE",
             "CREATE_NETWORK",
             "LOAD_NETWORK",
@@ -50,6 +58,10 @@ class ExperimentParser(object):
         self.query = None
         self.__statuses = {}
         self.__compartments = {}
+        self.__continuous_mode = False
+        self.__continuous_payload = None
+        self.__continuous_network_stmt = None
+        self.__continuous_execution_stmt = None
         self.model = CompositeModel(nx.Graph())
 
     def read_query_file(self, filename):
@@ -60,6 +72,26 @@ class ExperimentParser(object):
         self.query = query
 
     def parse(self):
+        self.script = ""
+        self.__continuous_mode = False
+        self.__continuous_payload = None
+        self.__continuous_network_stmt = None
+        self.__continuous_execution_stmt = None
+        self.__statuses = {}
+        self.__compartments = {}
+        self.__model_name = None
+        self.__net_name = None
+
+        if self.query is None:
+            raise ValueError("Experiment description malformed (empty query): check your syntax")
+
+        if (
+            "TYPE CONTINUOUS_OPINION" in self.query
+            or "INITIAL_OPINION_DISTRIBUTION" in self.query
+            or "OPINION_VARIABLE " in self.query
+        ):
+            self.__parse_continuous_query()
+            return
 
         # Tokenizing directives
         identified_directives = {}
@@ -107,6 +139,21 @@ class ExperimentParser(object):
             elif key == "IF":
                 code = self.__conditional_compartment_composition(statement)
 
+            elif key == "DECLARE":
+                code = self.__declaration_statement(statement)
+
+            elif key == "OBSERVE":
+                code = self.__observable_statement(statement)
+
+            elif key == "UPDATE":
+                code = self.__update_statement(statement)
+
+            elif key == "WHEN":
+                code = self.__when_statement(statement)
+
+            elif key == "SCHEDULE":
+                code = self.__schedule_statement(statement)
+
             elif key == "INITIALIZE":
                 code = self.__model_configuration(statement)
 
@@ -128,13 +175,270 @@ class ExperimentParser(object):
         self.__clean_imports()
         self.script = "%s\n%s" % (self.imports, self.script)
 
+    def __parse_continuous_query(self):
+        from ndlib.dashboard.server import generate_custom_model_class
+
+        lines = self.query.split("\n")
+        model_name = None
+        initial_opinion_distribution = "uniform"
+        statuses = []
+        compartments = []
+        rules = []
+        initial_status = []
+        declarations = []
+        observables = []
+        updates = []
+        current_block = None
+        current_rule = {}
+        network_lines = []
+        execution_line = None
+        mode = None
+        pending_when = None
+        pending_schedule = None
+
+        for raw_line in lines:
+            if len(raw_line) == 0 or raw_line[0] == "#":
+                continue
+            raw_stripped = raw_line.strip()
+            if raw_stripped.upper().startswith("WHEN "):
+                pending_when = raw_stripped[5:].strip()
+                continue
+            if raw_stripped.upper().startswith("SCHEDULE "):
+                schedule = self.__parse_schedule_directive(raw_stripped)
+                pending_schedule = schedule
+                continue
+            if raw_stripped.upper().startswith("UPDATE "):
+                update = self.__parse_update_directive(raw_stripped)
+                if pending_when is not None and "when" not in update:
+                    update["when"] = pending_when
+                if pending_schedule is not None and "schedule" not in update:
+                    update["schedule"] = pending_schedule
+                updates.append(update)
+                pending_when = None
+                pending_schedule = None
+                continue
+            line = self.__sanitize_string(raw_line).strip()
+            if not line:
+                continue
+
+            parts = line.split()
+            head = parts[0]
+
+            if head == "MODEL":
+                if len(parts) < 2:
+                    raise ValueError("Experiment description malformed (missing model name): check your syntax")
+                model_name = parts[1]
+                continue
+            if head == "TYPE" and len(parts) >= 2 and parts[1] == "CONTINUOUS_OPINION":
+                self.__continuous_mode = True
+                continue
+            if head in {"INITIAL_OPINION_DISTRIBUTION", "SET"} and len(parts) >= 2:
+                if head == "INITIAL_OPINION_DISTRIBUTION":
+                    initial_opinion_distribution = parts[1]
+                elif len(parts) >= 3 and parts[1] == "INITIAL_OPINION_DISTRIBUTION":
+                    initial_opinion_distribution = parts[2]
+                continue
+            if head in {"BIN", "STATUS"} and len(parts) >= 2:
+                status_name = parts[1]
+                if status_name not in [s["name"] for s in statuses]:
+                    statuses.append({"name": status_name, "code": len(statuses)})
+                continue
+            if head == "BLOCK":
+                if len(parts) < 2:
+                    raise ValueError("Experiment description malformed (missing block name): check your syntax")
+                current_block = {"name": parts[1], "type": None, "params": {}}
+                compartments.append(current_block)
+                mode = "block"
+                continue
+            if head == "DECLARE":
+                if len(parts) < 3:
+                    raise ValueError("Experiment description malformed (wrong declaration statement): check your syntax")
+                declaration = {"kind": parts[1], "name": parts[2]}
+                idx = 3
+                while idx < len(parts):
+                    token = parts[idx]
+                    if token in {"TYPE", "RANGE", "VALUES", "DEFAULT", "SCOPE"} and idx + 1 < len(parts):
+                        declaration[token.lower()] = self.__coerce_ndql_value(parts[idx + 1])
+                        idx += 2
+                    else:
+                        idx += 1
+                declarations.append(declaration)
+                continue
+            if head == "OBSERVE":
+                if len(parts) < 2:
+                    raise ValueError("Experiment description malformed (wrong observe statement): check your syntax")
+                observable = {"variable": parts[1]}
+                idx = 2
+                while idx < len(parts):
+                    token = parts[idx]
+                    if token == "AS" and idx + 1 < len(parts):
+                        observable["mode"] = parts[idx + 1]
+                        idx += 2
+                    elif token in {"BINS", "RANGE", "MODE"} and idx + 1 < len(parts):
+                        observable[token.lower()] = self.__coerce_ndql_value(parts[idx + 1])
+                        idx += 2
+                    else:
+                        idx += 1
+                observables.append(observable)
+                continue
+            if head == "TYPE" and mode == "block" and current_block is not None:
+                if len(parts) < 2:
+                    raise ValueError("Experiment description malformed (missing block type): check your syntax")
+                current_block["type"] = parts[1]
+                continue
+            if head == "PARAM" and current_block is not None:
+                if len(parts) < 3:
+                    raise ValueError("Experiment description malformed (wrong parameter statement): check your syntax")
+                param_name = parts[1]
+                param_value = " ".join(parts[2:])
+                current_block["params"][param_name] = self.__coerce_ndql_value(param_value)
+                continue
+            if head == "TRIGGER" and current_block is not None:
+                if len(parts) < 2:
+                    raise ValueError("Experiment description malformed (wrong trigger statement): check your syntax")
+                current_block["params"]["triggering_status"] = parts[1]
+                continue
+            if head == "RULE":
+                current_rule = {}
+                mode = "rule"
+                continue
+            if head in {"FROM", "TO", "USING"} and mode == "rule":
+                if len(parts) < 2:
+                    raise ValueError("Experiment description malformed (wrong rule statement): check your syntax")
+                current_rule[head.lower()] = parts[1]
+                continue
+            if head == "INITIALIZE":
+                mode = "init"
+                continue
+            if head == "SET" and mode == "init" and len(parts) >= 3:
+                if parts[1] == "INITIAL_OPINION_DISTRIBUTION":
+                    initial_opinion_distribution = parts[2]
+                else:
+                    initial_status.append({"status": parts[1], "ratio": float(parts[2])})
+                continue
+            if head == "CREATE_NETWORK":
+                network_lines.append(line)
+                mode = "network"
+                continue
+            if head == "LOAD_NETWORK":
+                network_lines.append(line)
+                mode = "network"
+                continue
+            if head == "EXECUTE":
+                execution_line = line
+                continue
+
+        for comp in compartments:
+            if not comp.get("type"):
+                raise ValueError("Experiment description malformed (block type missing): check your syntax")
+
+        if model_name is None:
+            raise ValueError("Experiment description malformed (Model not specified): check your syntax")
+
+        payload = {
+            "name": model_name,
+            "use_case": "continuous_opinions",
+            "template_id": "algorithmic_bias",
+            "initial_opinion_distribution": initial_opinion_distribution,
+            "statuses": statuses,
+            "compartments": compartments,
+            "rules": rules,
+            "initial_status": initial_status,
+            "declarations": declarations,
+            "observables": observables,
+            "updates": updates,
+        }
+
+        class_code = generate_custom_model_class(payload)
+        self.__continuous_payload = payload
+        self.__continuous_network_stmt = network_lines[0] if network_lines else None
+        self.__continuous_execution_stmt = execution_line
+        self.script = class_code + "\n"
+        self.script += "import networkx as nx\n"
+        self.script += "import json\n"
+        self.script += "from ndlib.models.ModelConfig import Configuration\n"
+        if self.__continuous_network_stmt:
+            self.script += self.__translate_network_statement(self.__continuous_network_stmt)
+        else:
+            self.script += "g1 = nx.erdos_renyi_graph(20, 0.2)\n"
+        self.script += "%s_model = %s(g1)\n" % (model_name.lower(), model_name)
+        self.script += "config = Configuration()\n"
+        if initial_status:
+            for st in initial_status:
+                self.script += "config.add_model_parameter('percentage_%s', %s)\n" % (st["status"], st["ratio"])
+        self.script += "%s_model.set_initial_status(config)\n" % model_name.lower()
+        if self.__continuous_execution_stmt:
+            exec_parts = self.__continuous_execution_stmt.split()
+            if len(exec_parts) >= 6:
+                self.script += "iterations = %s_model.iteration_bunch(%s)\n" % (model_name.lower(), exec_parts[5])
+            else:
+                self.script += "iterations = %s_model.iteration_bunch(10)\n" % model_name.lower()
+        else:
+            self.script += "iterations = %s_model.iteration_bunch(10)\n" % model_name.lower()
+        self.script += "res = json.dumps(iterations)\nprint(res)\n"
+
+    @staticmethod
+    def __coerce_ndql_value(value):
+        value = value.strip()
+        if not value:
+            return value
+        if value.lower() in {"none", "null"}:
+            return None
+        if value.startswith("{") and value.endswith("}"):
+            try:
+                return json.loads(value)
+            except Exception:
+                pass
+        if value.startswith("[") and value.endswith("]"):
+            items = [x.strip() for x in value[1:-1].split(",") if x.strip()]
+            return [ExperimentParser.__coerce_ndql_value(x) for x in items]
+        try:
+            if any(ch in value for ch in [".", "e", "E"]):
+                return float(value)
+            return int(value)
+        except ValueError:
+            return value
+
+    def __render_compartment_value(self, comp_type, key, value):
+        reference_keys = {"condition", "first_branch", "second_branch", "if_true", "if_false", "composed"}
+        if comp_type == "NodeNumericalVariable" and key in {"var_type", "value_type"}:
+            if value is None:
+                return "None"
+            return "NumericalType.%s" % str(value).upper()
+        if isinstance(value, str):
+            if key in reference_keys and value in self.__compartments:
+                return value
+            try:
+                coerced = self.__coerce_ndql_value(value)
+                if coerced is not value:
+                    return repr(coerced)
+            except Exception:
+                pass
+            return repr(value)
+        return repr(value)
+
+    @staticmethod
+    def __translate_network_statement(stmt):
+        parts = stmt.split()
+        if not parts:
+            return ""
+        if parts[0] == "CREATE_NETWORK" and len(parts) >= 2:
+            net_name = parts[1]
+            net_type = "erdos_renyi_graph"
+            params = []
+            return "%s = nx.%s()\n" % (net_name, net_type)
+        if parts[0] == "LOAD_NETWORK" and len(parts) == 4 and parts[2] == "FROM":
+            return "g1 = nx.read_edgelist(%r)\n" % parts[3]
+        return ""
+
     def execute_query(self):
         # Query execution
         old_stdout = sys.stdout
         redirected_output = sys.stdout = StringIO()
+        runtime_ns = {}
 
         try:
-            exec(self.script, locals(), globals())
+            exec(self.script, runtime_ns, runtime_ns)
         except SyntaxError:
             raise ValueError(
                 "Experiment description malformed (Incorrect statement ordering): check your syntax"
@@ -142,6 +446,8 @@ class ExperimentParser(object):
 
         sys.stdout = old_stdout
         result = json.loads(redirected_output.getvalue())
+        if self.__continuous_mode:
+            return result
         trends = self.model.build_trends(result)
         trends[0]["Statuses"] = {
             str(v): k for k, v in self.model.available_statuses.items()
@@ -151,7 +457,7 @@ class ExperimentParser(object):
     def __clean_imports(self):
 
         libs = self.imports.split("\n")
-        new_imports = "\n".join(libs[:5])
+        new_imports = "\n".join(libs[:6])
         compartments = set(self.__compartments.values())
         rs = ["\\b%s\\b " % x for x in compartments]
         cps = r"|".join(rs)
@@ -254,6 +560,60 @@ class ExperimentParser(object):
                 "Experiment description malformed (file not existing): check your syntax"
             )
 
+    def __declaration_statement(self, desc):
+        if len(desc) != 1:
+            raise ValueError("Unsupported description")
+        return "# %s\n" % desc[0]
+
+    def __observable_statement(self, desc):
+        if len(desc) != 1:
+            raise ValueError("Unsupported description")
+        return "# %s\n" % desc[0]
+
+    def __update_statement(self, desc):
+        if len(desc) != 1:
+            raise ValueError("Unsupported description")
+        return "# %s\n" % desc[0]
+
+    def __when_statement(self, desc):
+        if len(desc) != 1:
+            raise ValueError("Unsupported description")
+        return "# %s\n" % desc[0]
+
+    def __schedule_statement(self, desc):
+        if len(desc) != 1:
+            raise ValueError("Unsupported description")
+        return "# %s\n" % desc[0]
+
+    @staticmethod
+    def __parse_update_directive(line):
+        match = re.match(r"^UPDATE\s+([A-Za-z_][\w\.]*)\s*=\s*(.+)$", line.strip(), flags=re.I)
+        if not match:
+            raise ValueError("Experiment description malformed (wrong update statement): check your syntax")
+        return {
+            "target": match.group(1),
+            "expression": match.group(2).strip(),
+        }
+
+    @staticmethod
+    def __parse_schedule_directive(line):
+        match = re.match(
+            r"^SCHEDULE\s+(\d+)\s+(\d+)(?:\s+PERIOD\s+(\d+))?(?:\s+PHASE\s+(\d+))?$",
+            line.strip(),
+            flags=re.I,
+        )
+        if not match:
+            raise ValueError("Experiment description malformed (wrong schedule statement): check your syntax")
+        schedule = {
+            "start": int(match.group(1)),
+            "end": int(match.group(2)),
+        }
+        if match.group(3) is not None:
+            schedule["period"] = int(match.group(3))
+        if match.group(4) is not None:
+            schedule["phase"] = int(match.group(4))
+        return schedule
+
     def __model_creation(self, desc):
 
         if len(desc) > 1:
@@ -324,32 +684,109 @@ class ExperimentParser(object):
         return apply
 
     def __compartment_definition(self, desc):
-
         components = {
             "COMPARTMENT": None,
             "TYPE": None,
             "TRIGGER": None,
             "COMPOSE": None,
-            "PARAM": {
-                "probability": 1,
-                "threshold": None,
-                "rate": None,
-                "attribute": None,
-                "attribute_value": None,
-                "name": None,
-                "iterations": None,
-            },
+            "PARAM": {},
+        }
+        freeform_types = {
+            "Parameter",
+            "Constant",
+            "Variable",
+            "Distribution",
+            "Compose",
+            "Filter",
+            "Selector",
+            "Aggregator",
+            "Kernel",
+            "Transform",
+            "ClampNormalize",
+            "Schedule",
+            "Observe",
+            "OpinionDistanceThreshold",
+            "OpinionSelectionBias",
+            "OpinionCompromise",
+            "OpinionAssimilation",
+            "OpinionStubbornness",
+            "OpinionNoise",
+            "OpinionRepulsion",
+            "OpinionBoundedDrift",
+            "OpinionPolarization",
+            "OpinionExternalField",
+            "OpinionTrustFilter",
+            "OpinionConsensusBlock",
+            "OpinionMemory",
+            "OpinionNormalization",
+            "OpinionQuantization",
+            "OpinionMediaInfluence",
+            "OpinionZealot",
+            "OpinionDistribution",
+            "OpinionMultiTopic",
+            "OpinionLabelSwitch",
+            "SeedSelection",
+            "NodeRoleAssignment",
+            "AttributeInitializer",
+            "GraphImport",
+            "CommunityAssignment",
+            "RuleAlias",
+            "PreviewObservable",
+            "ValidationHint",
+            "ExposureRate",
+            "TransmissionKernel",
+            "DoseResponseBlock",
+            "LatencyPeriod",
+            "IncubationState",
+            "RecoveryKernel",
+            "WaningImmunity",
+            "VaccinationBlock",
+            "QuarantineBlock",
+            "TestingBlock",
+            "TreatmentBlock",
+            "HospitalizationBlock",
+            "MortalityBlock",
+            "ReinfectionBlock",
+            "StrainBlock",
+            "SuperSpreaderBlock",
+            "SeasonalityBlock",
+            "ImportationBlock",
+            "RewiringBlock",
+            "CommunityMixingBlock",
+            "EdgeActivationBlock",
+            "AttributeCoupling",
+            "OpinionAffectsInfection",
+            "OpinionAffectsRecovery",
+            "OpinionAffectsContactRate",
+            "InfectionAffectsOpinion",
+            "StatusDependentOpinionUpdate",
+            "EpidemicDependentBias",
+            "PolicyIntervention",
+            "CommunityCoupling",
         }
         for part in desc:
             part = part.split(" ")
             if part[0] not in components:
                 raise ValueError("Unsupported description")
-            if len(part) == 2:
+            if len(part) == 2 and part[0] not in {"PARAM"}:
                 components[part[0]] = part[1]
-            else:
-                if part[1] not in components["PARAM"]:
-                    raise ValueError("Unsupported parameter")
-                components["PARAM"][part[1]] = part[2]
+            elif part[0] == "PARAM":
+                if len(part) < 3:
+                    raise ValueError(
+                        "Experiment description malformed (wrong compartment parameter): check your syntax"
+                    )
+                value = self.__coerce_ndql_value(" ".join(part[2:]))
+                if components["TYPE"] in freeform_types:
+                    components["PARAM"][part[1]] = value
+                else:
+                    if part[1] not in {"probability", "threshold", "rate", "attribute", "attribute_value", "name", "iterations", "composed", "triggering_status"}:
+                        raise ValueError("Unsupported parameter")
+                    components["PARAM"][part[1]] = value
+            elif len(part) > 2:
+                if components["TYPE"] in freeform_types:
+                    components["PARAM"][part[1]] = self.__coerce_ndql_value(" ".join(part[2:]))
+                else:
+                    raise ValueError("Unsupported description")
 
         if (
             components["TRIGGER"] is not None
@@ -359,31 +796,129 @@ class ExperimentParser(object):
 
         self.__compartments[components["COMPARTMENT"]] = components["TYPE"]
 
-        rule = (
-            "%s = %s(composed=%s, triggering_status='%s', "
-            "rate=%s, probability=%s, threshold=%s, attribute='%s', attribute_value=%s, name=\"%s\", iterations=%s)\n"
-            % (
-                components["COMPARTMENT"],
-                components["TYPE"],
-                components["COMPOSE"],
-                components["TRIGGER"],
-                components["PARAM"]["rate"],
-                components["PARAM"]["probability"],
-                components["PARAM"]["threshold"],
-                components["PARAM"]["attribute"],
-                components["PARAM"]["attribute_value"],
-                components["PARAM"]["name"],
-                components["PARAM"]["iterations"],
-            )
-        )
+        known_types = {
+            "NodeStochastic",
+            "NodeThreshold",
+            "EdgeStochastic",
+            "CountDown",
+            "NodeCategoricalAttribute",
+            "NodeNumericalAttribute",
+            "NodeNumericalVariable",
+            "EdgeCategoricalAttribute",
+            "EdgeNumericalAttribute",
+            "ConditionalComposition",
+            "Compose",
+            "Parameter",
+            "Constant",
+            "Variable",
+            "Distribution",
+            "Filter",
+            "Selector",
+            "Aggregator",
+            "Kernel",
+            "Transform",
+            "ClampNormalize",
+            "Schedule",
+            "Observe",
+            "OpinionDistanceThreshold",
+            "OpinionSelectionBias",
+            "OpinionCompromise",
+            "OpinionAssimilation",
+            "OpinionStubbornness",
+            "OpinionNoise",
+            "OpinionRepulsion",
+            "OpinionBoundedDrift",
+            "OpinionPolarization",
+            "OpinionExternalField",
+            "OpinionTrustFilter",
+            "OpinionConsensusBlock",
+            "OpinionMemory",
+            "OpinionNormalization",
+            "OpinionQuantization",
+            "OpinionMediaInfluence",
+            "OpinionZealot",
+            "OpinionDistribution",
+            "OpinionMultiTopic",
+            "OpinionLabelSwitch",
+            "SeedSelection",
+            "NodeRoleAssignment",
+            "AttributeInitializer",
+            "GraphImport",
+            "CommunityAssignment",
+            "RuleAlias",
+            "PreviewObservable",
+            "ValidationHint",
+            "ExposureRate",
+            "TransmissionKernel",
+            "DoseResponseBlock",
+            "LatencyPeriod",
+            "IncubationState",
+            "RecoveryKernel",
+            "WaningImmunity",
+            "VaccinationBlock",
+            "QuarantineBlock",
+            "TestingBlock",
+            "TreatmentBlock",
+            "HospitalizationBlock",
+            "MortalityBlock",
+            "ReinfectionBlock",
+            "StrainBlock",
+            "SuperSpreaderBlock",
+            "SeasonalityBlock",
+            "ImportationBlock",
+            "RewiringBlock",
+            "CommunityMixingBlock",
+            "EdgeActivationBlock",
+            "AttributeCoupling",
+            "OpinionAffectsInfection",
+            "OpinionAffectsRecovery",
+            "OpinionAffectsContactRate",
+            "InfectionAffectsOpinion",
+            "StatusDependentOpinionUpdate",
+            "EpidemicDependentBias",
+            "PolicyIntervention",
+            "CommunityCoupling",
+        }
+        if components["TYPE"] not in known_types:
+            raise ValueError("Unsupported compartment type '%s'" % components["TYPE"])
 
-        rule = rule.replace("'None'", "None")
-
-        # Code cleaning
-        rule = re.sub(", [a-zA-Z\\_]+=None", "", rule)
-        rule = rule.replace("  ", " ")
-        rule = re.sub("[a-zA-Z\\_]+=None,", "", rule)
-        rule = rule.replace("( ", "(")
+        if components["TYPE"] == "Compose":
+            params = []
+            for key in ("condition", "if_true", "if_false", "first_branch", "second_branch"):
+                if key in components["PARAM"] and components["PARAM"][key] is not None:
+                    params.append("%s=%s" % (key, self.__render_compartment_value(components["TYPE"], key, components["PARAM"][key])))
+            rule = "%s = Compose(%s)\n" % (components["COMPARTMENT"], ", ".join(params))
+        elif components["TYPE"] == "ConditionalComposition":
+            params = []
+            for key in ("condition", "first_branch", "second_branch"):
+                if key in components["PARAM"] and components["PARAM"][key] is not None:
+                    params.append("%s=%s" % (key, self.__render_compartment_value(components["TYPE"], key, components["PARAM"][key])))
+            rule = "%s = ConditionalComposition(%s)\n" % (components["COMPARTMENT"], ", ".join(params))
+        elif components["TYPE"] == "NodeNumericalVariable":
+            params = []
+            for key, value in components["PARAM"].items():
+                if value is None:
+                    continue
+                params.append("%s=%s" % (key, self.__render_compartment_value(components["TYPE"], key, value)))
+            rule = "%s = NodeNumericalVariable(%s)\n" % (components["COMPARTMENT"], ", ".join(params))
+        elif components["TYPE"] in {"NodeStochastic", "EdgeStochastic", "CountDown", "NodeCategoricalAttribute", "NodeNumericalAttribute", "EdgeCategoricalAttribute", "EdgeNumericalAttribute"}:
+            params = []
+            for key, value in components["PARAM"].items():
+                if value is None:
+                    continue
+                params.append("%s=%s" % (key, self.__render_compartment_value(components["TYPE"], key, value)))
+            if components["TRIGGER"] is not None:
+                params.append("triggering_status=%r" % components["TRIGGER"])
+            rule = "%s = %s(%s)\n" % (components["COMPARTMENT"], components["TYPE"], ", ".join(params))
+        else:
+            params = []
+            if components["TRIGGER"] is not None:
+                params.append("triggering_status=%r" % components["TRIGGER"])
+            for key, value in components["PARAM"].items():
+                if value is None:
+                    continue
+                params.append("%s=%s" % (key, self.__render_compartment_value(components["TYPE"], key, value)))
+            rule = "%s = %s(%s)\n" % (components["COMPARTMENT"], components["TYPE"], ", ".join(params))
 
         return rule
 

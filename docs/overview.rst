@@ -41,7 +41,7 @@ We welcome contributions from the community.
 EU H2020
 --------
 
-``NDlib`` is a result of two European H2020 projects:
+``NDlib`` has been developed/maintained within several European H2020 projects:
 
 - CIMPLEX_ “Bringing CItizens, Models and Data together in Participatory, Interactive SociaL EXploratories”: under the funding scheme “FETPROACT-1-2014: Global Systems Science (GSS)”, grant agreement #641191.
 - SoBigData_ “Social Mining & Big Data Ecosystem”: under the scheme “INFRAIA-1-2014-2015: Research Infrastructures”, grant agreement #654024.

@@ -3,6 +3,7 @@ import numpy as np
 import tqdm
 import random
 import time
+from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions
 
 
 class AlgorithmicBiasMediaModel(DiffusionModel):
@@ -52,20 +53,28 @@ class AlgorithmicBiasMediaModel(DiffusionModel):
                 },
                 "k": {
                     "descr": "number of media",
-                    "range": [0, self.graph.number_of_nodes()],
+                    "range": [1, self.graph.number_of_nodes()],
                     "optional": False,
-                },
-                "init_dist_lower" : {
-                    "descr": "The lower bound of the initial distribution",
-                    "range": [0, 1],
-                    "optional": True,
-                    "default": 0,
-                },
-                "init_dist_upper" : {
-                    "descr": "The upper bound of the initial distribution",
-                    "range": [0, 1],
-                    "optional": True,
                     "default": 1,
+                },
+                "media_opinions": {
+                    "descr": "Opinion of each media source in [0, 1]",
+                    "optional": True,
+                    "default": [0.5],
+                },
+                "initial_opinion_distribution": {
+                    "descr": "Initial opinion distribution in [0, 1]",
+                    "choices": [
+                        {"value": "uniform", "label": "Uniform"},
+                        {"value": "normal", "label": "Normal"},
+                        {"value": "gaussian", "label": "Gaussian"},
+                        {"value": "bimodal", "label": "Bimodal"},
+                        {"value": "left_skewed", "label": "Left skewed"},
+                        {"value": "right_skewed", "label": "Right skewed"},
+                        {"value": "polarized", "label": "Polarized"},
+                    ],
+                    "optional": True,
+                    "default": "uniform",
                 }
             },
             "nodes": {},
@@ -87,8 +96,12 @@ class AlgorithmicBiasMediaModel(DiffusionModel):
         super(AlgorithmicBiasMediaModel, self).set_initial_status(configuration)
 
         # set node status
-        for node in self.status:
-            self.status[node] = np.random.uniform(self.params["model"]["init_dist_lower"], self.params["model"]["init_dist_upper"])
+        opinions = sample_initial_opinions(
+            len(self.status),
+            self.params["model"].get("initial_opinion_distribution", "uniform"),
+        )
+        for node, opinion in zip(self.status, opinions):
+            self.status[node] = float(opinion)
         self.initial_status = self.status.copy()
 
         ### Initialization numpy representation
@@ -116,6 +129,20 @@ class AlgorithmicBiasMediaModel(DiffusionModel):
                 self.node_data[i] = (i_ids, i_sts)
 
         self.stsmedia = np.random.rand(self.params["model"]["k"])
+        media_opinions = self.params["model"].get("media_opinions")
+        if isinstance(media_opinions, (list, tuple, np.ndarray)) and len(media_opinions) > 0:
+            media_vals = np.clip(np.asarray(media_opinions, dtype=float), 0.0, 1.0)
+            if len(media_vals) < self.params["model"]["k"]:
+                pad_value = float(media_vals[-1]) if len(media_vals) > 0 else 0.5
+                media_vals = np.pad(
+                    media_vals,
+                    (0, self.params["model"]["k"] - len(media_vals)),
+                    mode="constant",
+                    constant_values=pad_value,
+                )
+            self.stsmedia = media_vals[: self.params["model"]["k"]]
+        elif self.params["model"]["k"] > 0:
+            self.stsmedia = np.full(self.params["model"]["k"], 0.5, dtype=float)
         self.steady = 0
         self.currentit = 0
 

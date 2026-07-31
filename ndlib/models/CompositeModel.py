@@ -34,6 +34,7 @@ class CompositeModel(DiffusionModel):
         :return: Iteration_id, Incremental node status (dictionary node->status)
         """
         self.clean_initial_status(self.available_statuses.values())
+        self.params.setdefault("model", {})["iteration"] = self.actual_iteration
         actual_status = {
             node: nstatus for node, nstatus in future.utils.iteritems(self.status)
         }

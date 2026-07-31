@@ -12,6 +12,22 @@ from .EdgeCategoricalAttribute import EdgeCategoricalAttribute
 from .EdgeNumericalAttribute import EdgeNumericalAttribute
 from .ConditionalComposition import ConditionalComposition
 from .CountDown import CountDown
+from .NDQLBlocks import (
+    NDQLBlockBase,
+    Parameter,
+    Constant,
+    Variable,
+    Distribution,
+    Compose,
+    Filter,
+    Selector,
+    Aggregator,
+    Kernel,
+    Transform,
+    ClampNormalize,
+    Schedule,
+    Observe,
+)
 
 __all__ = [
     "NodeStochastic",
@@ -24,4 +40,18 @@ __all__ = [
     "EdgeNumericalAttribute",
     "ConditionalComposition",
     "CountDown",
+    "NDQLBlockBase",
+    "Parameter",
+    "Constant",
+    "Variable",
+    "Distribution",
+    "Compose",
+    "Filter",
+    "Selector",
+    "Aggregator",
+    "Kernel",
+    "Transform",
+    "ClampNormalize",
+    "Schedule",
+    "Observe",
 ]

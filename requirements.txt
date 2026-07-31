@@ -14,3 +14,4 @@ scikit-learn
 #docutils==0.15.2
 matplotlib
 sphinx_rtd_theme
+dynetx

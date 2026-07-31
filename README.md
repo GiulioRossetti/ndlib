@@ -49,10 +49,14 @@ The dashboard lets you:
 
 - build or load a network
 - configure model and graph parameters from the UI
-- run simulations in a three-step workflow
+- run simulations in a strict three-step workflow
 - inspect network state, trends, prevalence, and opinion evolution
 - select infected seeds directly from the graph preview for epidemic models
 - use community-aware layouts to expose modular structure
+- separate the visual model builder into epidemic, continuous-opinion, discrete-opinion, and coupled use cases
+- load starter templates such as `SIR`, `Algorithmic Bias`, `Majority Rule`, and a coupled starter layout
+- copy the generated NDQL script or download the generated Python class after saving a custom pipeline
+- build opinion-only custom models without an `Infected` class when the selected use case does not require one
 
 Run it from the repository root with:
 
@@ -71,6 +75,45 @@ Once the server starts, open the local URL printed in the terminal.
 | Configuration view | Network view |
 | --- | --- |
 | ![NDlib dashboard configuration view](docs/_static/dashboard/dashboard-config.png) | ![NDlib dashboard network view](docs/_static/dashboard/dashboard-network.png) |
+
+### Visual Model Builder 
+
+NDlib includes an interactive Visual Model Builder that allows designing custom compartmental models by drag-and-drop using a node-graph workflow. Visual models are compiled to standard Python classes and NDQL (Network Diffusion Query Language) scripts, and can be simulated or deleted directly from the dashboard.
+
+The builder now starts from a use-case selector:
+
+- **Epidemics**: discrete compartmental models with infection, threshold, and attribute-driven rules.
+- **Continuous Opinions**: numeric-opinion layouts centered on numerical checks and continuous-variable style routing.
+- **Discrete Opinions**: label-based opinion layouts with categorical and stochastic influence blocks.
+- **Coupled / Advanced**: a mixed workspace that exposes every block for richer custom experiments.
+
+Custom opinion starters now initialize their own statuses directly, so they no longer inherit the epidemic-only `Infected` requirement from the base diffusion model.
+
+Starter templates are provided for the most common layouts, so you can begin from a working example instead of a blank canvas.
+
+Draggable building blocks include:
+- **Status Node**: Declares compartmental states (e.g., Susceptible, Infected, Recovered).
+- **Node Stochastic**: Propagates state change stochastically if neighbors match a status.
+- **Node Threshold**: Implements fraction-based cascading activation.
+- **Edge Stochastic**: Evaluates link-level propagation conditions.
+- **Count Down**: Implements fixed iteration-based delays (e.g., recovery after $D$ ticks).
+- **Node Categorical Attribute**: Checks categorical node properties (e.g., gender, city).
+- **Node Numerical Attribute**: Performs numerical checks on node variables (e.g., age ranges).
+- **Node Numerical Variable**: Compares numeric opinion-like values or attributes against a threshold.
+- **Conditional Composition**: Composes decision logic gates by nesting condition, if-true, and if-false branches.
+
+
+| Use-case-aware Builder |
+| --- |
+| ![Use-case-aware Visual Model Builder](docs/_static/dashboard/dashboard-builder-usecases.png) |
+
+The sidebar also includes:
+
+- a live NDQL preview with a one-click copy action
+- a per-model download button for the generated Python source
+- example templates that can populate the canvas with a starter layout
+
+See the full builder guide in [`docs/visual_model_builder_opinion_epidemic_guide.md`](docs/visual_model_builder_opinion_epidemic_guide.md).
 
 ## Documentation, Tutorials and Online Environments
 

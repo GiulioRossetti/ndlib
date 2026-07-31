@@ -4,6 +4,7 @@ from random import choice
 import future.utils
 from collections import defaultdict
 import tqdm
+from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions
 
 __author__ = ["Alina Sirbu", "Giulio Rossetti", "Valentina Pansanella"]
 __email__ = [
@@ -49,17 +50,19 @@ class AlgorithmicBiasModel(DiffusionModel):
                     "range": [0, 100],
                     "optional": False,
                 },
-                "init_dist_lower" : {
-                    "descr": "The lower bound of the initial distribution",
-                    "range": [0, 1],
+                "initial_opinion_distribution": {
+                    "descr": "Initial opinion distribution in [0, 1]",
+                    "choices": [
+                        {"value": "uniform", "label": "Uniform"},
+                        {"value": "normal", "label": "Normal"},
+                        {"value": "gaussian", "label": "Gaussian"},
+                        {"value": "bimodal", "label": "Bimodal"},
+                        {"value": "left_skewed", "label": "Left skewed"},
+                        {"value": "right_skewed", "label": "Right skewed"},
+                        {"value": "polarized", "label": "Polarized"},
+                    ],
                     "optional": True,
-                    "default": 0,
-                },
-                "init_dist_upper" : {
-                    "descr": "The upper bound of the initial distribution",
-                    "range": [0, 1],
-                    "optional": True,
-                    "default": 1,
+                    "default": "uniform",
                 }
             },
             "nodes": {},
@@ -80,8 +83,12 @@ class AlgorithmicBiasModel(DiffusionModel):
         super(AlgorithmicBiasModel, self).set_initial_status(configuration)
 
         # set node status
-        for node in self.status:
-            self.status[node] = np.random.uniform(self.params["model"]["init_dist_lower"], self.params["model"]["init_dist_upper"])
+        opinions = sample_initial_opinions(
+            len(self.status),
+            self.params["model"].get("initial_opinion_distribution", "uniform"),
+        )
+        for node, opinion in zip(self.status, opinions):
+            self.status[node] = float(opinion)
         self.initial_status = self.status.copy()
 
         ### Initialization numpy representation

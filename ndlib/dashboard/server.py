@@ -6,6 +6,7 @@ import sys
 import webbrowser
 import socket
 import inspect
+from urllib.parse import urlparse, parse_qs
 import numpy as np
 import networkx as nx
 from networkx.algorithms import community as nx_community
@@ -13,14 +14,23 @@ from networkx.algorithms import community as nx_community
 # Add the repository root to the front of the import path so the dashboard
 # always uses the source tree currently being edited, not an installed copy.
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-sys.path.insert(0, REPO_ROOT)
-for module_name in list(sys.modules):
-    if module_name == "ndlib" or module_name.startswith("ndlib."):
-        del sys.modules[module_name]
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
 import ndlib.models.epidemics as epd
 import ndlib.models.opinions as opn
 import ndlib.models.ModelConfig as mc
+from ndlib.dashboard.block_schema import (
+    BLOCK_FAMILIES,
+    BLOCK_SCHEMA_REGISTRY,
+    CORE_BLOCK_TYPES,
+    EPIDEMIC_BLOCK_TYPES,
+    HYBRID_BLOCK_TYPES,
+    OPINION_BLOCK_TYPES,
+    UTILITY_BLOCK_TYPES,
+    get_block_schema,
+    validate_model_payload,
+)
 
 __author__ = "Antigravity"
 __license__ = "BSD-2-Clause"
@@ -38,6 +48,7 @@ COMMUNITY_DETECTION_ALGORITHMS = [
     {"value": "girvan_newman", "label": "Girvan-Newman"},
     {"value": "asyn_fluidc", "label": "Async Fluid Communities"},
 ]
+CONTINUOUS_OPINION_BLOCK_TYPES = set(OPINION_BLOCK_TYPES) | set(UTILITY_BLOCK_TYPES)
 
 
 def sanitize_for_json(obj):
@@ -78,6 +89,88 @@ def clamp_unit_float(value, fallback=0.1):
     return min(1.0, max(0.0, val))
 
 
+def format_ndql_value(value):
+    if isinstance(value, (list, tuple)):
+        return "[" + ",".join(format_ndql_value(v) for v in value) + "]"
+    if isinstance(value, dict):
+        return json.dumps(value, separators=(",", ":"))
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if value is None:
+        return "null"
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (int, float, np.integer, np.floating)):
+        if isinstance(value, float) and value.is_integer():
+            return str(int(value))
+        return str(value)
+    return str(value)
+
+
+def serialize_ndql_declaration(declaration):
+    kind = str(declaration.get("kind", "PARAM")).upper()
+    name = declaration.get("name", "")
+    parts = ["DECLARE", kind, name]
+    dtype = declaration.get("type")
+    if dtype is not None:
+        parts.extend(["TYPE", format_ndql_value(dtype)])
+    scope = declaration.get("scope")
+    if scope is not None:
+        parts.extend(["SCOPE", format_ndql_value(scope)])
+    if "range" in declaration and declaration["range"] is not None:
+        parts.extend(["RANGE", format_ndql_value(declaration["range"])])
+    if "values" in declaration and declaration["values"] is not None:
+        parts.extend(["VALUES", format_ndql_value(declaration["values"])])
+    if "default" in declaration and declaration["default"] is not None:
+        parts.extend(["DEFAULT", format_ndql_value(declaration["default"])])
+    return " ".join(parts)
+
+
+def serialize_ndql_observable(observable):
+    parts = ["OBSERVE", format_ndql_value(observable.get("variable", ""))]
+    if observable.get("mode"):
+        parts.extend(["AS", format_ndql_value(observable["mode"])])
+    if observable.get("bins") is not None:
+        parts.extend(["BINS", format_ndql_value(observable["bins"])])
+    if observable.get("range") is not None:
+        parts.extend(["RANGE", format_ndql_value(observable["range"])])
+    return " ".join(parts)
+
+
+def serialize_ndql_update(update):
+    lines = []
+    if update.get("when"):
+        lines.append("WHEN %s" % format_ndql_value(update["when"]))
+    schedule = update.get("schedule")
+    if isinstance(schedule, dict):
+        schedule_line = "SCHEDULE %s %s" % (
+            format_ndql_value(schedule.get("start", 0)),
+            format_ndql_value(schedule.get("end", 0)),
+        )
+        if schedule.get("period") is not None:
+            schedule_line += " PERIOD %s" % format_ndql_value(schedule["period"])
+        if schedule.get("phase") is not None:
+            schedule_line += " PHASE %s" % format_ndql_value(schedule["phase"])
+        lines.append(schedule_line)
+    lines.append("UPDATE %s = %s" % (format_ndql_value(update.get("target", "opinion")), format_ndql_value(update.get("expression", "value"))))
+    return lines
+
+
+def is_known_compartment_type(comp_type):
+    return comp_type in {
+        "NodeStochastic",
+        "NodeThreshold",
+        "EdgeStochastic",
+        "CountDown",
+        "NodeCategoricalAttribute",
+        "NodeNumericalAttribute",
+        "NodeNumericalVariable",
+        "EdgeCategoricalAttribute",
+        "EdgeNumericalAttribute",
+        "ConditionalComposition",
+    } or get_block_schema(comp_type) is not None
+
+
 def coerce_model_parameter_value(param, val, p_info):
     """
     Coerce dashboard payload values to the type expected by the model.
@@ -86,6 +179,30 @@ def coerce_model_parameter_value(param, val, p_info):
     can arrive as floats or numeric strings. Continuous opinion parameters must
     stay as floats even when their defaults are integers.
     """
+    if val is None:
+        default_val = p_info.get("default")
+        if callable(default_val):
+            try:
+                default_val = default_val()
+            except Exception:
+                default_val = None
+
+        if default_val is not None:
+            return default_val
+
+        range_info = p_info.get("range")
+        int_params = {"q", "k", "iterations"}
+        if (isinstance(default_val, int) and not isinstance(default_val, bool)) or param in int_params:
+            return 1
+        if is_threshold_parameter(param, p_info) or range_info == [0, 1]:
+            return clamp_unit_float(0.1, 0.1)
+        if range_info == [-1, 1]:
+            return 0.0
+        return 0.1
+
+    if isinstance(val, str) and not val.strip():
+        return coerce_model_parameter_value(param, None, p_info)
+
     if isinstance(val, bool) or isinstance(val, (list, tuple, dict, set)):
         return val
 
@@ -99,6 +216,25 @@ def coerce_model_parameter_value(param, val, p_info):
     range_info = p_info.get("range")
     int_params = {"q", "k", "iterations"}
 
+    # Coerce count-like parameters to positive integers.
+    if param in int_params:
+        try:
+            return max(1, int(round(float(val))))
+        except (ValueError, TypeError):
+            try:
+                return max(1, int(val))
+            except (ValueError, TypeError):
+                return val
+
+    if isinstance(default_val, int) and not isinstance(default_val, bool):
+        try:
+            return int(round(float(val)))
+        except (ValueError, TypeError):
+            try:
+                return int(val)
+            except (ValueError, TypeError):
+                return val
+
     if is_threshold_parameter(param, p_info) or range_info == [0, 1]:
         return clamp_unit_float(val, p_info.get("default", 0.1))
 
@@ -107,9 +243,6 @@ def coerce_model_parameter_value(param, val, p_info):
 
     if range_info is float:
         return float(val)
-
-    if param in int_params:
-        return max(1, int(round(float(val))))
 
     if isinstance(val, str):
         try:
@@ -125,6 +258,8 @@ def coerce_model_parameter_value(param, val, p_info):
     if isinstance(val, (int, np.integer)):
         return int(val)
     if isinstance(val, (float, np.floating)):
+        if np.isnan(val):
+            return coerce_model_parameter_value(param, None, p_info)
         return float(val)
 
     return val
@@ -155,6 +290,35 @@ def normalize_iteration_record(it):
     if isinstance(it, dict):
         return it
 
+    if isinstance(it, (list, tuple)) and len(it) >= 2 and isinstance(it[0], (int, np.integer)):
+        payload = it[1]
+        if isinstance(payload, (list, tuple)) and len(payload) == 3:
+            delta, node_count, status_delta = payload
+            normalized = {
+                "iteration": int(it[0]),
+                "status": delta if isinstance(delta, dict) else {},
+                "node_count": node_count if isinstance(node_count, dict) else {},
+                "status_delta": status_delta if isinstance(status_delta, dict) else {},
+            }
+            if len(it) > 2:
+                for extra in it[2:]:
+                    if isinstance(extra, dict):
+                        normalized.update(extra)
+            return normalized
+
+        if isinstance(payload, dict):
+            normalized = {
+                "iteration": int(it[0]),
+                "status": payload,
+                "node_count": {},
+                "status_delta": {},
+            }
+            if len(it) > 2:
+                for extra in it[2:]:
+                    if isinstance(extra, dict):
+                        normalized.update(extra)
+            return normalized
+
     if isinstance(it, (list, tuple)):
         merged = {}
         for part in it:
@@ -169,6 +333,127 @@ def normalize_iteration_record(it):
         "node_count": {},
         "status_delta": {},
     }
+
+
+def _extract_continuous_scalar(value):
+    if isinstance(value, (int, float, np.integer, np.floating)) and not isinstance(value, bool):
+        return float(value)
+
+    if isinstance(value, dict):
+        for nested in value.values():
+            scalar = _extract_continuous_scalar(nested)
+            if scalar is not None:
+                return scalar
+
+    if isinstance(value, (list, tuple)):
+        for nested in value:
+            scalar = _extract_continuous_scalar(nested)
+            if scalar is not None:
+                return scalar
+
+    return None
+
+
+def build_absolute_status_history(iterations, nodes):
+    """
+    Reconstruct a cumulative per-node history from sparse iteration payloads.
+    """
+    node_ids = [str(node.get("id")) if isinstance(node, dict) else str(node) for node in nodes]
+    history = []
+    current_status = {node_id: 0.0 for node_id in node_ids}
+
+    for it in iterations or []:
+        status_map = it.get("status", {}) if isinstance(it, dict) else {}
+        if not isinstance(status_map, dict):
+            status_map = {}
+
+        for node_id in node_ids:
+            raw_value = None
+            if node_id in status_map:
+                raw_value = status_map[node_id]
+            else:
+                try:
+                    numeric_id = int(node_id)
+                    if numeric_id in status_map:
+                        raw_value = status_map[numeric_id]
+                except (TypeError, ValueError):
+                    pass
+
+            if raw_value is None:
+                continue
+
+            scalar = _extract_continuous_scalar(raw_value)
+            if scalar is not None:
+                current_status[node_id] = scalar
+
+        history.append(current_status.copy())
+
+    return history
+
+
+def build_initial_status_assignment(graph, available_statuses, percentages):
+    """
+    Build a concrete node -> status-name assignment from percentage inputs.
+
+    Percentages are normalized if they do not sum to 100. Nodes are assigned
+    by shuffling the node list and slicing it according to the requested share
+    for each status.
+    """
+    nodes = list(graph.nodes())
+    status_names = list(available_statuses.keys()) if isinstance(available_statuses, dict) else list(available_statuses)
+    if not nodes or not status_names:
+        return {}
+
+    requested = {}
+    total = 0.0
+    for status_name in status_names:
+        raw_value = 0.0
+        if isinstance(percentages, dict) and status_name in percentages:
+            raw_value = percentages[status_name]
+        try:
+            value = float(raw_value)
+        except (TypeError, ValueError):
+            value = 0.0
+        if value < 0:
+            value = 0.0
+        requested[status_name] = value
+        total += value
+
+    if total <= 0:
+        requested = {status_name: 1.0 for status_name in status_names}
+        total = float(len(status_names))
+
+    fractions = [requested[status_name] / total for status_name in status_names]
+    counts = [int(np.floor(frac * len(nodes))) for frac in fractions]
+    remainder = len(nodes) - sum(counts)
+    for idx in range(remainder):
+        counts[idx % len(counts)] += 1
+
+    shuffled_nodes = list(np.random.permutation(nodes))
+    assignment = {}
+    cursor = 0
+    for status_name, count in zip(status_names[:-1], counts[:-1]):
+        for node in shuffled_nodes[cursor: cursor + count]:
+            assignment[node] = status_name
+        cursor += count
+
+    last_status = status_names[-1]
+    for node in shuffled_nodes[cursor:]:
+        assignment[node] = last_status
+
+    return assignment
+
+
+def build_node_binary_configuration(graph, param_name, selected_nodes):
+    """
+    Build a binary node configuration where selected nodes receive 1 and the
+    remaining nodes receive 0.
+    """
+    selected_set = set(selected_nodes or [])
+    node_cfg = {}
+    for node in graph.nodes():
+        node_cfg[node] = 1 if node in selected_set else 0
+    return {param_name: node_cfg}
 
 
 def build_community_assignment(graph):
@@ -251,12 +536,22 @@ def needs_community_assignment(model_instance):
 
 def resolve_model_class(category, model_class_name):
     """
-    Resolve a model class from the local source tree.
-
-    Some environments preload a different ``ndlib`` installation whose package
-    namespace may not match the repository under test. Importing the concrete
-    module path first keeps the dashboard aligned with the source tree.
+    Resolve a model class from the local source tree or dynamic custom models.
     """
+    if category == "Custom Models":
+        full_module_name = "ndlib.dashboard.custom_models.%s" % model_class_name
+        try:
+            if full_module_name in sys.modules:
+                mod = sys.modules[full_module_name]
+            else:
+                mod = importlib.import_module(full_module_name)
+            if hasattr(mod, model_class_name):
+                return getattr(mod, model_class_name)
+        except Exception as e:
+            print("Error resolving custom model class %s: %s" % (model_class_name, str(e)))
+            pass
+        return None
+
     package = opn if category == "Opinions" else epd
 
     if hasattr(package, model_class_name):
@@ -489,9 +784,1162 @@ def build_graph_from_serialized(graph_data):
     return g
 
 
+def generate_custom_model_class(model_data):
+    """
+    Generates a Python source string representing a CompositeModel subclass
+    based on custom visual model JSON data.
+    """
+    model_name = model_data.get("name", "CustomModel")
+    class_name = "".join(c for c in model_name if c.isalnum() or c == "_")
+    if not class_name or not class_name[0].isalpha() and class_name[0] != "_":
+        class_name = "_" + class_name
+
+    statuses = model_data.get("statuses", [])
+    compartments = model_data.get("compartments", [])
+    rules = model_data.get("rules", [])
+    initial_status = model_data.get("initial_status", [])
+    declarations = model_data.get("declarations", [])
+    observables = model_data.get("observables", [])
+    updates = model_data.get("updates", [])
+    opinion_variables = sorted({
+        comp.get("params", {}).get("var", "")
+        for comp in compartments
+        if comp.get("type") == "NodeNumericalVariable"
+        and comp.get("params", {}).get("var_type") == "ATTRIBUTE"
+        and comp.get("params", {}).get("var") == "opinion"
+    })
+    uses_continuous_opinion_initialization = bool(
+        opinion_variables
+        or model_data.get("use_case") == "continuous_opinions"
+        or model_data.get("template_id") == "algorithmic_bias"
+    )
+    initial_opinion_distribution = model_data.get("initial_opinion_distribution", "uniform")
+    continuous_opinion_mode = bool(
+        model_data.get("use_case") == "continuous_opinions"
+        or model_data.get("template_id") == "algorithmic_bias"
+        or any(comp.get("type") in CONTINUOUS_OPINION_BLOCK_TYPES for comp in compartments)
+    )
+
+    if continuous_opinion_mode:
+        return generate_continuous_opinion_custom_model_class(
+            model_data,
+            class_name,
+            statuses,
+            compartments,
+            rules,
+            initial_status,
+            initial_opinion_distribution,
+        )
+
+    code = [
+        "import numpy as np",
+        "from ndlib.models.CompositeModel import CompositeModel",
+        "from ndlib.models.compartments.Compartment import Compartiment",
+        "from ndlib.models.compartments.NodeStochastic import NodeStochastic",
+        "from ndlib.models.compartments.NodeThreshold import NodeThreshold",
+        "from ndlib.models.compartments.NodeCategoricalAttribute import NodeCategoricalAttribute",
+        "from ndlib.models.compartments.NodeNumericalAttribute import NodeNumericalAttribute",
+        "from ndlib.models.compartments.NodeNumericalVariable import NodeNumericalVariable",
+        "from ndlib.models.compartments.EdgeStochastic import EdgeStochastic",
+        "from ndlib.models.compartments.EdgeCategoricalAttribute import EdgeCategoricalAttribute",
+        "from ndlib.models.compartments.EdgeNumericalAttribute import EdgeNumericalAttribute",
+        "from ndlib.models.compartments.ConditionalComposition import ConditionalComposition",
+        "from ndlib.models.compartments.CountDown import CountDown",
+        "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, ExposureRate, TransmissionKernel, DoseResponseBlock, LatencyPeriod, IncubationState, RecoveryKernel, WaningImmunity, VaccinationBlock, QuarantineBlock, TestingBlock, TreatmentBlock, HospitalizationBlock, MortalityBlock, ReinfectionBlock, StrainBlock, SuperSpreaderBlock, SeasonalityBlock, ImportationBlock, RewiringBlock, CommunityMixingBlock, EdgeActivationBlock, SeedSelection, NodeRoleAssignment, AttributeInitializer, GraphImport, CommunityAssignment, RuleAlias, PreviewObservable, ValidationHint, AttributeCoupling, OpinionAffectsInfection, OpinionAffectsRecovery, OpinionAffectsContactRate, InfectionAffectsOpinion, StatusDependentOpinionUpdate, EpidemicDependentBias, PolicyIntervention, CommunityCoupling, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift, _safe_eval, _clamp, _graph_iteration",
+        "from ndlib.models.compartments.enums.NumericalType import NumericalType",
+        "from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions",
+        "",
+        "class %s(CompositeModel):" % class_name,
+        "    def __init__(self, graph, seed=None):",
+        "        # Bypass CompositeModel.__init__ to avoid recursion bug in super(self.__class__, self)",
+        "        from ndlib.models.DiffusionModel import DiffusionModel",
+        "        DiffusionModel.__init__(self, graph, seed=seed)",
+        "        self.available_statuses = {}",
+        "        self.compartment = {}",
+        "        self.compartment_progressive = 0",
+        "        self.status_progressive = 0",
+        "        self.name = %r" % model_name,
+        "        self.declarations = %r" % declarations,
+        "        self.observables = %r" % observables,
+        "        self.discrete_state = True",
+        "        self.available_statuses = {"
+    ]
+
+    for idx, status in enumerate(statuses):
+        code.append("            %r: %d," % (status["name"], idx))
+    code.append("        }")
+    
+    code.append("        self.parameters = {")
+    code.append("            'model': {")
+    if uses_continuous_opinion_initialization:
+        code.append("                'initial_opinion_distribution': {")
+        code.append("                    'descr': 'Initial opinion distribution in [0, 1]',")
+        code.append("                    'choices': [")
+        code.append("                        {'value': 'uniform', 'label': 'Uniform'},")
+        code.append("                        {'value': 'normal', 'label': 'Normal'},")
+        code.append("                        {'value': 'gaussian', 'label': 'Gaussian'},")
+        code.append("                        {'value': 'bimodal', 'label': 'Bimodal'},")
+        code.append("                        {'value': 'left_skewed', 'label': 'Left skewed'},")
+        code.append("                        {'value': 'right_skewed', 'label': 'Right skewed'},")
+        code.append("                        {'value': 'polarized', 'label': 'Polarized'},")
+        code.append("                    ],")
+        code.append("                    'optional': True,")
+        code.append("                    'default': %r" % initial_opinion_distribution)
+        code.append("                },")
+    for status in statuses:
+        ratio = 0.0
+        for init in initial_status:
+            if init["status"] == status["name"]:
+                ratio = float(init.get("ratio", 0.0))
+        code.append("                'percentage_%s': {" % status["name"])
+        code.append("                    'descr': 'Initial percentage of %s nodes'," % status["name"])
+        code.append("                    'range': [0, 1],")
+        code.append("                    'optional': True,")
+        code.append("                    'default': %f" % ratio)
+        code.append("                },")
+    code.append("            },")
+    code.append("            'nodes': {},")
+    code.append("            'edges': {}")
+    code.append("        }")
+
+    code.append("")
+    code.append("        # Add statuses")
+    for status in statuses:
+        code.append("        self.add_status(%r)" % status["name"])
+
+    code.append("")
+    code.append("        # Define compartments")
+    # Sort compartments: simple dependency sorting for ConditionalComposition
+    sorted_comps = []
+    pending = list(compartments)
+    defined_names = set()
+    
+    for _ in range(10):
+        if not pending:
+            break
+        next_pending = []
+        for comp in pending:
+            comp_type = comp["type"]
+            params = comp.get("params", {})
+            
+            deps = []
+            if comp_type == "ConditionalComposition":
+                if params.get("condition"): deps.append(params["condition"])
+                if params.get("first_branch"): deps.append(params["first_branch"])
+                if params.get("second_branch"): deps.append(params["second_branch"])
+            
+            if all(d in defined_names for d in deps):
+                sorted_comps.append(comp)
+                defined_names.add(comp["name"])
+            else:
+                next_pending.append(comp)
+        pending = next_pending
+    for comp in pending:
+        sorted_comps.append(comp)
+
+    for comp in sorted_comps:
+        comp_name = comp["name"]
+        comp_type = comp["type"]
+        params = comp.get("params", {})
+        
+        reference_keys = {"condition", "first_branch", "second_branch", "if_true", "if_false", "composed"}
+        args = []
+        for k, v in params.items():
+            if k == "triggering_status":
+                args.append("triggering_status=%r" % v)
+            elif comp_type in {"ConditionalComposition", "Compose"} and k in reference_keys:
+                args.append("%s=%s" % (k, str(v)))
+            elif comp_type == "NodeNumericalVariable" and k in {"var_type", "value_type"}:
+                if v:
+                    args.append("%s=NumericalType.%s" % (k, str(v).upper()))
+            elif (comp_type in {"NodeNumericalAttribute", "EdgeNumericalAttribute"}) and k == "value" and params.get("op") == "IN" and isinstance(v, str) and "," in v:
+                try:
+                    lst = [float(x.strip()) for x in v.split(",")]
+                    args.append("value=%r" % lst)
+                except ValueError:
+                    args.append("value=%r" % v)
+            elif isinstance(v, str):
+                try:
+                    args.append("%s=%s" % (k, str(float(v))))
+                except ValueError:
+                    args.append("%s=%r" % (k, v))
+            else:
+                args.append("%s=%s" % (k, str(v)))
+        
+        if not is_known_compartment_type(comp_type):
+            raise ValueError("Unsupported compartment type '%s'" % comp_type)
+        code.append("        %s = %s(%s)" % (comp_name, comp_type, ", ".join(args)))
+
+    code.append("")
+    code.append("        # Define rules")
+    for rule in rules:
+        code.append("        self.add_rule(%r, %r, %s)" % (rule["from"], rule["to"], rule["using"]))
+
+    code.append("")
+    code.append("    def set_initial_status(self, configuration):")
+    code.append("        import numpy as np")
+    code.append("        configuration = configuration or None")
+    code.append("        model_params = configuration.get_model_parameters() if configuration is not None else {}")
+    code.append("        nodes_cfg = configuration.get_nodes_configuration() if configuration is not None else {}")
+    code.append("        edges_cfg = configuration.get_edges_configuration() if configuration is not None else {}")
+    code.append("        status_cfg = configuration.get_model_configuration() if configuration is not None else {}")
+    code.append("")
+    code.append("        self.params['nodes'] = {}")
+    code.append("        self.params['edges'] = {}")
+    code.append("        self.params['status'] = {}")
+    code.append("        self.params['model'] = {}")
+    code.append("")
+    code.append("        for param, param_info in self.parameters['model'].items():")
+    code.append("            self.params['model'][param] = model_params.get(param, param_info.get('default'))")
+    code.append("")
+    code.append("        for param, node_to_value in nodes_cfg.items():")
+    code.append("            if len(node_to_value) < len(self.graph.nodes):")
+    code.append("                raise ValueError({'message': 'Not all nodes have a configuration specified'})")
+    code.append("            self.params['nodes'][param] = node_to_value")
+    code.append("")
+    code.append("        for param, edge_to_values in edges_cfg.items():")
+    code.append("            if len(edge_to_values) == len(self.graph.edges):")
+    code.append("                self.params['edges'][param] = {}")
+    code.append("                for e in edge_to_values:")
+    code.append("                    self.params['edges'][param][e] = edge_to_values[e]")
+    code.append("")
+    code.append("        for status_name, nodes in status_cfg.items():")
+    code.append("            self.params['status'][status_name] = nodes")
+    code.append("            if status_name in self.available_statuses:")
+    code.append("                for node in nodes:")
+    code.append("                    self.status[node] = self.available_statuses[status_name]")
+    if uses_continuous_opinion_initialization:
+        code.append("")
+        code.append("        from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions")
+        code.append("        opinion_distribution = self.params['model'].get('initial_opinion_distribution', %r)" % initial_opinion_distribution)
+        code.append("        sampled_opinions = sample_initial_opinions(len(self.graph.nodes), opinion_distribution)")
+        code.append("        for node, opinion in zip(self.graph.nodes, sampled_opinions):")
+        code.append("            self.graph.nodes[node]['opinion'] = float(opinion)")
+    code.append("")
+    code.append("        pcts = {}")
+    code.append("        for status_name in self.available_statuses:")
+    code.append("            param_key = 'percentage_%s' % status_name")
+    code.append("            if param_key in self.params['model']:")
+    code.append("                pcts[status_name] = float(self.params['model'][param_key])")
+    code.append("        if pcts:")
+    code.append("            nodes = list(self.graph.nodes)")
+    code.append("            np.random.shuffle(nodes)")
+    code.append("            current_idx = 0")
+    code.append("            n_nodes = len(nodes)")
+    code.append("            for status_name, pct in pcts.items():")
+    code.append("                count = int(round(pct * n_nodes))")
+    code.append("                end_idx = min(current_idx + count, n_nodes)")
+    code.append("                for i in range(current_idx, end_idx):")
+    code.append("                    self.status[nodes[i]] = self.available_statuses[status_name]")
+    code.append("                current_idx = end_idx")
+    code.append("        self.initial_status = self.status.copy()")
+    code.append("        return self")
+    code.append("")
+
+    return "\n".join(code)
+
+
+def generate_continuous_opinion_custom_model_class(
+    model_data,
+    class_name,
+    statuses,
+    compartments,
+    rules,
+    initial_status,
+    initial_opinion_distribution,
+):
+    """
+    Generates a Python source string for continuous opinion custom models.
+    """
+    opinion_params = {
+        "distribution_spec": None,
+        "epsilon": None,
+        "gamma": None,
+        "mu": None,
+        "assimilation_rate": None,
+        "stubbornness": None,
+        "noise_sigma": None,
+        "repulsion_strength": None,
+        "bounded_drift_step": None,
+        "polarization_strength": None,
+        "external_target": None,
+        "external_strength": None,
+        "trust_threshold": None,
+        "consensus_mode": None,
+        "consensus_weight": None,
+        "memory_alpha": None,
+        "normalize_min": 0.0,
+        "normalize_max": 1.0,
+        "quantization_bins": None,
+        "media_weight": None,
+        "media_count": None,
+        "media_opinions": None,
+        "zealot_share": None,
+        "zealot_value": None,
+        "multi_topic_names": None,
+        "multi_topic_coupling": None,
+    }
+    opinion_block_names = {
+        "OpinionDistribution": None,
+        "OpinionDistanceThreshold": None,
+        "OpinionSelectionBias": None,
+        "OpinionCompromise": None,
+        "OpinionAssimilation": None,
+        "OpinionStubbornness": None,
+        "OpinionNoise": None,
+        "OpinionRepulsion": None,
+        "OpinionBoundedDrift": None,
+        "OpinionPolarization": None,
+        "OpinionExternalField": None,
+        "OpinionTrustFilter": None,
+        "OpinionConsensusBlock": None,
+        "OpinionMemory": None,
+        "OpinionNormalization": None,
+        "OpinionQuantization": None,
+        "OpinionMediaInfluence": None,
+        "OpinionZealot": None,
+        "OpinionMultiTopic": None,
+        "OpinionLabelSwitch": None,
+    }
+
+    for comp in compartments:
+        comp_type = comp.get("type")
+        params = comp.get("params", {})
+        if comp_type == "OpinionDistribution" and opinion_params["distribution_spec"] is None:
+            family = params.get("family", params.get("distribution", params.get("name", "uniform")))
+            bounds = params.get("bounds", [0.0, 1.0])
+            dist_params = {
+                k: v
+                for k, v in params.items()
+                if k not in {"family", "distribution", "bounds", "name"}
+            }
+            opinion_params["distribution_spec"] = {
+                "family": family,
+                "params": dist_params,
+                "bounds": bounds,
+            }
+            opinion_block_names[comp_type] = comp.get("name", "opinion_distribution")
+        if comp_type == "OpinionDistanceThreshold" and opinion_params["epsilon"] is None:
+            opinion_params["epsilon"] = clamp_unit_float(params.get("epsilon", 0.1), 0.1)
+            opinion_block_names[comp_type] = comp.get("name", "opinion_threshold")
+        elif comp_type == "OpinionSelectionBias" and opinion_params["gamma"] is None:
+            try:
+                opinion_params["gamma"] = max(0.0, float(params.get("gamma", 0.0)))
+            except (TypeError, ValueError):
+                opinion_params["gamma"] = 0.0
+            opinion_block_names[comp_type] = comp.get("name", "selection_bias")
+        elif comp_type == "OpinionCompromise" and opinion_params["mu"] is None:
+            opinion_params["mu"] = clamp_unit_float(params.get("mu", 0.5), 0.5)
+            opinion_block_names[comp_type] = comp.get("name", "compromise")
+        elif comp_type == "OpinionAssimilation" and opinion_params["assimilation_rate"] is None:
+            opinion_params["assimilation_rate"] = clamp_unit_float(params.get("rate", params.get("mu", 0.5)), 0.5)
+            opinion_block_names[comp_type] = comp.get("name", "assimilation")
+        elif comp_type == "OpinionStubbornness" and opinion_params["stubbornness"] is None:
+            opinion_params["stubbornness"] = clamp_unit_float(params.get("theta", params.get("stubbornness", 0.1)), 0.1)
+            opinion_block_names[comp_type] = comp.get("name", "stubbornness")
+        elif comp_type == "OpinionNoise" and opinion_params["noise_sigma"] is None:
+            try:
+                opinion_params["noise_sigma"] = max(0.0, float(params.get("sigma", params.get("noise_sigma", 0.0))))
+            except (TypeError, ValueError):
+                opinion_params["noise_sigma"] = 0.0
+            opinion_block_names[comp_type] = comp.get("name", "noise")
+        elif comp_type == "OpinionRepulsion" and opinion_params["repulsion_strength"] is None:
+            opinion_params["repulsion_strength"] = clamp_unit_float(params.get("strength", 0.1), 0.1)
+            opinion_block_names[comp_type] = comp.get("name", "repulsion")
+        elif comp_type == "OpinionBoundedDrift" and opinion_params["bounded_drift_step"] is None:
+            opinion_params["bounded_drift_step"] = clamp_unit_float(params.get("step", 0.1), 0.1)
+            opinion_block_names[comp_type] = comp.get("name", "bounded_drift")
+        elif comp_type == "OpinionPolarization" and opinion_params["polarization_strength"] is None:
+            opinion_params["polarization_strength"] = clamp_unit_float(params.get("strength", 0.0), 0.0)
+            opinion_block_names[comp_type] = comp.get("name", "polarization")
+        elif comp_type == "OpinionExternalField" and opinion_params["external_target"] is None:
+            opinion_params["external_target"] = clamp_unit_float(params.get("target", 0.5), 0.5)
+            opinion_params["external_strength"] = clamp_unit_float(params.get("strength", 0.0), 0.0)
+            opinion_block_names[comp_type] = comp.get("name", "external_field")
+        elif comp_type == "OpinionTrustFilter" and opinion_params["trust_threshold"] is None:
+            opinion_params["trust_threshold"] = clamp_unit_float(params.get("trust_threshold", params.get("epsilon", 0.1)), 0.1)
+            opinion_block_names[comp_type] = comp.get("name", "trust_filter")
+        elif comp_type == "OpinionConsensusBlock" and opinion_params["consensus_mode"] is None:
+            opinion_params["consensus_mode"] = str(params.get("mode", "mean"))
+            opinion_params["consensus_weight"] = clamp_unit_float(params.get("confidence", params.get("weight", 0.5)), 0.5)
+            opinion_block_names[comp_type] = comp.get("name", "consensus")
+        elif comp_type == "OpinionMemory" and opinion_params["memory_alpha"] is None:
+            opinion_params["memory_alpha"] = clamp_unit_float(params.get("alpha", params.get("memory_alpha", 0.5)), 0.5)
+            opinion_block_names[comp_type] = comp.get("name", "memory")
+        elif comp_type == "OpinionNormalization":
+            opinion_params["normalize_min"] = clamp_unit_float(params.get("min", 0.0), 0.0)
+            opinion_params["normalize_max"] = clamp_unit_float(params.get("max", 1.0), 1.0)
+            opinion_block_names[comp_type] = comp.get("name", "normalization")
+        elif comp_type == "OpinionQuantization" and opinion_params["quantization_bins"] is None:
+            try:
+                opinion_params["quantization_bins"] = max(2, int(params.get("bins", 10)))
+            except (TypeError, ValueError):
+                opinion_params["quantization_bins"] = 10
+            opinion_block_names[comp_type] = comp.get("name", "quantization")
+        elif comp_type == "OpinionMediaInfluence" and opinion_params["media_weight"] is None:
+            opinion_params["media_weight"] = clamp_unit_float(params.get("weight", params.get("media_weight", 0.5)), 0.5)
+            try:
+                opinion_params["media_count"] = max(1, int(params.get("k", params.get("media_count", 1))))
+            except (TypeError, ValueError):
+                opinion_params["media_count"] = 1
+            media_vals = params.get("media_opinions")
+            if isinstance(media_vals, list):
+                opinion_params["media_opinions"] = media_vals
+            opinion_block_names[comp_type] = comp.get("name", "media_influence")
+        elif comp_type == "OpinionZealot" and opinion_params["zealot_share"] is None:
+            opinion_params["zealot_share"] = clamp_unit_float(params.get("share", params.get("zealot_share", 0.0)), 0.0)
+            opinion_params["zealot_value"] = clamp_unit_float(params.get("fixed_value", params.get("value", 0.0)), 0.0)
+            opinion_block_names[comp_type] = comp.get("name", "zealot")
+        elif comp_type == "OpinionMultiTopic" and opinion_params["multi_topic_names"] is None:
+            topics = params.get("topics", [])
+            if isinstance(topics, str):
+                topics = [t.strip() for t in topics.split(",") if t.strip()]
+            opinion_params["multi_topic_names"] = topics if isinstance(topics, list) else []
+            opinion_params["multi_topic_coupling"] = clamp_unit_float(params.get("coupling", 0.0), 0.0)
+            opinion_block_names[comp_type] = comp.get("name", "multi_topic")
+        elif comp_type == "OpinionLabelSwitch":
+            opinion_block_names[comp_type] = comp.get("name", "label_switch")
+
+    code = [
+        "import numpy as np",
+        "from ndlib.models.DiffusionModel import DiffusionModel",
+        "from ndlib.models.compartments.Compartment import Compartiment",
+        "from ndlib.models.compartments.NDQLBlocks import Parameter, Constant, Variable, Distribution, Compose, Filter, Selector, Aggregator, Kernel, Transform, ClampNormalize, Schedule, Observe, ExposureRate, TransmissionKernel, DoseResponseBlock, LatencyPeriod, IncubationState, RecoveryKernel, WaningImmunity, VaccinationBlock, QuarantineBlock, TestingBlock, TreatmentBlock, HospitalizationBlock, MortalityBlock, ReinfectionBlock, StrainBlock, SuperSpreaderBlock, SeasonalityBlock, ImportationBlock, RewiringBlock, CommunityMixingBlock, EdgeActivationBlock, SeedSelection, NodeRoleAssignment, AttributeInitializer, GraphImport, CommunityAssignment, RuleAlias, PreviewObservable, ValidationHint, AttributeCoupling, OpinionAffectsInfection, OpinionAffectsRecovery, OpinionAffectsContactRate, InfectionAffectsOpinion, StatusDependentOpinionUpdate, EpidemicDependentBias, PolicyIntervention, CommunityCoupling, OpinionDistribution, OpinionStubbornness, OpinionNoise, OpinionPolarization, OpinionMediaInfluence, OpinionTrustFilter, OpinionConsensusBlock, OpinionRepulsion, OpinionAssimilation, OpinionExternalField, OpinionMultiTopic, OpinionLabelSwitch, OpinionBoundedDrift, _safe_eval, _clamp, _graph_iteration",
+        "from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions",
+        "",
+        "class %s(DiffusionModel):" % class_name,
+        "    def __init__(self, graph, seed=None):",
+        "        super().__init__(graph, seed)",
+        "        self.discrete_state = False",
+        "        self.available_statuses = {'Opinion': 0}",
+        "        self.parameters = {",
+        "            'model': {",
+        "                'initial_opinion_distribution': {",
+        "                    'descr': 'Initial opinion distribution in [0, 1]',",
+        "                    'choices': [",
+        "                        {'value': 'uniform', 'label': 'Uniform'},",
+        "                        {'value': 'normal', 'label': 'Normal'},",
+        "                        {'value': 'gaussian', 'label': 'Gaussian'},",
+        "                        {'value': 'bimodal', 'label': 'Bimodal'},",
+        "                        {'value': 'left_skewed', 'label': 'Left skewed'},",
+        "                        {'value': 'right_skewed', 'label': 'Right skewed'},",
+        "                        {'value': 'polarized', 'label': 'Polarized'},",
+        "                    ],",
+        "                    'optional': True,",
+        "                    'default': %r" % initial_opinion_distribution,
+        "                },",
+    ]
+    if opinion_params["epsilon"] is not None:
+        code.extend([
+            "                'epsilon': {",
+            "                    'descr': 'Opinion distance threshold (bounded confidence)',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["epsilon"])),
+            "                },",
+        ])
+    if opinion_params["gamma"] is not None:
+        code.extend([
+            "                'gamma': {",
+            "                    'descr': 'Opinion selection bias',",
+            "                    'range': [0, 100],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["gamma"])),
+            "                },",
+        ])
+    if opinion_params["mu"] is not None:
+        code.extend([
+        "                'mu': {",
+        "                    'descr': 'Opinion compromise strength',",
+        "                    'range': [0, 1],",
+        "                    'optional': True,",
+        "                    'default': %s" % repr(float(opinion_params["mu"])),
+        "                },",
+        ])
+    if opinion_params["stubbornness"] is not None:
+        code.extend([
+            "                'stubbornness': {",
+            "                    'descr': 'Opinion stubbornness',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["stubbornness"])),
+            "                },",
+        ])
+    if opinion_params["noise_sigma"] is not None:
+        code.extend([
+            "                'noise_sigma': {",
+            "                    'descr': 'Opinion update noise sigma',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["noise_sigma"])),
+            "                },",
+        ])
+    if opinion_params["polarization_strength"] is not None:
+        code.extend([
+            "                'polarization_strength': {",
+            "                    'descr': 'Opinion polarization strength',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["polarization_strength"])),
+            "                },",
+        ])
+    if opinion_params["external_target"] is not None:
+        code.extend([
+            "                'external_target': {",
+            "                    'descr': 'External field target opinion',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["external_target"])),
+            "                },",
+            "                'external_strength': {",
+            "                    'descr': 'External field strength',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["external_strength"])),
+            "                },",
+        ])
+    if opinion_params["trust_threshold"] is not None:
+        code.extend([
+            "                'trust_threshold': {",
+            "                    'descr': 'Trust threshold for opinion influence',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["trust_threshold"])),
+            "                },",
+        ])
+    if opinion_params["memory_alpha"] is not None:
+        code.extend([
+            "                'memory_alpha': {",
+            "                    'descr': 'Opinion memory strength',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["memory_alpha"])),
+            "                },",
+        ])
+    if opinion_params["quantization_bins"] is not None:
+        code.extend([
+            "                'quantization_bins': {",
+            "                    'descr': 'Opinion quantization bins',",
+            "                    'range': [2, 1000],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(int(opinion_params["quantization_bins"])),
+            "                },",
+        ])
+    if opinion_params["media_weight"] is not None:
+        code.extend([
+            "                'media_weight': {",
+            "                    'descr': 'Weight applied to media influence',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["media_weight"])),
+            "                },",
+        ])
+    if opinion_params["media_count"] is not None:
+        code.extend([
+            "                'k': {",
+            "                    'descr': 'Number of media sources',",
+            "                    'range': [1, 1000],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(int(opinion_params["media_count"])),
+            "                },",
+            "                'media_count': {",
+            "                    'descr': 'Number of media sources',",
+            "                    'range': [1, 1000],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(int(opinion_params["media_count"])),
+            "                },",
+        ])
+    if opinion_params["media_opinions"] is not None:
+        code.extend([
+            "                'media_opinions': {",
+            "                    'descr': 'Opinion values for each media source',",
+            "                    'optional': True,",
+            "                    'default': %r" % opinion_params["media_opinions"],
+            "                },",
+        ])
+    if opinion_params["zealot_share"] is not None:
+        code.extend([
+            "                'zealot_share': {",
+            "                    'descr': 'Share of immutable zealot nodes',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["zealot_share"])),
+            "                },",
+            "                'zealot_value': {",
+            "                    'descr': 'Fixed zealot opinion value',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["zealot_value"])),
+            "                },",
+        ])
+    if opinion_params["multi_topic_names"] is not None:
+        code.extend([
+            "                'multi_topic_names': {",
+            "                    'descr': 'Topics tracked by the opinion multi-topic block',",
+            "                    'optional': True,",
+            "                    'default': %r" % opinion_params["multi_topic_names"],
+            "                },",
+            "                'multi_topic_coupling': {",
+            "                    'descr': 'Coupling among opinion topics',",
+            "                    'range': [0, 1],",
+            "                    'optional': True,",
+            "                    'default': %s" % repr(float(opinion_params["multi_topic_coupling"] if opinion_params["multi_topic_coupling"] is not None else 0.0)),
+            "                },",
+        ])
+    code.extend([
+        "            },",
+        "            'nodes': {},",
+        "            'edges': {}",
+        "        }",
+        "        self.name = %r" % model_data.get("name", "CustomModel"),
+        "        self.declarations = %r" % model_data.get("declarations", []),
+        "        self.observables = %r" % model_data.get("observables", []),
+        "        self.update_rules = %r" % model_data.get("updates", []),
+        "        self.continuous_blocks = {",
+        "            'distribution': %r," % opinion_block_names["OpinionDistribution"],
+        "            'distance_threshold': %r," % opinion_block_names["OpinionDistanceThreshold"],
+        "            'selection_bias': %r," % opinion_block_names["OpinionSelectionBias"],
+        "            'compromise': %r," % opinion_block_names["OpinionCompromise"],
+        "            'assimilation': %r," % opinion_block_names["OpinionAssimilation"],
+        "            'stubbornness': %r," % opinion_block_names["OpinionStubbornness"],
+        "            'noise': %r," % opinion_block_names["OpinionNoise"],
+        "            'repulsion': %r," % opinion_block_names["OpinionRepulsion"],
+        "            'bounded_drift': %r," % opinion_block_names["OpinionBoundedDrift"],
+        "            'polarization': %r," % opinion_block_names["OpinionPolarization"],
+        "            'external_field': %r," % opinion_block_names["OpinionExternalField"],
+        "            'trust_filter': %r," % opinion_block_names["OpinionTrustFilter"],
+        "            'consensus': %r," % opinion_block_names["OpinionConsensusBlock"],
+        "            'memory': %r," % opinion_block_names["OpinionMemory"],
+        "            'normalization': %r," % opinion_block_names["OpinionNormalization"],
+        "            'quantization': %r," % opinion_block_names["OpinionQuantization"],
+        "            'media_influence': %r," % opinion_block_names["OpinionMediaInfluence"],
+        "            'multi_topic': %r," % opinion_block_names["OpinionMultiTopic"],
+        "            'label_switch': %r," % opinion_block_names["OpinionLabelSwitch"],
+        "            'zealot': %r" % opinion_block_names["OpinionZealot"],
+        "        }",
+        "",
+        "    def set_initial_status(self, configuration=None):",
+        "        import numpy as np",
+        "        configuration = configuration or None",
+        "        model_params = configuration.get_model_parameters() if configuration is not None else {}",
+        "        self.params['nodes'] = {}",
+        "        self.params['edges'] = {}",
+        "        self.params['status'] = {}",
+        "        self.params['model'] = {}",
+        "        for param, param_info in self.parameters['model'].items():",
+        "            self.params['model'][param] = model_params.get(param, param_info.get('default'))",
+        "        from ndlib.models.opinions.initial_opinion_distribution import sample_initial_opinions",
+        "        opinions = sample_initial_opinions(",
+        "            len(self.status),",
+        "            self.params['model'].get('initial_opinion_distribution', %r)," % initial_opinion_distribution,
+        "        )",
+        "        zealot_share = float(self.params['model'].get('zealot_share', 0.0) or 0.0)",
+        "        zealot_value = float(self.params['model'].get('zealot_value', 0.0) or 0.0)",
+        "        zealot_nodes = set()",
+        "        if zealot_share > 0.0:",
+        "            node_ids = list(self.status.keys())",
+        "            zealot_count = int(round(len(node_ids) * zealot_share))",
+        "            zealot_count = max(0, min(len(node_ids), zealot_count))",
+        "            if zealot_count > 0:",
+        "                zealot_nodes = set(np.random.choice(node_ids, zealot_count, replace=False))",
+        "        self.zealot_nodes = zealot_nodes",
+        "        self.zealot_value = zealot_value",
+        "        for node, opinion in zip(self.status, opinions):",
+        "            self.status[node] = float(opinion)",
+        "            if node in zealot_nodes:",
+        "                self.status[node] = zealot_value",
+        "            self.graph.nodes[node]['opinion'] = float(self.status[node])",
+        "        self.initial_status = self.status.copy()",
+        "        return self",
+        "",
+        "    def _select_neighbor(self, node, actual_status):",
+        "        import numpy as np",
+        "        neighbors = list(self.graph.neighbors(node))",
+        "        if self.graph.directed:",
+        "            neighbors = list(self.graph.predecessors(node))",
+        "        neighbors = [n for n in neighbors if n in actual_status]",
+        "        if not neighbors:",
+        "            return None",
+        "        gamma = self.params['model'].get('gamma', %s)" % repr(float(opinion_params["gamma"] if opinion_params["gamma"] is not None else 0.0)),
+        "        if gamma <= 0:",
+        "            return neighbors[np.random.randint(0, len(neighbors))]",
+        "        opinions = np.array([actual_status[neigh] for neigh in neighbors], dtype=float)",
+        "        diff = np.abs(opinions - float(actual_status[node]))",
+        "        weights = np.power(np.maximum(diff, 1e-5), -gamma)",
+        "        total = float(np.sum(weights))",
+        "        if not np.isfinite(total) or total <= 0:",
+        "            return neighbors[np.random.randint(0, len(neighbors))]",
+        "        weights = weights / total",
+        "        return neighbors[np.random.choice(len(neighbors), p=weights)]",
+        "",
+        "    def iteration(self, node_status=True):",
+        "        import numpy as np",
+        "        actual_status = self.status.copy()",
+        "        if self.actual_iteration == 0:",
+        "            self.actual_iteration += 1",
+        "            if node_status:",
+        "                return {'iteration': 0, 'status': actual_status.copy(), 'node_count': {}, 'status_delta': {}}",
+        "            return {'iteration': 0, 'status': {}, 'node_count': {}, 'status_delta': {}}",
+        "",
+        "        epsilon = self.params['model'].get('epsilon', %s)" % repr(float(opinion_params["epsilon"] if opinion_params["epsilon"] is not None else 0.1)),
+        "        mu = self.params['model'].get('mu', %s)" % repr(float(opinion_params["mu"] if opinion_params["mu"] is not None else 0.5)),
+        "        assimilation_rate = self.params['model'].get('assimilation_rate', %s)" % repr(float(opinion_params["assimilation_rate"] if opinion_params["assimilation_rate"] is not None else 0.5)),
+        "        stubbornness = self.params['model'].get('stubbornness', %s)" % repr(float(opinion_params["stubbornness"] if opinion_params["stubbornness"] is not None else 0.0)),
+        "        noise_sigma = self.params['model'].get('noise_sigma', %s)" % repr(float(opinion_params["noise_sigma"] if opinion_params["noise_sigma"] is not None else 0.0)),
+        "        repulsion_strength = self.params['model'].get('repulsion_strength', %s)" % repr(float(opinion_params["repulsion_strength"] if opinion_params["repulsion_strength"] is not None else 0.0)),
+        "        bounded_drift_step = self.params['model'].get('bounded_drift_step', %s)" % repr(float(opinion_params["bounded_drift_step"] if opinion_params["bounded_drift_step"] is not None else 0.0)),
+        "        polarization_strength = self.params['model'].get('polarization_strength', %s)" % repr(float(opinion_params["polarization_strength"] if opinion_params["polarization_strength"] is not None else 0.0)),
+        "        external_target = self.params['model'].get('external_target', %s)" % repr(float(opinion_params["external_target"] if opinion_params["external_target"] is not None else 0.5)),
+        "        external_strength = self.params['model'].get('external_strength', %s)" % repr(float(opinion_params["external_strength"] if opinion_params["external_strength"] is not None else 0.0)),
+        "        trust_threshold = self.params['model'].get('trust_threshold', %s)" % repr(float(opinion_params["trust_threshold"] if opinion_params["trust_threshold"] is not None else 1.0)),
+        "        consensus_mode = str(self.params['model'].get('consensus_mode', %r))" % (opinion_params["consensus_mode"] if opinion_params["consensus_mode"] is not None else "mean"),
+        "        consensus_weight = self.params['model'].get('consensus_weight', %s)" % repr(float(opinion_params["consensus_weight"] if opinion_params["consensus_weight"] is not None else 0.5)),
+        "        memory_alpha = self.params['model'].get('memory_alpha', %s)" % repr(float(opinion_params["memory_alpha"] if opinion_params["memory_alpha"] is not None else 0.0)),
+        "        quantization_bins = int(self.params['model'].get('quantization_bins', %s))" % repr(int(opinion_params["quantization_bins"] if opinion_params["quantization_bins"] is not None else 0)),
+        "        media_weight = self.params['model'].get('media_weight', %s)" % repr(float(opinion_params["media_weight"] if opinion_params["media_weight"] is not None else 0.0)),
+        "        media_count = int(self.params['model'].get('k', self.params['model'].get('media_count', %s)))" % repr(int(opinion_params["media_count"] if opinion_params["media_count"] is not None else 0)),
+        "        media_opinions = self.params['model'].get('media_opinions', %r)" % (opinion_params["media_opinions"] if opinion_params["media_opinions"] is not None else []),
+        "        if not isinstance(media_opinions, (list, tuple)):",
+        "            media_opinions = []",
+        "        if media_count > 0 and len(media_opinions) < media_count:",
+        "            while len(media_opinions) < media_count:",
+        "                media_opinions.append(float(len(media_opinions)) / float(max(1, media_count - 1)) if media_count > 1 else 0.5)",
+        "        media_opinions = [float(np.clip(v, 0.0, 1.0)) for v in media_opinions[:max(0, media_count or len(media_opinions))]]",
+        "        multi_topic_names = self.params['model'].get('multi_topic_names', %r)" % (opinion_params["multi_topic_names"] if opinion_params["multi_topic_names"] is not None else []),
+        "        if isinstance(multi_topic_names, str):",
+        "            multi_topic_names = [t.strip() for t in multi_topic_names.split(',') if t.strip()]",
+        "        multi_topic_coupling = self.params['model'].get('multi_topic_coupling', %s)" % repr(float(opinion_params["multi_topic_coupling"] if opinion_params["multi_topic_coupling"] is not None else 0.0)),
+        "        nodes_list = list(actual_status.keys())",
+        "        if not nodes_list:",
+        "            return {'iteration': self.actual_iteration - 1, 'status': {}, 'node_count': {}, 'status_delta': {}}",
+        "        for _ in range(len(nodes_list)):",
+        "            node = nodes_list[np.random.randint(0, len(nodes_list))]",
+        "            if hasattr(self, 'zealot_nodes') and node in self.zealot_nodes:",
+        "                continue",
+        "            neighbor = self._select_neighbor(node, actual_status)",
+        "            if neighbor is None:",
+        "                continue",
+        "            diff = abs(float(actual_status[node]) - float(actual_status[neighbor]))",
+        "            node_val = float(actual_status[node])",
+        "            neigh_val = float(actual_status[neighbor])",
+        "            trust_gate = min(epsilon, trust_threshold)",
+        "            if diff <= trust_gate:",
+        "                avg_val = float(np.clip(0.5 * (node_val + neigh_val), 0.0, 1.0))",
+        "                node_val = float(np.clip(node_val + mu * (neigh_val - node_val), 0.0, 1.0))",
+        "                neigh_val = float(np.clip(neigh_val + assimilation_rate * (avg_val - neigh_val), 0.0, 1.0))",
+        "                if consensus_mode.lower() in {'mean', 'average', 'consensus'}:",
+        "                    consensus_val = float(np.clip(consensus_weight * avg_val + (1.0 - consensus_weight) * node_val, 0.0, 1.0))",
+        "                    node_val = consensus_val",
+        "                    neigh_val = consensus_val",
+        "            elif repulsion_strength > 0.0:",
+        "                if node_val >= neigh_val:",
+        "                    node_val = float(np.clip(node_val + repulsion_strength * (1.0 - neigh_val), 0.0, 1.0))",
+        "                else:",
+        "                    node_val = float(np.clip(node_val - repulsion_strength * neigh_val, 0.0, 1.0))",
+        "            elif polarization_strength > 0.0:",
+        "                if node_val >= neigh_val:",
+        "                    node_val = float(np.clip(node_val + polarization_strength * (1.0 - node_val), 0.0, 1.0))",
+        "                else:",
+        "                    node_val = float(np.clip(node_val - polarization_strength * node_val, 0.0, 1.0))",
+        "            if noise_sigma > 0.0:",
+        "                node_val = float(np.clip(np.random.normal(node_val, noise_sigma), 0.0, 1.0))",
+        "            if external_strength > 0.0:",
+        "                node_val = float(np.clip(node_val + external_strength * (external_target - node_val), 0.0, 1.0))",
+        "            if stubbornness > 0.0 and node in self.initial_status:",
+        "                node_val = float(np.clip((1.0 - stubbornness) * node_val + stubbornness * float(self.initial_status[node]), 0.0, 1.0))",
+        "            actual_status[node] = node_val",
+        "            actual_status[neighbor] = neigh_val",
+        "        if quantization_bins and quantization_bins > 1:",
+        "            step = 1.0 / float(quantization_bins - 1)",
+        "            for node in actual_status:",
+        "                actual_status[node] = float(np.clip(round(actual_status[node] / step) * step, 0.0, 1.0))",
+        "        if media_weight > 0.0 and media_opinions:",
+        "            media_vals = np.clip(np.asarray(media_opinions, dtype=float), 0.0, 1.0)",
+        "            for node in actual_status:",
+        "                if hasattr(self, 'zealot_nodes') and node in self.zealot_nodes:",
+        "                    continue",
+        "                target_media = float(np.mean(media_vals))",
+        "                actual_status[node] = float(np.clip((1.0 - media_weight) * actual_status[node] + media_weight * target_media, 0.0, 1.0))",
+        "        if multi_topic_names:",
+        "            for node in actual_status:",
+        "                node_topics = self.graph.nodes[node].get('opinion_vector') or {}",
+        "                if not isinstance(node_topics, dict):",
+        "                    node_topics = {}",
+        "                for topic in multi_topic_names:",
+        "                    topic_val = float(np.clip(actual_status[node] + multi_topic_coupling * (0.5 - actual_status[node]), 0.0, 1.0))",
+        "                    node_topics[topic] = topic_val",
+        "                    self.graph.nodes[node][topic] = topic_val",
+        "                self.graph.nodes[node]['opinion_vector'] = node_topics",
+        "                if node_topics:",
+        "                    actual_status[node] = float(np.mean(list(node_topics.values())))",
+        "        normalize_min = float(self.params['model'].get('normalize_min', 0.0))",
+        "        normalize_max = float(self.params['model'].get('normalize_max', 1.0))",
+        "        if normalize_max > normalize_min:",
+        "            for node in actual_status:",
+        "                if hasattr(self, 'zealot_nodes') and node in self.zealot_nodes:",
+        "                    continue",
+        "                actual_status[node] = float(np.clip(actual_status[node], normalize_min, normalize_max))",
+        "        update_rules = self.update_rules if hasattr(self, 'update_rules') else []",
+        "        if update_rules:",
+        "            iteration_index = int(self.actual_iteration)",
+        "            for node in list(actual_status.keys()):",
+        "                context = {",
+        "                    'node': node,",
+        "                    'graph': self.graph,",
+        "                    'status': actual_status,",
+        "                    'params': self.params,",
+        "                    'model': self.params.get('model', {}),",
+        "                    'iteration': iteration_index,",
+        "                    'opinion': actual_status.get(node, 0.0),",
+        "                    'value': actual_status.get(node, 0.0),",
+        "                    'np': np,",
+        "                    'math': __import__('math'),",
+        "                }",
+        "                for rule in update_rules:",
+        "                    if not isinstance(rule, dict):",
+        "                        continue",
+        "                    schedule = rule.get('schedule')",
+        "                    if isinstance(schedule, dict):",
+        "                        start = int(schedule.get('start', 0) or 0)",
+        "                        end = int(schedule.get('end', iteration_index) or iteration_index)",
+        "                        period = int(schedule.get('period', 1) or 1)",
+        "                        phase = int(schedule.get('phase', 0) or 0)",
+        "                        if iteration_index < start or iteration_index > end:",
+        "                            continue",
+        "                        if period > 1 and ((iteration_index - phase) % period) != 0:",
+        "                            continue",
+        "                    when_expr = rule.get('when')",
+        "                    if when_expr is not None and not bool(__import__('ndlib.models.compartments.NDQLBlocks', fromlist=['_safe_eval'])._safe_eval(when_expr, context, default=False)):",
+        "                        continue",
+        "                    target_name = str(rule.get('target', 'opinion'))",
+        "                    expression = rule.get('expression', 'opinion')",
+        "                    value = __import__('ndlib.models.compartments.NDQLBlocks', fromlist=['_safe_eval'])._safe_eval(expression, context, default=context.get(target_name, context.get('opinion', 0.0)))",
+        "                    if value is None:",
+        "                        continue",
+        "                    if target_name == 'opinion':",
+        "                        value = float(np.clip(value, 0.0, 1.0))",
+        "                        actual_status[node] = value",
+        "                        self.graph.nodes[node]['opinion'] = value",
+        "                    else:",
+        "                        self.graph.nodes[node][target_name] = value",
+        "                    context[target_name] = value",
+        "                    context['opinion'] = actual_status.get(node, context.get('opinion', 0.0))",
+        "        for node, opinion in actual_status.items():",
+        "            self.graph.nodes[node]['opinion'] = float(opinion)",
+        "        self.status = actual_status",
+        "        self.actual_iteration += 1",
+        "        if node_status:",
+        "            return {'iteration': self.actual_iteration - 1, 'status': actual_status.copy(), 'node_count': {}, 'status_delta': {}}",
+        "        return {'iteration': self.actual_iteration - 1, 'status': {}, 'node_count': {}, 'status_delta': {}}",
+    ])
+
+    return "\n".join(code)
+
+
+def generate_ndql_script(model_data):
+    """
+    Generates a standard NDQL query string from custom visual model JSON data.
+    """
+    model_name = model_data.get("name", "CustomModel")
+    statuses = model_data.get("statuses", [])
+    compartments = model_data.get("compartments", [])
+    rules = model_data.get("rules", [])
+    initial_status = model_data.get("initial_status", [])
+    declarations = model_data.get("declarations", [])
+    observables = model_data.get("observables", [])
+    updates = model_data.get("updates", [])
+    continuous_opinion_mode = bool(
+        model_data.get("use_case") == "continuous_opinions"
+        or model_data.get("template_id") == "algorithmic_bias"
+        or any(comp.get("type") in CONTINUOUS_OPINION_BLOCK_TYPES for comp in compartments)
+    )
+
+    if continuous_opinion_mode:
+        ndql = []
+        ndql.append("MODEL %s" % model_name)
+        ndql.append("TYPE CONTINUOUS_OPINION")
+        ndql.append("INITIAL_OPINION_DISTRIBUTION %s" % format_ndql_value(model_data.get("initial_opinion_distribution", "uniform")))
+        ndql.append("")
+
+        for declaration in declarations:
+            if declaration.get("kind", "").upper() in {"STATUS", "BIN"}:
+                continue
+            ndql.append(serialize_ndql_declaration(declaration))
+        if declarations:
+            ndql.append("")
+
+        continuous_ndql_params = {
+            "OpinionDistribution": (None, None),
+            "OpinionDistanceThreshold": ("epsilon", "0.1"),
+            "OpinionSelectionBias": ("gamma", "0.0"),
+            "OpinionCompromise": ("mu", "0.5"),
+            "OpinionAssimilation": ("rate", "0.5"),
+            "OpinionStubbornness": ("theta", "0.1"),
+            "OpinionNoise": ("sigma", "0.0"),
+            "OpinionRepulsion": ("strength", "0.1"),
+            "OpinionBoundedDrift": ("step", "0.1"),
+            "OpinionPolarization": ("strength", "0.0"),
+            "OpinionExternalField": ("target", "0.5"),
+            "OpinionTrustFilter": ("trust_threshold", "0.1"),
+            "OpinionConsensusBlock": ("mode", "mean"),
+            "OpinionMemory": ("alpha", "0.5"),
+            "OpinionNormalization": (None, None),
+            "OpinionQuantization": ("bins", "10"),
+            "OpinionMediaInfluence": ("weight", "0.5"),
+            "OpinionZealot": ("share", "0.0"),
+            "OpinionMultiTopic": ("topics", []),
+            "OpinionLabelSwitch": ("probability", "0.5"),
+        }
+
+        for comp in compartments:
+            comp_type = comp.get("type")
+            params = comp.get("params", {})
+            if comp_type in continuous_ndql_params:
+                ndql.append("BLOCK %s" % comp.get("name", comp_type))
+                ndql.append("TYPE %s" % comp_type)
+                param_name, fallback = continuous_ndql_params[comp_type]
+                if comp_type == "OpinionDistribution":
+                    ndql.append("PARAM family %s" % params.get("family", params.get("distribution", "uniform")))
+                    if params.get("params") is not None:
+                        ndql.append("PARAM params %s" % format_ndql_value(params.get("params")))
+                    if params.get("bounds") is not None:
+                        ndql.append("PARAM bounds %s" % format_ndql_value(params.get("bounds")))
+                elif comp_type == "OpinionNormalization":
+                    ndql.append("PARAM min %s" % params.get("min", 0.0))
+                    ndql.append("PARAM max %s" % params.get("max", 1.0))
+                elif comp_type == "OpinionExternalField":
+                    ndql.append("PARAM target %s" % params.get("target", 0.5))
+                    ndql.append("PARAM strength %s" % params.get("strength", 0.0))
+                elif comp_type == "OpinionAssimilation":
+                    ndql.append("PARAM rate %s" % params.get("rate", params.get("mu", 0.5)))
+                elif comp_type == "OpinionRepulsion":
+                    ndql.append("PARAM strength %s" % params.get("strength", 0.1))
+                elif comp_type == "OpinionBoundedDrift":
+                    ndql.append("PARAM step %s" % params.get("step", 0.1))
+                    if params.get("bounds") is not None:
+                        ndql.append("PARAM bounds %s" % format_ndql_value(params.get("bounds")))
+                elif comp_type == "OpinionConsensusBlock":
+                    ndql.append("PARAM mode %s" % format_ndql_value(params.get("mode", "mean")))
+                    ndql.append("PARAM confidence %s" % params.get("confidence", params.get("weight", 0.5)))
+                elif comp_type == "OpinionZealot":
+                    ndql.append("PARAM share %s" % params.get("share", 0.0))
+                    ndql.append("PARAM fixed_value %s" % params.get("fixed_value", params.get("value", 0.0)))
+                elif comp_type == "OpinionMediaInfluence":
+                    ndql.append("PARAM weight %s" % params.get("weight", 0.5))
+                    ndql.append("PARAM k %s" % params.get("k", params.get("media_count", 1)))
+                    if params.get("media_opinions") is not None:
+                        ndql.append("PARAM media_opinions %s" % format_ndql_value(params.get("media_opinions")))
+                elif comp_type == "OpinionMultiTopic":
+                    ndql.append("PARAM topics %s" % format_ndql_value(params.get("topics", [])))
+                    ndql.append("PARAM coupling %s" % params.get("coupling", 0.0))
+                elif comp_type == "OpinionLabelSwitch":
+                    ndql.append("PARAM probability %s" % params.get("probability", 0.5))
+                    if params.get("triggering_status") is not None:
+                        ndql.append("PARAM triggering_status %s" % format_ndql_value(params.get("triggering_status")))
+                elif param_name is not None:
+                    ndql.append("PARAM %s %s" % (param_name, params.get(param_name, fallback)))
+                ndql.append("")
+            elif comp_type == "NodeNumericalVariable" and params.get("var") == "opinion" and params.get("var_type") == "ATTRIBUTE":
+                ndql.append("BLOCK %s" % comp.get("name", comp_type))
+                ndql.append("TYPE OpinionGate")
+                ndql.append("PARAM variable opinion")
+                ndql.append("PARAM operator %s" % params.get("op", ">="))
+                ndql.append("PARAM threshold %s" % params.get("value", 0.5))
+                ndql.append("")
+            elif comp_type:
+                ndql.append("BLOCK %s" % comp.get("name", comp_type))
+                ndql.append("TYPE %s" % comp_type)
+                for key, value in params.items():
+                    ndql.append("PARAM %s %s" % (key, format_ndql_value(value)))
+                ndql.append("")
+
+        for obs in observables:
+            ndql.append(serialize_ndql_observable(obs))
+        if observables:
+            ndql.append("")
+
+        for update in updates:
+            ndql.extend(serialize_ndql_update(update))
+            ndql.append("")
+
+        return "\n".join(ndql)
+
+    ndql = []
+    ndql.append("MODEL %s" % model_name)
+    ndql.append("")
+
+    for declaration in declarations:
+        if declaration.get("kind", "").upper() in {"STATUS", "BIN"}:
+            continue
+        ndql.append(serialize_ndql_declaration(declaration))
+    if declarations:
+        ndql.append("")
+
+    for status in statuses:
+        ndql.append("STATUS %s" % status["name"])
+    ndql.append("")
+
+    # Sort compartments: simple dependency sorting for ConditionalComposition
+    sorted_comps = []
+    pending = list(compartments)
+    defined_names = set()
+
+    for _ in range(10):
+        if not pending:
+            break
+        next_pending = []
+        for comp in pending:
+            comp_type = comp["type"]
+            params = comp.get("params", {})
+            deps = []
+            if comp_type == "ConditionalComposition":
+                if params.get("condition"):
+                    deps.append(params["condition"])
+                if params.get("first_branch"):
+                    deps.append(params["first_branch"])
+                if params.get("second_branch"):
+                    deps.append(params["second_branch"])
+            if all(d in defined_names for d in deps):
+                sorted_comps.append(comp)
+                defined_names.add(comp["name"])
+            else:
+                next_pending.append(comp)
+        pending = next_pending
+    sorted_comps.extend(pending)
+
+    for comp in sorted_comps:
+        if comp["type"] == "ConditionalComposition":
+            params = comp.get("params", {})
+            condition = params.get("condition", "")
+            ndql.append(
+                "IF %s THEN %s ELSE %s AS %s"
+                % (
+                    condition,
+                    params.get("first_branch", ""),
+                    params.get("second_branch", ""),
+                    comp["name"],
+                )
+            )
+            ndql.append("")
+        elif comp["type"] == "Compose":
+            ndql.append("BLOCK %s" % comp["name"])
+            ndql.append("TYPE Compose")
+            params = comp.get("params", {})
+            if "condition" in params:
+                ndql.append("PARAM condition %s" % params["condition"])
+            if "if_true" in params:
+                ndql.append("PARAM if_true %s" % params["if_true"])
+            if "if_false" in params:
+                ndql.append("PARAM if_false %s" % params["if_false"])
+            if "first_branch" in params:
+                ndql.append("PARAM first_branch %s" % params["first_branch"])
+            if "second_branch" in params:
+                ndql.append("PARAM second_branch %s" % params["second_branch"])
+            ndql.append("")
+        else:
+            ndql.append("COMPARTMENT %s" % comp["name"])
+            ndql.append("TYPE %s" % comp["type"])
+            params = comp.get("params", {})
+            if comp["type"] == "NodeNumericalVariable" and params.get("var") == "opinion" and params.get("var_type") == "ATTRIBUTE":
+                ndql.append("OPINION_VARIABLE opinion")
+                ndql.append("OPINION_INITIALIZATION %s" % model_data.get("initial_opinion_distribution", "uniform"))
+            if "triggering_status" in params:
+                ndql.append("TRIGGER %s" % params["triggering_status"])
+            for k, v in params.items():
+                if k != "triggering_status":
+                    ndql.append("PARAM %s %s" % (k, str(v)))
+            ndql.append("")
+
+    for rule in rules:
+        ndql.append("RULE")
+        ndql.append("FROM %s" % rule["from"])
+        ndql.append("TO %s" % rule["to"])
+        ndql.append("USING %s" % rule["using"])
+        ndql.append("")
+
+    for update in updates:
+        ndql.extend(serialize_ndql_update(update))
+        ndql.append("")
+
+    ndql.append("INITIALIZE")
+    for init in initial_status:
+        ndql.append("SET %s %s" % (init["status"], str(init.get("ratio", 0.0))))
+    ndql.append("")
+
+    for obs in observables:
+        ndql.append(serialize_ndql_observable(obs))
+    if observables:
+        ndql.append("")
+
+    return "\n".join(ndql)
+
+
+def sanitize_model_name(model_name):
+    return "".join(c for c in str(model_name or "") if c.isalnum() or c == "_")
+
+
 def discover_models():
     models = {}
     exclude_classes = ["DiffusionModel", "Configuration", "ConfigurationException", "ContinuousModel", "DynamicDiffusionModel"]
+    epidemic_display_names = {
+        "GeneralThresholdModel": "General Threshold",
+        "GeneralisedThresholdModel": "Generalised Threshold",
+        "KerteszThresholdModel": "Kertész Threshold",
+        "SEIRctModel": "SEIR (ct)",
+        "SEISctModel": "SEIS (ct)",
+    }
+    epidemic_group_order = {
+        "Core Epidemic Models": 10,
+        "Threshold and Cascade Models": 20,
+        "Community-Based Models": 30,
+    }
+    epidemic_group_map = {
+        "Core Epidemic Models": {
+            "SIModel", "SISModel", "SIRModel", "SIRSModel", "SIRDModel", "SAIRModel",
+            "SEIRModel", "SEIRctModel", "SEISModel", "SEISctModel", "SVEIRModel",
+            "SWIRModel"
+        },
+        "Threshold and Cascade Models": {
+            "ThresholdModel", "GeneralThresholdModel", "GeneralisedThresholdModel",
+            "KerteszThresholdModel", "ProfileModel", "ProfileThresholdModel",
+            "IndependentCascadesModel", "ForestFireModel", "UTLDRModel"
+        },
+        "Community-Based Models": {"ICEModel", "ICPModel", "ICEPModel"},
+    }
+    epidemic_group_rank = {name: rank for name, rank in epidemic_group_order.items()}
+    opinion_display_names = {
+        "AlgorithmicBiasModel": "Algorithmic Bias",
+        "AlgorithmicBiasMediaModel": "Algorithmic Bias and Media",
+        "ARWHKModel": "Attraction-Repulsion WHK",
+        "FJModel": "Friedkin-Johnsen",
+        "HKModel": "Hegselmann-Krause",
+        "WHKModel": "Weighted HK",
+        "AltafiniModel": "Altafini",
+        "CognitiveOpDynModel": "Cognitive Opinion Dynamics",
+        "MajorityRuleModel": "Majority Rule",
+        "QVoterModel": "Q-Voter",
+        "SznajdModel": "Sznajd",
+        "VoterModel": "Voter",
+        "VoterZealotModel": "Voter with Zealots",
+        "NLSModel": "Nowak-Lewenstein-Szamrej",
+    }
+    opinion_group_order = {
+        "Continuous Opinion Models": 10,
+        "Discrete Opinion Models": 20,
+        "Other Opinion Models": 30,
+    }
+    opinion_group_map = {
+        "Continuous Opinion Models": {
+            "AlgorithmicBiasModel", "AlgorithmicBiasMediaModel", "ARWHKModel",
+            "FJModel", "HKModel", "WHKModel", "AltafiniModel", "CognitiveOpDynModel"
+        },
+        "Discrete Opinion Models": {
+            "MajorityRuleModel", "QVoterModel", "SznajdModel", "VoterModel",
+            "VoterZealotModel", "NLSModel"
+        },
+        "Other Opinion Models": set(),
+    }
+    opinion_group_rank = {name: rank for name, rank in opinion_group_order.items()}
     
     # Discover epidemics models
     for name, obj in inspect.getmembers(epd, inspect.isclass):
@@ -508,6 +1956,16 @@ def discover_models():
                     display_name = "Community Permeability (Embeddedness)"
                 elif class_name == "ICPModel":
                     display_name = "Community Permeability"
+                elif class_name in epidemic_display_names:
+                    display_name = epidemic_display_names[class_name]
+
+                display_group = None
+                display_order = 999
+                for group_name, group_members in epidemic_group_map.items():
+                    if class_name in group_members:
+                        display_group = group_name
+                        display_order = epidemic_group_rank.get(group_name, 999)
+                        break
 
                 models[name] = {
                     "category": "Epidemics",
@@ -515,7 +1973,9 @@ def discover_models():
                     "class_name": class_name,
                     "parameters": model_instance.parameters,
                     "statuses": model_instance.available_statuses,
-                    "discrete_state": getattr(model_instance, "discrete_state", True)
+                    "discrete_state": getattr(model_instance, "discrete_state", True),
+                    "display_group": display_group or "Other Epidemic Models",
+                    "display_order": display_order,
                 }
                 if class_name in COMMUNITY_ASSIGNMENT_MODELS:
                     models[name]["requires_community_assignment"] = True
@@ -533,16 +1993,66 @@ def discover_models():
             g.add_node(0)
             model_instance = obj(g)
             if hasattr(model_instance, "available_statuses"):
+                display_name = getattr(model_instance, "name", name)
+                if name in opinion_display_names:
+                    display_name = opinion_display_names[name]
+
+                display_group = None
+                display_order = 999
+                for group_name, group_members in opinion_group_map.items():
+                    if name in group_members:
+                        display_group = group_name
+                        display_order = opinion_group_rank.get(group_name, 999)
+                        break
+
                 models[name] = {
                     "category": "Opinions",
-                    "name": getattr(model_instance, "name", name),
+                    "name": display_name,
                     "class_name": name,
                     "parameters": model_instance.parameters,
                     "statuses": model_instance.available_statuses,
-                    "discrete_state": getattr(model_instance, "discrete_state", True)
+                    "discrete_state": getattr(model_instance, "discrete_state", True),
+                    "display_group": display_group or "Other Opinion Models",
+                    "display_order": display_order,
                 }
         except Exception:
             pass
+
+    # Discover custom models from the custom_models package
+    custom_dir = os.path.join(os.path.dirname(__file__), "custom_models")
+    if os.path.exists(custom_dir):
+        if custom_dir not in sys.path:
+            sys.path.insert(0, os.path.dirname(custom_dir))
+
+        for f_name in os.listdir(custom_dir):
+            if f_name.endswith(".py") and not f_name.startswith("__"):
+                module_name = f_name[:-3]
+                try:
+                    full_module_name = "ndlib.dashboard.custom_models.%s" % module_name
+                    if full_module_name in sys.modules:
+                        importlib.reload(sys.modules[full_module_name])
+                        mod = sys.modules[full_module_name]
+                    else:
+                        mod = importlib.import_module(full_module_name)
+                    
+                    for name, obj in inspect.getmembers(mod, inspect.isclass):
+                        if name == module_name:
+                            g = nx.Graph()
+                            g.add_node(0)
+                            model_instance = obj(g)
+                            models[name] = {
+                                "category": "Custom Models",
+                                "name": getattr(model_instance, "name", name),
+                                "class_name": name,
+                                "parameters": model_instance.parameters,
+                                "statuses": model_instance.available_statuses,
+                                "discrete_state": getattr(model_instance, "discrete_state", True),
+                                "is_custom": True
+                            }
+                except Exception as e:
+                    print("Warning: failed to load custom model %s: %s" % (module_name, str(e)))
+                    pass
+
     return sanitize_for_json(models)
 
 
@@ -574,6 +2084,72 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                     self.wfile.write(json.dumps(models).encode("utf-8"))
                 except Exception as e:
                     self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+                return
+
+            if self.path == "/api/custom-models":
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                try:
+                    custom_dir = os.path.join(os.path.dirname(__file__), "custom_models")
+                    models_meta = []
+                    if os.path.exists(custom_dir):
+                        for f_name in os.listdir(custom_dir):
+                            if f_name.endswith(".json"):
+                                with open(os.path.join(custom_dir, f_name), "r") as f:
+                                    models_meta.append(json.load(f))
+                    self.wfile.write(json.dumps(models_meta).encode("utf-8"))
+                except Exception as e:
+                    self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+                return
+
+            if self.path == "/api/block-schema":
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                try:
+                    payload = {
+                        "families": [
+                            {
+                                "key": key,
+                                "label": family["label"],
+                                "types": list(family["types"]),
+                            }
+                            for key, family in BLOCK_FAMILIES.items()
+                        ],
+                        "blocks": BLOCK_SCHEMA_REGISTRY,
+                    }
+                    self.wfile.write(json.dumps(payload).encode("utf-8"))
+                except Exception as e:
+                    self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+                return
+
+            if self.path.startswith("/api/custom-models/download"):
+                parsed = urlparse(self.path)
+                query = parse_qs(parsed.query)
+                model_name = query.get("name", [""])[0]
+                safe_name = sanitize_model_name(model_name)
+                if not safe_name:
+                    raise ValueError("Model name is required")
+
+                custom_dir = os.path.join(os.path.dirname(__file__), "custom_models")
+                py_path = os.path.join(custom_dir, safe_name + ".py")
+                if not os.path.exists(py_path):
+                    self.send_response(404)
+                    self.send_header("Content-type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "Python file not found"}).encode("utf-8"))
+                    return
+
+                with open(py_path, "rb") as f:
+                    py_bytes = f.read()
+
+                self.send_response(200)
+                self.send_header("Content-type", "text/x-python; charset=utf-8")
+                self.send_header("Content-Disposition", 'attachment; filename="%s.py"' % safe_name)
+                self.send_header("Content-Length", str(len(py_bytes)))
+                self.end_headers()
+                self.wfile.write(py_bytes)
                 return
 
             # Serve static files
@@ -623,6 +2199,105 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 pass
 
     def do_POST(self):
+        if self.path == "/api/custom-models/save":
+            content_length = int(self.headers["Content-Length"])
+            post_data = self.rfile.read(content_length)
+            payload = json.loads(post_data.decode("utf-8"))
+
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+
+            try:
+                model_name = payload.get("name")
+                if not model_name:
+                    raise ValueError("Model name is required")
+
+                safe_name = sanitize_model_name(model_name)
+                if not safe_name:
+                    raise ValueError("Invalid model name")
+
+                validation_results = validate_model_payload(payload)
+                validation_errors = [issue for issue in validation_results if issue.get("severity") == "error"]
+                validation_warnings = [issue for issue in validation_results if issue.get("severity") == "warning"]
+                if validation_errors:
+                    self.wfile.write(json.dumps({
+                        "error": "Validation failed",
+                        "validation_errors": validation_errors,
+                        "validation_warnings": validation_warnings,
+                    }).encode("utf-8"))
+                    return
+
+                custom_dir = os.path.join(os.path.dirname(__file__), "custom_models")
+                if not os.path.exists(custom_dir):
+                    os.makedirs(custom_dir)
+
+                # Save visual layout JSON
+                json_path = os.path.join(custom_dir, safe_name + ".json")
+                with open(json_path, "w") as f:
+                    json.dump(payload, f, indent=4)
+
+                # Generate NDQL query
+                ndql_query = generate_ndql_script(payload)
+                ndql_path = os.path.join(custom_dir, safe_name + ".ndql")
+                with open(ndql_path, "w") as f:
+                    f.write(ndql_query)
+
+                # Generate Python class code
+                class_code = generate_custom_model_class(payload)
+                py_path = os.path.join(custom_dir, safe_name + ".py")
+                with open(py_path, "w") as f:
+                    f.write(class_code)
+
+                # Force dynamic import / reload
+                full_module_name = "ndlib.dashboard.custom_models.%s" % safe_name
+                if full_module_name in sys.modules:
+                    importlib.reload(sys.modules[full_module_name])
+                else:
+                    importlib.import_module(full_module_name)
+
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "model_name": model_name,
+                    "safe_name": safe_name,
+                    "python_filename": "%s.py" % safe_name,
+                    "download_url": "/api/custom-models/download?name=%s" % safe_name
+                }).encode("utf-8"))
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+            return
+
+        elif self.path == "/api/custom-models/delete":
+            content_length = int(self.headers["Content-Length"])
+            post_data = self.rfile.read(content_length)
+            payload = json.loads(post_data.decode("utf-8"))
+            model_name = payload.get("name")
+            
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            
+            try:
+                if not model_name:
+                    raise ValueError("Model name is required")
+                custom_dir = os.path.join(os.path.dirname(__file__), "custom_models")
+                safe_name = sanitize_model_name(model_name)
+                for ext in [".json", ".ndql", ".py"]:
+                    f_path = os.path.join(custom_dir, safe_name + ext)
+                    if os.path.exists(f_path):
+                        os.remove(f_path)
+                
+                mod_name = "ndlib.dashboard.custom_models.%s" % safe_name
+                if mod_name in sys.modules:
+                    del sys.modules[mod_name]
+                    
+                self.wfile.write(json.dumps({"success": True}).encode("utf-8"))
+            except Exception as e:
+                self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+            return
+
         if self.path in {"/api/network", "/api/simulate"}:
             content_length = int(self.headers["Content-Length"])
             post_data = self.rfile.read(content_length)
@@ -671,6 +2346,8 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                     for node_id in payload.get("selected_seed_nodes", [])
                     if node_id is not None and str(node_id) != ""
                 ]
+                initial_status_percentages = model_params.get("initial_status_percentages", {})
+                zealot_percentage = model_params.get("zealot_percentage", None)
                 community_detection_algorithm = model_params.get(
                     "community_detection_algorithm",
                     getattr(model_instance, "community_detection_default", "louvain_communities"),
@@ -678,7 +2355,12 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 community_detection_k = model_params.get("community_detection_k", 2)
 
                 for param, val in model_params.items():
-                    if param in {"community_detection_algorithm", "community_detection_k"}:
+                    if param in {
+                        "community_detection_algorithm",
+                        "community_detection_k",
+                        "initial_status_percentages",
+                        "zealot_percentage",
+                    }:
                         continue
 
                     # Handle typing
@@ -707,6 +2389,19 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                         for e in g.edges():
                             cfg.add_edge_configuration(param, e, val)
 
+                if category == "Opinions" and getattr(model_instance, "discrete_state", True):
+                    if isinstance(initial_status_percentages, dict) and initial_status_percentages:
+                        assignment = build_initial_status_assignment(
+                            g,
+                            model_instance.available_statuses,
+                            initial_status_percentages,
+                        )
+                        grouped_nodes = {}
+                        for node, status_name in assignment.items():
+                            grouped_nodes.setdefault(status_name, []).append(node)
+                        for status_name, nodes in grouped_nodes.items():
+                            cfg.add_model_initial_configuration(status_name, nodes)
+
                 # Apply initial infection state if provided and relevant
                 if (
                     "fraction_infected" in model_instance.parameters["model"]
@@ -719,6 +2414,22 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                     infected_nodes = [node for node in selected_seed_nodes if node in g.nodes()]
                     if infected_nodes:
                         cfg.add_model_initial_configuration("Infected", infected_nodes)
+                elif model_class_name == "VoterZealotModel":
+                    zealot_nodes = [node for node in selected_seed_nodes if node in g.nodes()]
+                    if not zealot_nodes and zealot_percentage is not None:
+                        try:
+                            zealot_fraction = max(0.0, min(100.0, float(zealot_percentage))) / 100.0
+                        except (TypeError, ValueError):
+                            zealot_fraction = 0.0
+                        num_zealots = int(round(g.number_of_nodes() * zealot_fraction))
+                        if zealot_fraction > 0 and num_zealots == 0:
+                            num_zealots = 1
+                        num_zealots = min(g.number_of_nodes(), max(0, num_zealots))
+                        if num_zealots > 0:
+                            zealot_nodes = list(np.random.choice(list(g.nodes()), num_zealots, replace=False))
+                    if zealot_nodes:
+                        for node in g.nodes():
+                            cfg.add_node_configuration("zealot", node, 1 if node in zealot_nodes else 0)
 
                 # Community-based models need node communities assigned.
                 if needs_community_assignment(model_instance):
@@ -760,8 +2471,9 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                             status_delta, model_instance.available_statuses
                         )
 
+                    iteration_id = int(it.get("iteration", len(formatted_iterations)))
                     formatted_iterations.append({
-                        "iteration": int(it["iteration"]),
+                        "iteration": iteration_id,
                         "status": {
                             str(k): (
                                 float(v) if isinstance(v, (float, np.floating)) else int(v)
@@ -773,12 +2485,17 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                     })
 
                 discrete_state = getattr(model_instance, "discrete_state", True)
+                absolute_status_history = build_absolute_status_history(
+                    formatted_iterations,
+                    graph_meta.get("nodes", []),
+                )
                 response = {
                     "iterations": formatted_iterations,
                     **graph_meta,
                     "statuses": model_instance.available_statuses,
                     "discrete_state": discrete_state,
-                    "is_continuous": not discrete_state
+                    "is_continuous": not discrete_state,
+                    "absolute_status_history": absolute_status_history,
                 }
                 self.wfile.write(json.dumps(response).encode("utf-8"))
 
@@ -807,7 +2524,7 @@ def main():
         PORT = find_free_port()
 
     server_address = ("127.0.0.1", PORT)
-    httpd = http.server.HTTPServer(server_address, DashboardRequestHandler)
+    httpd = http.server.ThreadingHTTPServer(server_address, DashboardRequestHandler)
     print("==================================================")
     print("  NDlib Interactive Dashboard Server running")
     print("  URL: http://127.0.0.1:%s" % PORT)

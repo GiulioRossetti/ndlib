@@ -6,8 +6,8 @@ __email__ = "giulio.rossetti@gmail.com"
 
 
 class ConditionalComposition(Compartiment):
-    def __init__(self, condition, first_branch, second_branch, **kwargs):
-        super(self.__class__, self).__init__(kwargs)
+    def __init__(self, condition=None, first_branch=None, second_branch=None, **kwargs):
+        super(ConditionalComposition, self).__init__(kwargs)
         if (
             not isinstance(condition, Compartiment)
             or not isinstance(first_branch, Compartiment)

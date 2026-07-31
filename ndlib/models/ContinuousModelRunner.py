@@ -2,8 +2,12 @@
 # - Parallel execution
 # - Add sensitivity analysis options
 
-from SALib.sample import sobol as sobol_sample
-from SALib.analyze import sobol
+try:
+    from SALib.sample import sobol as sobol_sample
+    from SALib.analyze import sobol
+except ImportError:  # pragma: no cover - optional dependency
+    sobol_sample = None
+    sobol = None
 from ndlib.models.compartments.enums.SAType import SAType
 import numpy as np
 
@@ -53,6 +57,10 @@ class ContinuousModelRunner(object):
 
         :return: a Python dict mapping state to a dictionary with the keys "S1", "S2", "ST", "S1_conf", "S2_conf", and "ST_conf"
         """
+        if sobol_sample is None or sobol is None:
+            raise ImportError(
+                "SALib is required for sensitivity analysis. Install SALib to use ContinuousModelRunner.analyze_sensitivity()."
+            )
         if not self.model.constants:
             raise Exception(
                 "Please add constants when initializing the model to perform sensitivity analysis on"

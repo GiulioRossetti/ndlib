@@ -18,14 +18,10 @@ Statuses
 
 During the simulation a node can experience the following statuses:
 
-===========  ====
-Name         Code
-===========  ====
-Susceptible  0
-Asymptomatic 1
-Infected     2
-Removed      3
-===========  ====
+* **Susceptible**: ``0``
+* **Asymptomatic**: ``1``
+* **Infected**: ``2``
+* **Removed**: ``3``
 
 ----------
 Parameters
