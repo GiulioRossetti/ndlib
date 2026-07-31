@@ -44,15 +44,13 @@ NDlib Dev Team
    :hidden:
 
    overview.rst
-   dashboard.rst
-   download.rst
    installing.rst
    tutorial.rst
    reference/reference.rst
    custom/custom.rst
    ndql/index.rst
+   dashboard.rst
    developer/developer.rst
-   bibliography.rst
 
 
 .. _`Giulio Rossetti`: http://www.about.giuliorossetti.net

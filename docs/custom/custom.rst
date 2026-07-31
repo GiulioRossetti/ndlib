@@ -6,6 +6,11 @@ Custom Model Definition
 
 In order to answer such question we developed a syntax for compositional model definition.
 
+This section presents the Python building blocks used to assemble custom models
+programmatically. The original low-level compartment pages remain available
+below, and the newer pages collect the higher-level blocks used directly in
+Python custom-model pipelines.
+
 =========
 Rationale
 =========
@@ -29,7 +34,8 @@ The last step of such process can be easily decomposed into atomic operations th
 
 	- ``ContinuousModel`` describes diffusion models with continuous states for static and dynamic networks
 
-    To avoid redundant documentation, here we will discuss only the former class, the second behaving alike. The ``ContinuousModel`` class will have a seperate section due to its extra complexity.
+    To avoid redundant documentation, here we focus on the common custom-model
+    pipeline and then highlight the continuous-state variant separately.
 
 ============
 Compartments
@@ -40,7 +46,8 @@ The execution of a ``compartment`` can return either *True* (condition satisfied
 
 Indeed, several compartments can be described, each one of them capturing an atomic operation.
 
-To cover the main scenarios we defined three families of compartments as well as some operations to combine them.
+To cover the main scenarios we defined three families of low-level compartments
+as well as some operations to combine them.
 
 -----------------
 Node Compartments
@@ -108,6 +115,20 @@ Compartments can be combined following two criteria:
 
 A rule can be defined by employing all possible combinations of cascading and conditional compartment composition.
 
+Python blocks
+=============
+
+The newer custom-model pipeline also exposes a broader set of Python blocks.
+These are the higher-level blocks used when composing models directly in code.
+
+.. toctree::
+   :maxdepth: 1
+
+   compartments/core_blocks.rst
+   compartments/epidemic_blocks.rst
+   compartments/opinion_blocks.rst
+   compartments/hybrid_utility_blocks.rst
+
 ========
 Examples
 ========
@@ -153,24 +174,14 @@ SIR
     iterations = model.iteration_bunch(5)
 
 
-For other examples, give a look to the following list of CustomModels:
-
+For other examples, give a look to the following list of CustomModels and
+block-based model walkthroughs:
 
 .. toctree::
    :maxdepth: 1
 
    compartments/Halloween2021.rst
-
-
-
-=======================
-Using continuous states
-=======================
-
-The composite model only supports discrete states, but more advanced custom models might require continuous states and more options.
-If continuous states are required, it might be better to use the continous model implementation.
-
-.. toctree::
-   :maxdepth: 2
-
-   continuous_model/continuous_model.rst
+   examples/core_utility_model.rst
+   examples/epidemic_model.rst
+   examples/opinion_model.rst
+   examples/hybrid_model.rst

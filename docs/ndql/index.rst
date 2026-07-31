@@ -1,6 +1,6 @@
-*******************************
-NDQL Complete User Guide
-*******************************
+***************
+NDQL User Guide
+***************
 
 This section is the current user-facing manual for NDQL, the Network Diffusion Query Language used by the NDlib dashboard and visual model builder.
 
