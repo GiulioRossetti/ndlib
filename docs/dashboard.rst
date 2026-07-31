@@ -180,5 +180,4 @@ Notes
 
 The dashboard is a lightweight local service and is meant to complement, not replace, the Python API and the documented visualization modules.
 
-For the full implementation-oriented builder guide, see ``docs/visual_model_builder_opinion_epidemic_guide.md``.
 For the full NDQL user manual, see :doc:`ndql/index`.
