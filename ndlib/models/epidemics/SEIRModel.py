@@ -63,38 +63,98 @@ class SEIRModel(DiffusionModel):
                     "node_count": node_count.copy(),
                     "status_delta": status_delta.copy(),
                 }
+        legacy = False
+        if legacy:
+            for u in self.graph.nodes:
 
-        for u in self.graph.nodes:
+                u_status = self.status[u]
+                eventp = np.random.random_sample()
+                neighbors = self.graph.neighbors(u)
+                if self.graph.directed:
+                    neighbors = self.graph.predecessors(u)
 
-            u_status = self.status[u]
-            eventp = np.random.random_sample()
-            neighbors = self.graph.neighbors(u)
+                if u_status == 0:  # Susceptible
+
+                    infected_neighbors = [v for v in neighbors if self.status[v] == 1]
+                    triggered = 1 if len(infected_neighbors) > 0 else 0
+
+                    if self.params["model"]["tp_rate"] == 1:
+                        if eventp < 1 - (1 - self.params["model"]["beta"]) ** len(
+                            infected_neighbors
+                        ):
+                            actual_status[u] = 2  # Exposed
+                    else:
+                        if eventp < self.params["model"]["beta"] * triggered:
+                            actual_status[u] = 2  # Exposed
+
+                elif u_status == 2:
+
+                    # apply prob. of infection, after (t - t_i)
+                    if eventp < self.params["model"]["alpha"]:
+                        actual_status[u] = 1  # Infected
+
+                elif u_status == 1:
+                    if eventp < self.params["model"]["gamma"]:
+                        actual_status[u] = 3  # Removed
+        else:
+
+            has_weights = self.graph_has_weights
+            beta = self.params["model"]["beta"]
+            alpha = self.params["model"]["alpha"]
+            gamma = self.params["model"]["gamma"]
+            use_tp = self.params["model"]["tp_rate"] == 1
+            actual_status = self.status.copy()  # Assuming `actual_status` starts as a copy of `self.status`.
+
+            # Pre-fetch edge weights if needed
+            all_weights = self.graph.get_edge_attributes("weight") if has_weights else None
+
+            # Precompute neighbors for all nodes
             if self.graph.directed:
-                neighbors = self.graph.predecessors(u)
+                neighbors_dict = {u: list(self.graph.predecessors(u)) for u in self.graph.nodes}
+            else:
+                neighbors_dict = {u: list(self.graph.neighbors(u)) for u in self.graph.nodes}
 
-            if u_status == 0:  # Susceptible
+            # Precompute random numbers for all nodes
+            random_numbers = np.random.random_sample(len(self.graph.nodes))
 
-                infected_neighbors = [v for v in neighbors if self.status[v] == 1]
-                triggered = 1 if len(infected_neighbors) > 0 else 0
+            for idx, u in enumerate(self.graph.nodes):
+                u_status = self.status[u]
+                eventp = random_numbers[idx]
 
-                if self.params["model"]["tp_rate"] == 1:
-                    if eventp < 1 - (1 - self.params["model"]["beta"]) ** len(
-                        infected_neighbors
-                    ):
+                if u_status == 0:  # Susceptible
+                    # Get neighbors depending on graph type
+                    neighbors = neighbors_dict[u]
+
+                    # Find infected neighbors
+                    infected_neighbors = [v for v in neighbors if self.status[v] == 1]
+                    if not infected_neighbors:
+                        continue  # Skip if no infected neighbors
+
+                    # Compute infection probability
+                    if use_tp:
+                        if has_weights:
+                            # Weighted sum of neighbor infections
+                            total_weight = sum(all_weights.get((v, u), 1.0) for v in infected_neighbors)
+                            infection_prob = 1 - (1 - beta) ** total_weight
+                        else:
+                            # Use count of infected neighbors
+                            infection_prob = 1 - (1 - beta) ** len(infected_neighbors)
+                    else:
+                        infection_prob = beta
+
+                    # Update to Exposed if infection occurs
+                    if eventp < infection_prob:
                         actual_status[u] = 2  # Exposed
-                else:
-                    if eventp < self.params["model"]["beta"] * triggered:
-                        actual_status[u] = 2  # Exposed
 
-            elif u_status == 2:
+                elif u_status == 2:  # Exposed
+                    # Check for progression to Infected
+                    if eventp < alpha:
+                        actual_status[u] = 1  # Infected
 
-                # apply prob. of infection, after (t - t_i)
-                if eventp < self.params["model"]["alpha"]:
-                    actual_status[u] = 1  # Infected
-
-            elif u_status == 1:
-                if eventp < self.params["model"]["gamma"]:
-                    actual_status[u] = 3  # Removed
+                elif u_status == 1:  # Infected
+                    # Check for progression to Removed
+                    if eventp < gamma:
+                        actual_status[u] = 3  # Removed
 
         delta, node_count, status_delta = self.status_delta(actual_status)
         self.status = actual_status

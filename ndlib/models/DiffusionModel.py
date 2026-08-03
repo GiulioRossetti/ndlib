@@ -1,6 +1,7 @@
 import abc
 import warnings
 import numpy as np
+import networkx as nx
 import past.builtins
 import future.utils
 import six
@@ -49,6 +50,7 @@ class DiffusionModel(object):
         self.parameters = {"model": {}, "nodes": {}, "edges": {}}
 
         self.actual_iteration = 0
+        self.graph_has_weights = nx.is_weighted(graph)
         self.graph = AGraph(graph)
         self.status = {n: 0 for n in self.graph.nodes}
         self.initial_status = {}

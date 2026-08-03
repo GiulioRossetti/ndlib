@@ -77,29 +77,58 @@ class SIRModel(DiffusionModel):
                     "status_delta": status_delta.copy(),
                 }
 
+        # Pre-fetch model parameters
+        beta = self.params["model"]["beta"]
+        gamma = self.params["model"]["gamma"]
+        use_tp = self.params["model"]["tp_rate"] == 1
+        has_weights = self.graph_has_weights
+        actual_status = self.status.copy()
+
+        # Pre-fetch edge weights if needed
+        all_weights = self.graph.get_edge_attributes("weight") if has_weights else None
+
+        # Precompute neighbors for all nodes
+        if self.graph.directed:
+            neighbors_dict = {u: list(self.graph.successors(u)) for u in self.graph.nodes}
+        else:
+            neighbors_dict = {u: list(self.graph.neighbors(u)) for u in self.graph.nodes}
+
+        # Precompute random numbers for each susceptible neighbor and recovery events
+        num_events = sum(len(neighbors_dict[u]) for u in self.active if self.status[u] == 1)
+        random_numbers = np.random.random_sample(num_events + len(self.active))
+        random_idx = 0  # Pointer to track random number usage
+
+        # Process active infected nodes
         for u in self.active:
+            if self.status[u] != 1:  # Skip non-infected nodes
+                continue
 
-            u_status = self.status[u]
+            # Get precomputed neighbors
+            neighbors = neighbors_dict[u]
+            susceptible_neighbors = [v for v in neighbors if self.status[v] == 0]
 
-            if u_status == 1:
+            # Try to infect each susceptible neighbor
+            for v in susceptible_neighbors:
+                eventp = random_numbers[random_idx]  # Use precomputed random number
+                random_idx += 1
 
-                if self.graph.directed:
-                    susceptible_neighbors = [
-                        v for v in self.graph.successors(u) if self.status[v] == 0
-                    ]
+                if use_tp and has_weights:
+                    # Get edge weight
+                    edge_weight = all_weights[(u, v)]  # Use (u, v) since u infects v
+                    infection_prob = 1 - (1 - beta) ** edge_weight
                 else:
-                    susceptible_neighbors = [
-                        v for v in self.graph.neighbors(u) if self.status[v] == 0
-                    ]
-                for v in susceptible_neighbors:
-                    eventp = np.random.random_sample()
-                    if eventp < self.params["model"]["beta"]:
-                        actual_status[v] = 1
+                    infection_prob = beta  # Simple infection process
 
-                eventp = np.random.random_sample()
-                if eventp < self.params["model"]["gamma"]:
-                    actual_status[u] = 2
+                if eventp < infection_prob:
+                    actual_status[v] = 1
 
+            # Check if infected node recovers
+            recovery_event = random_numbers[random_idx]  # Use precomputed random number
+            random_idx += 1
+
+            if recovery_event < gamma:
+                actual_status[u] = 2
+    
         delta, node_count, status_delta = self.status_delta(actual_status)
         self.status = actual_status
         self.actual_iteration += 1
