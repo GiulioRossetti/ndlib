@@ -325,6 +325,26 @@ class NdlibTest(unittest.TestCase):
             iterations = model.iteration_bunch(10, node_status=False)
             self.assertEqual(len(iterations), 10)
 
+    def test_deffuant_model(self):
+        for g in get_graph():
+            model = opn.DeffuantModel(g)
+            config = mc.Configuration()
+            config.add_model_parameter("epsilon", 0.3)
+            config.add_model_parameter("mu", 0.5)
+
+            model.set_initial_status(config)
+
+            iterations = model.iteration_bunch(10)
+            self.assertEqual(len(iterations), 10)
+
+            # Verify opinions remain in [0, 1]
+            for node, opinion in model.status.items():
+                self.assertGreaterEqual(opinion, 0.0)
+                self.assertLessEqual(opinion, 1.0)
+
+            iterations = model.iteration_bunch(10, node_status=False)
+            self.assertEqual(len(iterations), 10)
+
     def test_arwhk_model(self):
         for g in get_graph():
             model = opn.ARWHKModel(g)

@@ -20,3 +20,4 @@ from .FJModel import FJModel
 from .AltafiniModel import AltafiniModel
 from .VoterZealotModel import VoterZealotModel
 from .NLSModel import NLSModel
+from .DeffuantModel import DeffuantModel
