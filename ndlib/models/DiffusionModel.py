@@ -196,12 +196,17 @@ class DiffusionModel(object):
             self.params["nodes"][param] = node_to_value
 
         edges_cfg = configuration.get_edges_configuration()
-        # Set additional edges information
+        # Set additional edges information. On undirected graphs a value may be
+        # given for (u, v), for (v, u) or for both (one per direction).
         for param, edge_to_values in future.utils.iteritems(edges_cfg):
-            if len(edge_to_values) == len(self.graph.edges):
+            if self._covers_all_edges(edge_to_values):
                 self.params["edges"][param] = {}
                 for e in edge_to_values:
                     self.params["edges"][param][e] = edge_to_values[e]
+            else:
+                warnings.warn(
+                    "Edge parameter '%s' is not set for every edge, so it is ignored" % param
+                )
 
         # Set initial status
         model_status = configuration.get_model_configuration()
@@ -241,6 +246,16 @@ class DiffusionModel(object):
                     self.status[k] = self.available_statuses["Infected"]
 
         self.initial_status = self.status
+
+    def _covers_all_edges(self, edge_to_values):
+        """True if every graph edge has a value, in either orientation when undirected."""
+        for u, v in self.graph.edges:
+            if (u, v) in edge_to_values:
+                continue
+            if not self.graph.directed and (v, u) in edge_to_values:
+                continue
+            return False
+        return True
 
     def clean_initial_status(self, valid_status=None):
         """
