@@ -148,6 +148,7 @@ The ``ndlib.utils`` module contains facilities that extend the simulation framew
    :maxdepth: 1
 
    utils/multiple_run.rst
+   utils/node_selection.rst
 
 =============
 Visualization
